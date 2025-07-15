@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Auto-notify Wholesalers",
+  "description": "Automatically send email notifications to wholesalers when orders are paid",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "models/Order.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check for any orders with status 'paid' or 'processing' where wholesaler notifications haven't been sent yet (wholesaler.notified = false). For each order that needs notification:\n1. Extract wholesaler email and product codes from order items\n2. Generate a professional email notification including:\n   - Order number and date\n   - Customer shipping address (firstName, lastName, street, city, state, zipCode)\n   - Product details with wholesaler product codes and quantities\n   - Any special notes from the order\n3. Send email using nodemailer with existing environment configuration\n4. Update each order item to set wholesaler.notified = true and wholesaler.notifiedAt = current date\n5. Log the notification status\nUse the existing Order model methods and nodemailer setup. Handle errors gracefully and report success/failure for each notification."
+  }
+}

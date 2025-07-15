@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Environment Validator",
+  "description": "Validate environment configuration for security and completeness",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".env",
+      ".env.example"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "When environment files are modified, validate the configuration:\n1. Check that all required variables from .env.example are present in .env\n2. Validate format and security of:\n   - MONGODB_URI (proper MongoDB connection string)\n   - JWT_SECRET (minimum 32 characters, not default value)\n   - Email configuration (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS)\n   - Mollie API keys (proper format, not placeholder values)\n   - ALLOWED_ORIGINS (valid URLs, proper comma separation)\n   - PORT (valid number)\n3. Security checks:\n   - No default/placeholder values in production\n   - JWT_SECRET is sufficiently complex\n   - No sensitive data exposed in comments\n   - Proper email credentials format\n4. Provide clear recommendations for any issues found\n5. Warn about missing critical variables that could break the application\nReference our tech stack requirements security practices."
+  }
+}

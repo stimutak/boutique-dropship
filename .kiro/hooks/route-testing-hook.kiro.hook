@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Route Testing",
+  "description": "Run tests for modified API endpoints to ensure reliability",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "routes/*.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "When route files are modified, analyze and test the changed endpoints:\n1. Identify which endpoints were added/modified in the saved file\n2. For each endpoint, verify:\n   - Proper error handling with appropriate HTTP status codes\n   - Input validation using express-validator\n   - Authentication middleware where required\n   - Response format consistency (JSON structure)\n   - Rate limiting compliance\n3. Test common scenarios:\n   - Valid requests with expected responses\n   - Invalid input handling\n   - Authentication failures\n   - Missing required fields\n   - Edge cases (empty arrays, null values)\n4. Check adherence to our API patterns:\n   - RESTful endpoint structure (/api/ prefix)\n   - Consistent error response format\n   - Proper use of HTTP methods (GET, POST, PUT, DELETE)\n   - JWT middleware for protected routes\n5. Report any issues found and suggest specific fixes\n6. Validate against our Express.js and security patterns from steering docs\nFocus on maintaining API reliability and security standards."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Product SEO Optimizer",
+  "description": "Auto-generate SEO metadata for products based on spiritual properties",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "models/Product.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "For products missing SEO data or recently updated products:\n1. Generate SEO title (50-60 characters) incorporating:\n   - Product name\n   - Primary category (crystals, herbs, oils, etc.)\n   - Key spiritual properties (chakra, element, zodiac)\n   - Example: \"Rose Quartz Crystal - Heart Chakra Healing Stone for Love\"\n2. Create meta description (150-160 characters) highlighting:\n   - Product benefits and spiritual properties\n   - Category and healing attributes\n   - Call to action\n   - Example: \"Discover our premium Rose Quartz crystal for heart chakra healing. Perfect for love, compassion, and emotional balance. Shop authentic crystals now.\"\n3. Generate 5-8 relevant keywords from:\n   - Category and existing tags\n   - Spiritual properties (chakra, element, zodiac, healing)\n   - Product name variations\n   - Holistic wellness terms"
+  }
+}

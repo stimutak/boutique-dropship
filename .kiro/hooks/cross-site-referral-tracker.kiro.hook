@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Cross-Site Referral Tracker",
+  "description": "Track and analyze referral effectiveness from sister sites",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "models/Order.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "When orders are created or updated with referralSource data:\n1. Analyze recent orders (last 30 days) with referral sources\n2. Generate analytics report including:\n   - Orders count by referral source (school.example.com, travel.example.com, etc.)\n   - Revenue attribution by source\n   - Most popular products by referral source\n   - Conversion patterns and trends\n   - Average order value by source\n3. Identify optimization opportunities:\n   - Underperforming referral sources\n   - High-converting product categories by source\n   - Seasonal trends in referrals\n   - Suggested product promotions for specific sites\n4. Update cross-site integration tracking:\n   - Maintain referral performance metrics\n   - Flag any integration issues\n   - Suggest content updates for sister sites\n5. Generate actionable recommendations:\n   - Which products to feature on which sister sites\n   - Referral source optimization strategies\n   - Cross-promotion opportunities\nFocus on our multi-site integration strategy and holistic product cross-selling opportunities."
+  }
+}
