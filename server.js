@@ -5,7 +5,12 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const path = require('path');
 require('dotenv').config();
+
+// Import logging and error handling
+const { logger } = require('./utils/logger');
+const { globalErrorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -62,11 +67,15 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/wholesalers', require('./routes/wholesalers'));
 app.use('/api/integration', require('./routes/integration'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/monitoring', require('./routes/monitoring'));
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+// Global error handling middleware (must be last)
+app.use(globalErrorHandler);
 
 // Serve React app in production
 if (process.env.NODE_ENV === 'production') {
@@ -77,5 +86,5 @@ if (process.env.NODE_ENV === 'production') {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`Server running on port ${PORT}`);
 });
