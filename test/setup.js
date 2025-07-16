@@ -1,6 +1,12 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
 
+// Set up test environment variables
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.MOLLIE_API_KEY = 'test_dummy_key';
+process.env.SESSION_SECRET = 'test-session-secret';
+
 let mongod;
 
 beforeAll(async () => {

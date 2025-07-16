@@ -48,6 +48,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
   lastLogin: Date,
   preferences: {
     newsletter: { type: Boolean, default: false },

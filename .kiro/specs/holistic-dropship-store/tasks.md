@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [-] 1. Enhance existing models for dropshipping functionality
+- [x] 1. Enhance existing models for dropshipping functionality
 
   - Update Product model to include wholesaler information and cross-site integration fields
   - Modify Order model to support guest checkout and wholesaler notification tracking
@@ -10,7 +10,7 @@
   - Commit changes to git with descriptive commit message
   - _Requirements: 1.3, 1.4, 5.1, 5.3, 6.1_
 
-- [ ] 2. Implement shopping cart functionality
+- [x] 2. Implement shopping cart functionality
 
   - Create cart routes and middleware for session/user-based cart management
   - Implement add, update, remove, and clear cart operations
@@ -19,7 +19,7 @@
   - Commit cart functionality to git with clear commit message
   - _Requirements: 2.1, 2.2_
 
-- [ ] 3. Build guest checkout system
+- [x] 3. Build guest checkout system
 
   - Create guest checkout routes that collect shipping and contact information
   - Implement guest order creation without requiring user account
@@ -28,7 +28,7 @@
   - Commit guest checkout implementation to git
   - _Requirements: 2.4, 3.1_
 
-- [ ] 4. Enhance user account checkout process
+- [x] 4. Enhance user account checkout process
 
   - Modify existing user routes to support saved addresses and checkout preferences
   - Implement address management (add, edit, delete, set default)
@@ -37,7 +37,7 @@
   - Commit user account enhancements to git
   - _Requirements: 2.5, 3.2, 3.4_
 
-- [ ] 5. Integrate Mollie payment processing
+- [x] 5. Integrate Mollie payment processing
 
   - Install and configure Mollie SDK
   - Create payment routes for creating payments, handling webhooks, and checking status
@@ -47,7 +47,7 @@
   - Commit payment integration to git with security considerations documented
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 6. Build automated wholesaler communication system
+- [x] 6. Build automated wholesaler communication system
 
   - Create wholesaler service for sending order notifications via email
   - Implement order processing workflow that triggers wholesaler notifications
@@ -58,7 +58,7 @@
   - Commit wholesaler automation to git with security documentation
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 7. Implement cross-site integration API
+- [x] 7. Implement cross-site integration API
 
   - Create product linking endpoints for external site integration
   - Add SEO-friendly URLs and metadata for product pages
@@ -68,7 +68,7 @@
   - Commit cross-site integration to git
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
 
-- [ ] 8. Build product catalog and search functionality
+- [x] 8. Build product catalog and search functionality
 
   - Enhance existing product routes with advanced filtering and search
   - Implement category-based product browsing
