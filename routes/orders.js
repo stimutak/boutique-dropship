@@ -49,7 +49,7 @@ const validateGuestCheckout = [
     .withMessage('Valid shipping zip code is required'),
   body('shippingAddress.country')
     .trim()
-    .isLength({ min: 2, max: 2 })
+    .isLength({ min: 2, max: 50 })
     .withMessage('Valid country code is required'),
   body('billingAddress.firstName')
     .trim()
@@ -77,7 +77,7 @@ const validateGuestCheckout = [
     .withMessage('Valid billing zip code is required'),
   body('billingAddress.country')
     .trim()
-    .isLength({ min: 2, max: 2 })
+    .isLength({ min: 2, max: 50 })
     .withMessage('Valid country code is required'),
   body('items')
     .isArray({ min: 1 })
@@ -169,7 +169,7 @@ router.post('/', validateGuestCheckout, async (req, res) => {
       shipping,
       total,
       payment: {
-        method: 'pending', // Will be updated when payment is processed
+        method: 'other', // Will be updated when payment is processed
         status: 'pending'
       },
       status: 'pending',
@@ -178,9 +178,36 @@ router.post('/', validateGuestCheckout, async (req, res) => {
     };
 
     const order = await Order.create(orderData);
+    
+    // Populate product details for email
+    await order.populate('items.product', 'name slug images');
+
+    // Send order confirmation email for guest checkout
+    try {
+      const { sendOrderConfirmation } = require('../utils/emailService');
+      
+      const emailData = {
+        orderNumber: order.orderNumber,
+        customerName: `${guestInfo.firstName} ${guestInfo.lastName}`,
+        items: order.items.map(item => ({
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        total: order.total,
+        shippingAddress: order.shippingAddress
+      };
+
+      const emailResult = await sendOrderConfirmation(guestInfo.email, emailData);
+      if (!emailResult.success) {
+        console.error('Failed to send order confirmation email:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending order confirmation email:', emailError);
+    }
 
     // Clear cart session after successful order creation
-    if (req.session.cart) {
+    if (req.session && req.session.cart) {
       req.session.cart = [];
     }
 
@@ -303,7 +330,7 @@ router.post('/registered', requireAuth, async (req, res) => {
       shipping,
       total,
       payment: {
-        method: 'pending',
+        method: 'other',
         status: 'pending'
       },
       status: 'pending',
@@ -312,9 +339,38 @@ router.post('/registered', requireAuth, async (req, res) => {
     };
 
     const order = await Order.create(orderData);
+    
+    // Populate product details for email
+    await order.populate('items.product', 'name slug images');
+
+    // Send order confirmation email for registered user
+    try {
+      if (req.user.wantsEmail('orderConfirmations')) {
+        const { sendOrderConfirmation } = require('../utils/emailService');
+        
+        const emailData = {
+          orderNumber: order.orderNumber,
+          customerName: `${req.user.firstName} ${req.user.lastName}`,
+          items: order.items.map(item => ({
+            productName: item.product.name,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          total: order.total,
+          shippingAddress: order.shippingAddress
+        };
+
+        const emailResult = await sendOrderConfirmation(req.user.email, emailData);
+        if (!emailResult.success) {
+          console.error('Failed to send order confirmation email:', emailResult.error);
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending order confirmation email:', emailError);
+    }
 
     // Clear cart session
-    if (req.session.cart) {
+    if (req.session && req.session.cart) {
       req.session.cart = [];
     }
 
@@ -423,7 +479,7 @@ router.get('/', requireAuth, async (req, res) => {
 // Update order status (admin only - placeholder for now)
 router.put('/:id/status', async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, trackingNumber } = req.body;
     
     const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) {
@@ -436,11 +492,16 @@ router.put('/:id/status', async (req, res) => {
       });
     }
 
+    const updateData = { status };
+    if (trackingNumber) {
+      updateData.trackingNumber = trackingNumber;
+    }
+
     const order = await Order.findByIdAndUpdate(
       req.params.id,
-      { status },
+      updateData,
       { new: true }
-    );
+    ).populate('customer', 'firstName lastName email preferences');
 
     if (!order) {
       return res.status(404).json({
@@ -452,6 +513,40 @@ router.put('/:id/status', async (req, res) => {
       });
     }
 
+    // Send status update email
+    try {
+      const { sendOrderStatusUpdate } = require('../utils/emailService');
+      
+      let customerEmail, customerName, shouldSendEmail = true;
+      
+      if (order.customer) {
+        // Registered user
+        customerEmail = order.customer.email;
+        customerName = `${order.customer.firstName} ${order.customer.lastName}`;
+        shouldSendEmail = order.customer.preferences?.emailPreferences?.orderUpdates !== false;
+      } else {
+        // Guest user
+        customerEmail = order.guestInfo.email;
+        customerName = `${order.guestInfo.firstName} ${order.guestInfo.lastName}`;
+      }
+
+      if (shouldSendEmail && ['processing', 'shipped', 'delivered'].includes(status)) {
+        const statusData = {
+          orderNumber: order.orderNumber,
+          customerName,
+          status,
+          trackingNumber
+        };
+
+        const emailResult = await sendOrderStatusUpdate(customerEmail, statusData);
+        if (!emailResult.success) {
+          console.error('Failed to send order status update email:', emailResult.error);
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending order status update email:', emailError);
+    }
+
     res.json({
       success: true,
       message: 'Order status updated',
@@ -459,6 +554,7 @@ router.put('/:id/status', async (req, res) => {
         _id: order._id,
         orderNumber: order.orderNumber,
         status: order.status,
+        trackingNumber: order.trackingNumber,
         updatedAt: order.updatedAt
       }
     });

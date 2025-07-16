@@ -169,8 +169,90 @@ router.post('/webhook', async (req, res) => {
     // Log status change
     console.log(`Payment ${paymentId} status changed from ${previousStatus} to ${molliePayment.status} for order ${order.orderNumber}`);
 
-    // TODO: Send confirmation email if payment is successful
-    // TODO: Trigger wholesaler notifications if payment is successful
+    // Send payment receipt and trigger wholesaler notifications if payment is successful
+    if (molliePayment.status === 'paid' && previousStatus !== 'paid') {
+      // Populate customer data for email
+      await order.populate('customer', 'firstName lastName email preferences');
+      
+      try {
+        const { sendPaymentReceipt } = require('../utils/emailService');
+        
+        let customerEmail, customerName, shouldSendEmail = true;
+        
+        if (order.customer) {
+          // Registered user
+          customerEmail = order.customer.email;
+          customerName = `${order.customer.firstName} ${order.customer.lastName}`;
+          shouldSendEmail = order.customer.preferences?.emailPreferences?.paymentReceipts !== false;
+        } else {
+          // Guest user
+          customerEmail = order.guestInfo.email;
+          customerName = `${order.guestInfo.firstName} ${order.guestInfo.lastName}`;
+        }
+
+        if (shouldSendEmail) {
+          const paymentData = {
+            orderNumber: order.orderNumber,
+            customerName,
+            total: order.total,
+            paymentMethod: order.payment.method === 'card' ? 'Credit/Debit Card' : 
+                          order.payment.method === 'crypto' ? 'Cryptocurrency' : 
+                          order.payment.method,
+            transactionId: order.payment.transactionId,
+            paidAt: order.payment.paidAt
+          };
+
+          const emailResult = await sendPaymentReceipt(customerEmail, paymentData);
+          if (!emailResult.success) {
+            console.error('Failed to send payment receipt email:', emailResult.error);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending payment receipt email:', emailError);
+      }
+
+      // Trigger wholesaler notifications
+      try {
+        const { sendWholesalerNotification } = require('../utils/emailService');
+        
+        // Process each item that needs wholesaler notification
+        for (const item of order.items) {
+          if (!item.wholesaler.notified && item.wholesaler.email) {
+            const wholesalerData = {
+              orderNumber: order.orderNumber,
+              orderDate: order.createdAt.toLocaleDateString(),
+              shippingAddress: order.shippingAddress,
+              items: [{
+                wholesaler: item.wholesaler,
+                quantity: item.quantity,
+                productName: item.product?.name || 'Product'
+              }],
+              notes: order.notes
+            };
+
+            const notificationResult = await sendWholesalerNotification(
+              item.wholesaler.email, 
+              wholesalerData
+            );
+
+            // Update notification status
+            await order.updateWholesalerNotification(
+              item._id, 
+              notificationResult.success, 
+              notificationResult.error
+            );
+
+            if (notificationResult.success) {
+              console.log(`Wholesaler notification sent for order ${order.orderNumber}, item ${item._id}`);
+            } else {
+              console.error(`Failed to send wholesaler notification for order ${order.orderNumber}, item ${item._id}:`, notificationResult.error);
+            }
+          }
+        }
+      } catch (wholesalerError) {
+        console.error('Error sending wholesaler notifications:', wholesalerError);
+      }
+    }
 
     res.status(200).send('OK');
 

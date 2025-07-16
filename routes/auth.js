@@ -90,6 +90,25 @@ router.post('/register', validateRegistration, async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
+    // Send welcome email
+    try {
+      if (user.wantsEmail('welcomeEmails')) {
+        const { sendWelcomeEmail } = require('../utils/emailService');
+        
+        const welcomeData = {
+          firstName: user.firstName,
+          email: user.email
+        };
+
+        const emailResult = await sendWelcomeEmail(user.email, welcomeData);
+        if (!emailResult.success) {
+          console.error('Failed to send welcome email:', emailResult.error);
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending welcome email:', emailError);
+    }
+
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
@@ -389,7 +408,7 @@ router.post('/logout', requireAuth, async (req, res) => {
   }
 });
 
-// Password reset request (placeholder - would need email service)
+// Password reset request
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
@@ -412,10 +431,33 @@ router.post('/forgot-password', async (req, res) => {
       message: 'If an account with that email exists, a password reset link has been sent'
     });
 
-    // TODO: Implement actual password reset email sending
-    if (user) {
-      console.log(`Password reset requested for user: ${user.email}`);
-      // Generate reset token and send email
+    // Send password reset email if user exists
+    if (user && user.wantsEmail('welcomeEmails')) {
+      const crypto = require('crypto');
+      const { sendPasswordResetEmail } = require('../utils/emailService');
+      
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+      
+      // Save reset token to user (we need to add these fields to User model)
+      user.passwordResetToken = resetToken;
+      user.passwordResetExpiry = resetTokenExpiry;
+      await user.save();
+      
+      // Create reset URL
+      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+      
+      // Send email
+      const emailResult = await sendPasswordResetEmail(user.email, {
+        firstName: user.firstName,
+        resetToken,
+        resetUrl
+      });
+      
+      if (!emailResult.success) {
+        console.error('Failed to send password reset email:', emailResult.error);
+      }
     }
 
   } catch (error) {
@@ -425,6 +467,148 @@ router.post('/forgot-password', async (req, res) => {
       error: {
         code: 'PASSWORD_RESET_ERROR',
         message: 'Failed to process password reset request'
+      }
+    });
+  }
+});
+
+// Reset password with token
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_FIELDS',
+          message: 'Token and new password are required'
+        }
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_PASSWORD',
+          message: 'Password must be at least 6 characters long'
+        }
+      });
+    }
+
+    // Find user with valid reset token
+    const user = await User.findOne({
+      passwordResetToken: token,
+      passwordResetExpiry: { $gt: new Date() },
+      isActive: true
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid or expired reset token'
+        }
+      });
+    }
+
+    // Update password and clear reset token
+    user.password = newPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpiry = undefined;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully'
+    });
+
+  } catch (error) {
+    console.error('Password reset completion error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'PASSWORD_RESET_COMPLETION_ERROR',
+        message: 'Failed to reset password'
+      }
+    });
+  }
+});
+
+// Get email preferences
+router.get('/email-preferences', requireAuth, async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      preferences: req.user.preferences.emailPreferences
+    });
+  } catch (error) {
+    console.error('Email preferences fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'EMAIL_PREFERENCES_ERROR',
+        message: 'Failed to fetch email preferences'
+      }
+    });
+  }
+});
+
+// Update email preferences
+router.put('/email-preferences', requireAuth, async (req, res) => {
+  try {
+    const { emailPreferences } = req.body;
+    
+    if (!emailPreferences || typeof emailPreferences !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_PREFERENCES',
+          message: 'Valid email preferences object is required'
+        }
+      });
+    }
+
+    // Validate preference keys
+    const validPreferences = [
+      'orderConfirmations',
+      'paymentReceipts', 
+      'orderUpdates',
+      'promotionalEmails',
+      'welcomeEmails'
+    ];
+
+    const invalidKeys = Object.keys(emailPreferences).filter(
+      key => !validPreferences.includes(key)
+    );
+
+    if (invalidKeys.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_PREFERENCE_KEYS',
+          message: `Invalid preference keys: ${invalidKeys.join(', ')}`
+        }
+      });
+    }
+
+    await req.user.updateEmailPreferences(emailPreferences);
+
+    res.json({
+      success: true,
+      message: 'Email preferences updated successfully',
+      preferences: req.user.preferences.emailPreferences
+    });
+
+  } catch (error) {
+    console.error('Email preferences update error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'EMAIL_PREFERENCES_UPDATE_ERROR',
+        message: 'Failed to update email preferences'
       }
     });
   }

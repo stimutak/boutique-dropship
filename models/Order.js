@@ -112,6 +112,7 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
+  trackingNumber: String,
   notes: String,
   referralSource: String // Track which sister site referred this order
 }, {

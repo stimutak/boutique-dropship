@@ -53,9 +53,18 @@ const userSchema = new mongoose.Schema({
     default: false
   },
   lastLogin: Date,
+  passwordResetToken: String,
+  passwordResetExpiry: Date,
   preferences: {
     newsletter: { type: Boolean, default: false },
-    notifications: { type: Boolean, default: true }
+    notifications: { type: Boolean, default: true },
+    emailPreferences: {
+      orderConfirmations: { type: Boolean, default: true },
+      paymentReceipts: { type: Boolean, default: true },
+      orderUpdates: { type: Boolean, default: true },
+      promotionalEmails: { type: Boolean, default: false },
+      welcomeEmails: { type: Boolean, default: true }
+    }
   }
 }, {
   timestamps: true
@@ -128,6 +137,18 @@ userSchema.methods.updateAddress = function(addressId, updateData) {
 userSchema.methods.removeAddress = function(addressId) {
   this.addresses.pull(addressId);
   return this.save();
+};
+
+// Method to update email preferences
+userSchema.methods.updateEmailPreferences = function(preferences) {
+  Object.assign(this.preferences.emailPreferences, preferences);
+  return this.save();
+};
+
+// Method to check if user wants specific email type
+userSchema.methods.wantsEmail = function(emailType) {
+  if (!this.preferences.notifications) return false;
+  return this.preferences.emailPreferences[emailType] !== false;
 };
 
 // Method to get public user data (excludes sensitive info)
