@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
-const { apiKeyAuth, handleValidationErrors } = require('../middleware/security');
+const { apiKeyAuth, handleValidationErrors, rateLimits } = require('../middleware/security');
+
+// Apply integration-specific rate limiting
+router.use(rateLimits.integration);
 
 // Get product by reference key for cross-site linking
 router.get('/products/link/:referenceKey', [
@@ -392,6 +395,17 @@ router.get('/analytics/summary', [
   }
 });
 
+// HTML escape function to prevent XSS
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Generate HTML widget for product embedding
 function generateProductWidget(product, theme = 'light') {
   const themeStyles = theme === 'dark' 
@@ -404,7 +418,7 @@ function generateProductWidget(product, theme = 'light') {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>${product.name} - Holistic Store</title>
+      <title>${escapeHtml(product.name)} - Holistic Store</title>
       <style>
         body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .product-widget {
@@ -465,20 +479,20 @@ function generateProductWidget(product, theme = 'light') {
     </head>
     <body>
       <div class="product-widget">
-        ${product.primaryImage ? `<img src="${product.primaryImage.url}" alt="${product.primaryImage.alt || product.name}" class="product-image">` : ''}
-        <div class="product-name">${product.name}</div>
-        <div class="product-description">${product.shortDescription || ''}</div>
+        ${product.primaryImage ? `<img src="${escapeHtml(product.primaryImage.url)}" alt="${escapeHtml(product.primaryImage.alt || product.name)}" class="product-image">` : ''}
+        <div class="product-name">${escapeHtml(product.name)}</div>
+        <div class="product-description">${escapeHtml(product.shortDescription || '')}</div>
         <div class="product-price">
           $${product.price.toFixed(2)}
           ${product.compareAtPrice ? `<span style="text-decoration: line-through; opacity: 0.6; font-size: 16px; margin-left: 8px;">$${product.compareAtPrice.toFixed(2)}</span>` : ''}
         </div>
         ${product.properties.chakra || product.properties.element ? `
           <div class="product-properties">
-            ${product.properties.chakra ? `Chakra: ${product.properties.chakra.join(', ')} ` : ''}
-            ${product.properties.element ? `Element: ${product.properties.element.join(', ')}` : ''}
+            ${product.properties.chakra ? `Chakra: ${escapeHtml(product.properties.chakra.join(', '))} ` : ''}
+            ${product.properties.element ? `Element: ${escapeHtml(product.properties.element.join(', '))}` : ''}
           </div>
         ` : ''}
-        <a href="${product.urls.product}" target="_parent" class="product-button">
+        <a href="${escapeHtml(product.urls.product)}" target="_parent" class="product-button">
           View Product
         </a>
       </div>
