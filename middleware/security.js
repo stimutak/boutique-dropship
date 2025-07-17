@@ -130,8 +130,9 @@ const rateLimits = {
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 5, // allow 5 requests per windowMs without delay
-  delayMs: 500, // add 500ms delay per request after delayAfter
+  delayMs: () => 500, // add 500ms delay per request after delayAfter
   maxDelayMs: 20000, // max delay of 20 seconds
+  validate: { delayMs: false } // disable warning
 });
 
 // Input sanitization middleware

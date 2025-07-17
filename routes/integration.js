@@ -1,10 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const { body, param, query, validationResult } = require('express-validator');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const { apiKeyAuth, handleValidationErrors } = require('../middleware/security');
 
 // Get product by reference key for cross-site linking
-router.get('/products/link/:referenceKey', async (req, res) => {
+router.get('/products/link/:referenceKey', [
+  param('referenceKey').isLength({ min: 1, max: 100 }).matches(/^[a-zA-Z0-9-_]+$/).withMessage('Invalid reference key format'),
+  query('source').optional().isLength({ max: 100 }).withMessage('Source parameter too long'),
+  handleValidationErrors
+], async (req, res) => {
   try {
     const { referenceKey } = req.params;
     const { source } = req.query; // Track referral source
@@ -61,7 +67,12 @@ router.get('/products/link/:referenceKey', async (req, res) => {
 });
 
 // Get embeddable product widget data
-router.get('/products/embed/:slug', async (req, res) => {
+router.get('/products/embed/:slug', [
+  param('slug').isLength({ min: 1, max: 100 }).matches(/^[a-zA-Z0-9-_]+$/).withMessage('Invalid slug format'),
+  query('format').optional().isIn(['json', 'html']).withMessage('Format must be json or html'),
+  query('theme').optional().isIn(['light', 'dark']).withMessage('Theme must be light or dark'),
+  handleValidationErrors
+], async (req, res) => {
   try {
     const { slug } = req.params;
     const { format = 'json', theme = 'light' } = req.query;
@@ -135,7 +146,12 @@ router.get('/products/embed/:slug', async (req, res) => {
 });
 
 // Get products related to content ID (for content-based recommendations)
-router.get('/products/related/:contentId', async (req, res) => {
+router.get('/products/related/:contentId', [
+  param('contentId').isLength({ min: 1, max: 100 }).matches(/^[a-zA-Z0-9-_]+$/).withMessage('Invalid content ID format'),
+  query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50'),
+  query('category').optional().isLength({ max: 50 }).withMessage('Category parameter too long'),
+  handleValidationErrors
+], async (req, res) => {
   try {
     const { contentId } = req.params;
     const { limit = 6, category, properties } = req.query;
@@ -205,8 +221,15 @@ router.get('/products/related/:contentId', async (req, res) => {
   }
 });
 
-// Track referral analytics
-router.post('/analytics/referral', async (req, res) => {
+// Track referral analytics (requires API key)
+router.post('/analytics/referral', [
+  apiKeyAuth,
+  body('source').isLength({ min: 1, max: 100 }).withMessage('Source is required and must be less than 100 characters'),
+  body('action').isIn(['view', 'click', 'add_to_cart', 'purchase']).withMessage('Action must be one of: view, click, add_to_cart, purchase'),
+  body('productId').optional().isMongoId().withMessage('Invalid product ID format'),
+  body('metadata').optional().isObject().withMessage('Metadata must be an object'),
+  handleValidationErrors
+], async (req, res) => {
   try {
     const { source, productId, action, metadata } = req.body;
     
@@ -253,8 +276,14 @@ router.post('/analytics/referral', async (req, res) => {
   }
 });
 
-// Get referral analytics summary (admin only)
-router.get('/analytics/summary', async (req, res) => {
+// Get referral analytics summary (requires API key)
+router.get('/analytics/summary', [
+  apiKeyAuth,
+  query('startDate').optional().isISO8601().withMessage('Start date must be in ISO8601 format'),
+  query('endDate').optional().isISO8601().withMessage('End date must be in ISO8601 format'),
+  query('source').optional().isLength({ max: 100 }).withMessage('Source parameter too long'),
+  handleValidationErrors
+], async (req, res) => {
   try {
     const { startDate, endDate, source } = req.query;
     

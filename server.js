@@ -11,22 +11,33 @@ require('dotenv').config();
 // Import logging and error handling
 const { logger } = require('./utils/logger');
 const { globalErrorHandler } = require('./middleware/errorHandler');
+const { 
+  generateCSRFToken, 
+  csrfProtection, 
+  rateLimits, 
+  speedLimiter, 
+  sanitizeInput, 
+  securityHeaders 
+} = require('./middleware/security');
 
 const app = express();
 
 // Security middleware
 app.use(helmet());
+app.use(securityHeaders);
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
+// Input sanitization
+app.use(sanitizeInput);
+
+// General rate limiting
+app.use(rateLimits.general);
+
+// Speed limiting for brute force protection
+app.use(speedLimiter);
 
 // Session middleware
 app.use(session({
@@ -43,6 +54,9 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
   }
 }));
+
+// Generate CSRF tokens for sessions
+app.use(generateCSRFToken);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -72,15 +86,15 @@ mongoose.connection.on('disconnected', () => {
   console.warn('MongoDB disconnected');
 });
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
+// Routes with specific rate limiting
+app.use('/api/auth', rateLimits.auth, require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
-app.use('/api/cart', require('./routes/cart'));
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/payments', require('./routes/payments'));
+app.use('/api/cart', csrfProtection, require('./routes/cart'));
+app.use('/api/orders', csrfProtection, require('./routes/orders'));
+app.use('/api/payments', rateLimits.payment, csrfProtection, require('./routes/payments'));
 app.use('/api/wholesalers', require('./routes/wholesalers'));
-app.use('/api/integration', require('./routes/integration'));
-app.use('/api/admin', require('./routes/admin'));
+app.use('/api/integration', rateLimits.integration, require('./routes/integration'));
+app.use('/api/admin', rateLimits.admin, csrfProtection, require('./routes/admin'));
 app.use('/api/monitoring', require('./routes/monitoring'));
 
 // Health check
