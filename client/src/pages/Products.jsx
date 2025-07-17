@@ -101,6 +101,11 @@ const Products = () => {
         {/* Products Grid */}
         {isLoading ? (
           <div className="loading">Loading products...</div>
+        ) : products.length === 0 ? (
+          <div className="no-products">
+            <p>No products found.</p>
+            <p>Debug info: {JSON.stringify({ productsLength: products.length, isLoading, error: filters })}</p>
+          </div>
         ) : (
           <>
             <div className="products-grid grid grid-4">
@@ -109,7 +114,7 @@ const Products = () => {
                   <Link to={`/products/${product.slug}`}>
                     <div className="product-image">
                       {product.images && product.images.length > 0 ? (
-                        <img src={product.images[0]} alt={product.name} />
+                        <img src={product.images[0].url} alt={product.images[0].alt || product.name} />
                       ) : (
                         <div className="placeholder-image">No Image</div>
                       )}
@@ -124,13 +129,13 @@ const Products = () => {
                     <p className="category">{product.category}</p>
                     
                     {/* Spiritual Properties */}
-                    {product.spiritualProperties && (
+                    {product.properties && (
                       <div className="spiritual-properties">
-                        {product.spiritualProperties.chakra && (
-                          <span className="property">Chakra: {product.spiritualProperties.chakra}</span>
+                        {product.properties.chakra && product.properties.chakra.length > 0 && (
+                          <span className="property">Chakra: {product.properties.chakra.join(', ')}</span>
                         )}
-                        {product.spiritualProperties.element && (
-                          <span className="property">Element: {product.spiritualProperties.element}</span>
+                        {product.properties.element && product.properties.element.length > 0 && (
+                          <span className="property">Element: {product.properties.element.join(', ')}</span>
                         )}
                       </div>
                     )}
