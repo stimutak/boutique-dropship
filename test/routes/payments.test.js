@@ -69,6 +69,7 @@ describe('Payment Routes', () => {
       name: 'Test Crystal',
       slug: 'test-crystal',
       description: 'A test crystal for payment testing',
+      shortDescription: 'Test crystal for payments',
       price: 29.99,
       category: 'crystals',
       isActive: true,
@@ -138,7 +139,7 @@ describe('Payment Routes', () => {
       shipping: 0,
       total: 64.78,
       payment: {
-        method: 'pending',
+        method: 'other',
         status: 'pending'
       },
       status: 'pending'
@@ -164,6 +165,7 @@ describe('Payment Routes', () => {
       
       const response = await request(app)
         .post('/api/payments/create')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderId: testOrder._id,
           method: 'creditcard',
@@ -199,6 +201,7 @@ describe('Payment Routes', () => {
     it('should reject missing order ID', async () => {
       const response = await request(app)
         .post('/api/payments/create')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ method: 'creditcard' })
         .expect(400);
       
@@ -211,6 +214,7 @@ describe('Payment Routes', () => {
       
       const response = await request(app)
         .post('/api/payments/create')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ orderId: fakeOrderId, method: 'creditcard' })
         .expect(404);
       
@@ -224,6 +228,7 @@ describe('Payment Routes', () => {
       
       const response = await request(app)
         .post('/api/payments/create')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ orderId: testOrder._id, method: 'creditcard' })
         .expect(400);
       
@@ -240,6 +245,7 @@ describe('Payment Routes', () => {
       
       const response = await request(app)
         .post('/api/payments/create')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ orderId: testOrder._id, method: 'creditcard' })
         .expect(400);
       
@@ -262,6 +268,7 @@ describe('Payment Routes', () => {
       
       const response = await request(app)
         .post('/api/payments/create')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderId: testOrder._id,
           method: 'bitcoin'

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { createMollieClient } = require('@mollie/api-client');
+const { body, param, validationResult } = require('express-validator');
 const Order = require('../models/Order');
 const { requireAuth } = require('../middleware/auth');
 
@@ -145,8 +146,22 @@ router.post('/create', requireAuth, async (req, res) => {
 });
 
 // Demo payment completion endpoint (for testing)
-router.post('/demo-complete/:orderId', async (req, res) => {
+router.post('/demo-complete/:orderId', requireAuth, [
+  param('orderId').isMongoId().withMessage('Valid order ID is required')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: errors.array()
+        }
+      });
+    }
+
     const { orderId } = req.params;
     
     const order = await Order.findById(orderId);
@@ -160,9 +175,31 @@ router.post('/demo-complete/:orderId', async (req, res) => {
       });
     }
 
+    // Check if user owns this order or is admin
+    if (!req.user.isAdmin && order.customer && order.customer.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'ACCESS_DENIED',
+          message: 'You can only complete payments for your own orders'
+        }
+      });
+    }
+
+    // Check if order is already paid
+    if (order.payment.status === 'paid') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'ORDER_ALREADY_PAID',
+          message: 'Order has already been paid'
+        }
+      });
+    }
+
     // Update order payment status
     order.payment.status = 'paid';
-    order.payment.method = 'demo';
+    order.payment.method = 'other'; // Use 'other' since 'demo' is not in enum
     order.payment.paidAt = new Date();
     order.payment.transactionId = `demo_${Date.now()}`;
     order.status = 'processing';
@@ -171,8 +208,8 @@ router.post('/demo-complete/:orderId', async (req, res) => {
 
     // Send wholesaler notifications
     try {
-      const { notifyWholesalers } = require('../utils/wholesalerNotificationService');
-      await notifyWholesalers(order);
+      const { processOrderNotifications } = require('../utils/wholesalerNotificationService');
+      await processOrderNotifications(orderId);
     } catch (notificationError) {
       console.error('Wholesaler notification error:', notificationError);
     }
