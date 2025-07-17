@@ -58,8 +58,8 @@ const ProductDetail = () => {
             <div className="main-image">
               {product.images && product.images.length > 0 ? (
                 <img 
-                  src={product.images[selectedImage]} 
-                  alt={product.name}
+                  src={product.images[selectedImage].url} 
+                  alt={product.images[selectedImage].alt || product.name}
                 />
               ) : (
                 <div className="placeholder-image">No Image Available</div>
@@ -71,8 +71,8 @@ const ProductDetail = () => {
                 {product.images.map((image, index) => (
                   <img
                     key={index}
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
+                    src={image.url}
+                    alt={image.alt || `${product.name} ${index + 1}`}
                     className={selectedImage === index ? 'active' : ''}
                     onClick={() => setSelectedImage(index)}
                   />
@@ -88,20 +88,20 @@ const ProductDetail = () => {
             <p className="category">Category: {product.category}</p>
             
             {/* Spiritual Properties */}
-            {product.spiritualProperties && (
+            {product.properties && (
               <div className="spiritual-properties">
                 <h3>Spiritual Properties</h3>
-                {product.spiritualProperties.chakra && (
-                  <p><strong>Chakra:</strong> {product.spiritualProperties.chakra}</p>
+                {product.properties.chakra && product.properties.chakra.length > 0 && (
+                  <p><strong>Chakra:</strong> {product.properties.chakra.join(', ')}</p>
                 )}
-                {product.spiritualProperties.element && (
-                  <p><strong>Element:</strong> {product.spiritualProperties.element}</p>
+                {product.properties.element && product.properties.element.length > 0 && (
+                  <p><strong>Element:</strong> {product.properties.element.join(', ')}</p>
                 )}
-                {product.spiritualProperties.zodiacSign && (
-                  <p><strong>Zodiac Sign:</strong> {product.spiritualProperties.zodiacSign}</p>
+                {product.properties.zodiac && product.properties.zodiac.length > 0 && (
+                  <p><strong>Zodiac:</strong> {product.properties.zodiac.join(', ')}</p>
                 )}
-                {product.spiritualProperties.intention && (
-                  <p><strong>Intention:</strong> {product.spiritualProperties.intention}</p>
+                {product.properties.healing && product.properties.healing.length > 0 && (
+                  <p><strong>Healing Properties:</strong> {product.properties.healing.join(', ')}</p>
                 )}
               </div>
             )}

@@ -102,6 +102,14 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// CSRF token endpoint
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ 
+    success: true,
+    csrfToken: req.session.csrfToken 
+  });
+});
+
 // Root route for API info
 app.get('/', (req, res) => {
   res.json({
