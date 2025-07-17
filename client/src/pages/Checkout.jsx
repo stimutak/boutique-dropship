@@ -74,11 +74,11 @@ const Checkout = () => {
     
     const orderData = {
       items: items.map(item => ({
-        product: item.product._id,
+        productId: item.product._id,
         quantity: item.quantity,
         price: item.product.price
       })),
-      customerInfo: {
+      guestInfo: {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
