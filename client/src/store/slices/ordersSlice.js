@@ -6,10 +6,12 @@ export const createOrder = createAsyncThunk(
   'orders/createOrder',
   async (orderData, { rejectWithValue }) => {
     try {
+      console.log('Sending order data:', JSON.stringify(orderData, null, 2))
       const response = await api.post('/api/orders', orderData)
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      console.error('Order creation error:', error.response?.data)
+      return rejectWithValue(error.response?.data?.error?.message || error.message)
     }
   }
 )

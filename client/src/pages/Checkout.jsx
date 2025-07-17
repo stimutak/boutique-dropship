@@ -72,6 +72,16 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    const billingAddr = formData.sameAsShipping ? {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      street: formData.shippingAddress.street,
+      city: formData.shippingAddress.city,
+      state: formData.shippingAddress.state,
+      zipCode: formData.shippingAddress.zipCode,
+      country: formData.shippingAddress.country
+    } : formData.billingAddress;
+
     const orderData = {
       items: items.map(item => ({
         productId: item.product._id,
@@ -82,26 +92,28 @@ const Checkout = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone
+        phone: formData.phone || ''
       },
-      shippingAddress: formData.shippingAddress,
-      billingAddress: formData.sameAsShipping ? formData.shippingAddress : formData.billingAddress,
-      totalAmount: totalPrice,
-      referralSource: formData.referralSource
+      shippingAddress: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        street: formData.shippingAddress.street,
+        city: formData.shippingAddress.city,
+        state: formData.shippingAddress.state,
+        zipCode: formData.shippingAddress.zipCode,
+        country: formData.shippingAddress.country || 'US'
+      },
+      billingAddress: billingAddr,
+      referralSource: formData.referralSource || ''
     }
 
     try {
       const result = await dispatch(createOrder(orderData)).unwrap()
       
-      // Clear cart after successful order
-      if (isAuthenticated) {
-        dispatch(clearCart())
-      } else {
-        dispatch(clearCartLocally())
-      }
+      // Don't clear cart yet - wait until payment is complete
       
-      // Redirect to order confirmation
-      navigate(`/orders/${result.order._id}`)
+      // Redirect to payment page instead of order confirmation
+      navigate(`/payment/${result.order._id}`)
     } catch (error) {
       console.error('Order creation failed:', error)
     }

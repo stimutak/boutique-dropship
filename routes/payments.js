@@ -144,6 +144,66 @@ router.post('/create', requireAuth, async (req, res) => {
   }
 });
 
+// Demo payment completion endpoint (for testing)
+router.post('/demo-complete/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'ORDER_NOT_FOUND',
+          message: 'Order not found'
+        }
+      });
+    }
+
+    // Update order payment status
+    order.payment.status = 'paid';
+    order.payment.method = 'demo';
+    order.payment.paidAt = new Date();
+    order.payment.transactionId = `demo_${Date.now()}`;
+    order.status = 'processing';
+    
+    await order.save();
+
+    // Send wholesaler notifications
+    try {
+      const { notifyWholesalers } = require('../utils/wholesalerNotificationService');
+      await notifyWholesalers(order);
+    } catch (notificationError) {
+      console.error('Wholesaler notification error:', notificationError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Demo payment completed successfully',
+      order: {
+        _id: order._id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        payment: {
+          status: order.payment.status,
+          method: order.payment.method,
+          paidAt: order.payment.paidAt
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Demo payment completion error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'DEMO_PAYMENT_ERROR',
+        message: 'Failed to complete demo payment'
+      }
+    });
+  }
+});
+
 // Mollie webhook handler
 router.post('/webhook', async (req, res) => {
   try {
