@@ -1,0 +1,163 @@
+import { useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchOrderById, clearCurrentOrder } from '../store/slices/ordersSlice'
+
+const OrderDetail = () => {
+  const { id } = useParams()
+  const dispatch = useDispatch()
+  const { currentOrder: order, isLoading, error } = useSelector(state => state.orders)
+
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchOrderById(id))
+    }
+    
+    return () => {
+      dispatch(clearCurrentOrder())
+    }
+  }, [dispatch, id])
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'pending': return 'status-pending'
+      case 'processing': return 'status-processing'
+      case 'shipped': return 'status-shipped'
+      case 'delivered': return 'status-delivered'
+      case 'cancelled': return 'status-cancelled'
+      default: return 'status-pending'
+    }
+  }
+
+  if (isLoading) {
+    return <div className="loading">Loading order details...</div>
+  }
+
+  if (error) {
+    return <div className="error">Error: {error}</div>
+  }
+
+  if (!order) {
+    return <div className="error">Order not found</div>
+  }
+
+  return (
+    <div className="order-detail-page">
+      <div className="container">
+        <div className="order-header">
+          <div>
+            <h1>Order #{order.orderNumber}</h1>
+            <p>Placed on {new Date(order.createdAt).toLocaleDateString()}</p>
+          </div>
+          <span className={`status-badge ${getStatusBadgeClass(order.status)}`}>
+            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+          </span>
+        </div>
+
+        <div className="order-detail-grid">
+          {/* Order Information */}
+          <div className="order-info-section">
+            <h2>Order Information</h2>
+            <div className="info-grid">
+              <div className="info-item">
+                <span>Order Number:</span>
+                <span>{order.orderNumber}</span>
+              </div>
+              <div className="info-item">
+                <span>Status:</span>
+                <span>{order.status}</span>
+              </div>
+              <div className="info-item">
+                <span>Order Date:</span>
+                <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+              </div>
+              <div className="info-item">
+                <span>Total Amount:</span>
+                <span>${order.totalAmount.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Information */}
+          <div className="customer-info-section">
+            <h2>Customer Information</h2>
+            <div className="info-grid">
+              <div className="info-item">
+                <span>Name:</span>
+                <span>{order.customerInfo.firstName} {order.customerInfo.lastName}</span>
+              </div>
+              <div className="info-item">
+                <span>Email:</span>
+                <span>{order.customerInfo.email}</span>
+              </div>
+              {order.customerInfo.phone && (
+                <div className="info-item">
+                  <span>Phone:</span>
+                  <span>{order.customerInfo.phone}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Shipping Address */}
+          <div className="address-section">
+            <h2>Shipping Address</h2>
+            <div className="address">
+              <p>{order.shippingAddress.street}</p>
+              <p>
+                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
+              </p>
+              <p>{order.shippingAddress.country}</p>
+            </div>
+          </div>
+
+          {/* Order Items */}
+          <div className="order-items-section">
+            <h2>Order Items</h2>
+            <div className="items-list">
+              {order.items.map(item => (
+                <div key={item._id} className="order-item">
+                  <div className="item-image">
+                    {item.product?.images && item.product.images.length > 0 ? (
+                      <img src={item.product.images[0]} alt={item.product?.name} />
+                    ) : (
+                      <div className="placeholder-image">No Image</div>
+                    )}
+                  </div>
+                  
+                  <div className="item-details">
+                    <h3>{item.product?.name || 'Product'}</h3>
+                    <p>Quantity: {item.quantity}</p>
+                    <p>Price: ${item.price.toFixed(2)} each</p>
+                  </div>
+                  
+                  <div className="item-total">
+                    ${(item.price * item.quantity).toFixed(2)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="order-total">
+              <strong>Total: ${order.totalAmount.toFixed(2)}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="order-actions">
+          <Link to="/orders" className="btn btn-secondary">
+            Back to Orders
+          </Link>
+          
+          {order.status === 'pending' && (
+            <button className="btn btn-secondary">
+              Cancel Order
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default OrderDetail
