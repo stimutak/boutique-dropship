@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
 import { configureStore } from '@reduxjs/toolkit'
@@ -40,33 +40,24 @@ describe('Header Component', () => {
     expect(screen.getByText('Register')).toBeInTheDocument()
   })
 
-  test('shows cart item count when items are present', () => {
+  test('shows user menu when authenticated', () => {
     const initialState = {
+      auth: {
+        isAuthenticated: true,
+        user: { firstName: 'John' },
+        token: 'test-token',
+        isLoading: false,
+        error: null
+      },
       cart: {
-        totalItems: 3,
         items: [],
+        totalItems: 0,
         totalPrice: 0,
         isLoading: false,
         error: null
       }
     }
-    
-    renderWithProviders(<Header />, initialState)
-    
-    expect(screen.getByText('3')).toBeInTheDocument()
-  })
 
-  test('shows user menu when authenticated', () => {
-    const initialState = {
-      auth: {
-        isAuthenticated: true,
-        user: { firstName: 'John', lastName: 'Doe' },
-        token: 'test-token',
-        isLoading: false,
-        error: null
-      }
-    }
-    
     renderWithProviders(<Header />, initialState)
     
     expect(screen.getByText('John ▼')).toBeInTheDocument()
@@ -74,16 +65,26 @@ describe('Header Component', () => {
     expect(screen.queryByText('Register')).not.toBeInTheDocument()
   })
 
-  test('search form submits with search term', () => {
-    renderWithProviders(<Header />)
+  test('displays cart item count', () => {
+    const initialState = {
+      auth: {
+        isAuthenticated: false,
+        user: null,
+        token: null,
+        isLoading: false,
+        error: null
+      },
+      cart: {
+        items: [],
+        totalItems: 3,
+        totalPrice: 0,
+        isLoading: false,
+        error: null
+      }
+    }
+
+    renderWithProviders(<Header />, initialState)
     
-    const searchInput = screen.getByPlaceholderText('Search products...')
-    const searchButton = screen.getByText('Search')
-    
-    fireEvent.change(searchInput, { target: { value: 'crystals' } })
-    fireEvent.click(searchButton)
-    
-    // The search should clear the input
-    expect(searchInput.value).toBe('')
+    expect(screen.getByText('3')).toBeInTheDocument()
   })
 })

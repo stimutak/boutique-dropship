@@ -13,7 +13,15 @@ const Register = () => {
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    phone: '',
+    addresses: [{
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'US'
+    }]
   })
 
   useEffect(() => {
@@ -27,10 +35,23 @@ const Register = () => {
   }, [isAuthenticated, navigate, dispatch])
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    const { name, value } = e.target
+    
+    if (name.includes('address.')) {
+      const field = name.split('.')[1]
+      setFormData(prev => ({
+        ...prev,
+        addresses: [{
+          ...prev.addresses[0],
+          [field]: value
+        }]
+      }))
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      })
+    }
   }
 
   const handleSubmit = (e) => {
@@ -41,8 +62,8 @@ const Register = () => {
       return
     }
     
-    const { confirmPassword, ...userData } = formData
-    dispatch(registerUser(userData))
+    const { confirmPassword, ...submitData } = formData
+    dispatch(registerUser(submitData))
   }
 
   return (
@@ -88,25 +109,81 @@ const Register = () => {
             </div>
             
             <div className="form-group">
-              <label>Password</label>
+              <label>Phone</label>
               <input
-                type="password"
-                name="password"
-                value={formData.password}
+                type="tel"
+                name="phone"
+                value={formData.phone}
                 onChange={handleChange}
-                required
               />
             </div>
             
+            <div className="form-row">
+              <div className="form-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Confirm Password</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+            
+            <h3>Address Information</h3>
+            
             <div className="form-group">
-              <label>Confirm Password</label>
+              <label>Street Address</label>
               <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
+                type="text"
+                name="address.street"
+                value={formData.addresses[0].street}
                 onChange={handleChange}
-                required
               />
+            </div>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label>City</label>
+                <input
+                  type="text"
+                  name="address.city"
+                  value={formData.addresses[0].city}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>State</label>
+                <input
+                  type="text"
+                  name="address.state"
+                  value={formData.addresses[0].state}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>ZIP Code</label>
+                <input
+                  type="text"
+                  name="address.zipCode"
+                  value={formData.addresses[0].zipCode}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
             
             {error && <div className="error">{error}</div>}

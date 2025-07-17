@@ -26,12 +26,14 @@ const Orders = () => {
     return <div className="loading">Loading orders...</div>
   }
 
+  if (error) {
+    return <div className="error">Error: {error}</div>
+  }
+
   return (
     <div className="orders-page">
       <div className="container">
         <h1>My Orders</h1>
-        
-        {error && <div className="error">{error}</div>}
         
         {orders.length === 0 ? (
           <div className="no-orders">
@@ -57,7 +59,7 @@ const Orders = () => {
                 <div className="order-items">
                   {order.items.slice(0, 3).map(item => (
                     <div key={item._id} className="order-item">
-                      <span>{item.product?.name || 'Product'} x {item.quantity}</span>
+                      <span>{item.product.name} x {item.quantity}</span>
                       <span>${(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
@@ -70,14 +72,12 @@ const Orders = () => {
                   <div className="order-total">
                     <strong>Total: ${order.totalAmount.toFixed(2)}</strong>
                   </div>
-                  <div className="order-actions">
-                    <Link 
-                      to={`/orders/${order._id}`} 
-                      className="btn btn-secondary"
-                    >
-                      View Details
-                    </Link>
-                  </div>
+                  <Link 
+                    to={`/orders/${order._id}`} 
+                    className="btn btn-secondary"
+                  >
+                    View Details
+                  </Link>
                 </div>
               </div>
             ))}

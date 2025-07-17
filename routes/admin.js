@@ -103,16 +103,18 @@ router.get('/products', async (req, res) => {
 
     res.json({
       success: true,
-      products,
-      pagination: {
-        currentPage: pageNum,
-        totalPages,
-        totalProducts,
-        limit: limitNum,
-        hasNextPage: pageNum < totalPages,
-        hasPrevPage: pageNum > 1
-      },
-      filters: { search, category, status, sort }
+      data: {
+        products,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalProducts,
+          limit: limitNum,
+          hasNextPage: pageNum < totalPages,
+          hasPrevPage: pageNum > 1
+        },
+        filters: { search, category, status, sort }
+      }
     });
 
   } catch (error) {
@@ -440,16 +442,18 @@ router.get('/orders', async (req, res) => {
 
     res.json({
       success: true,
-      orders,
-      pagination: {
-        currentPage: pageNum,
-        totalPages,
-        totalOrders,
-        limit: limitNum,
-        hasNextPage: pageNum < totalPages,
-        hasPrevPage: pageNum > 1
-      },
-      filters: { status, paymentStatus, search, dateFrom, dateTo, sort }
+      data: {
+        orders,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalOrders,
+          limit: limitNum,
+          hasNextPage: pageNum < totalPages,
+          hasPrevPage: pageNum > 1
+        },
+        filters: { status, paymentStatus, search, dateFrom, dateTo, sort }
+      }
     });
 
   } catch (error) {

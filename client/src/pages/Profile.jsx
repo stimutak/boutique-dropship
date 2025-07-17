@@ -47,7 +47,7 @@ const Profile = () => {
   const handleChange = (e) => {
     const { name, value } = e.target
     
-    if (name.startsWith('address.')) {
+    if (name.includes('address.')) {
       const field = name.split('.')[1]
       setFormData(prev => ({
         ...prev,
@@ -57,10 +57,10 @@ const Profile = () => {
         }]
       }))
     } else {
-      setFormData(prev => ({
-        ...prev,
+      setFormData({
+        ...formData,
         [name]: value
-      }))
+      })
     }
   }
 
@@ -75,7 +75,6 @@ const Profile = () => {
         <h1>My Profile</h1>
         
         <form onSubmit={handleSubmit} className="profile-form">
-          {/* Personal Information */}
           <section className="form-section">
             <h2>Personal Information</h2>
             
@@ -124,17 +123,16 @@ const Profile = () => {
               />
             </div>
           </section>
-
-          {/* Address Information */}
+          
           <section className="form-section">
-            <h2>Default Address</h2>
+            <h2>Address Information</h2>
             
             <div className="form-group">
               <label>Street Address</label>
               <input
                 type="text"
                 name="address.street"
-                value={formData.addresses[0]?.street || ''}
+                value={formData.addresses[0].street}
                 onChange={handleChange}
               />
             </div>
@@ -145,7 +143,7 @@ const Profile = () => {
                 <input
                   type="text"
                   name="address.city"
-                  value={formData.addresses[0]?.city || ''}
+                  value={formData.addresses[0].city}
                   onChange={handleChange}
                 />
               </div>
@@ -155,7 +153,7 @@ const Profile = () => {
                 <input
                   type="text"
                   name="address.state"
-                  value={formData.addresses[0]?.state || ''}
+                  value={formData.addresses[0].state}
                   onChange={handleChange}
                 />
               </div>
@@ -165,13 +163,13 @@ const Profile = () => {
                 <input
                   type="text"
                   name="address.zipCode"
-                  value={formData.addresses[0]?.zipCode || ''}
+                  value={formData.addresses[0].zipCode}
                   onChange={handleChange}
                 />
               </div>
             </div>
           </section>
-
+          
           {error && <div className="error">{error}</div>}
           
           <button 

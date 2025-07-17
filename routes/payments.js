@@ -4,15 +4,41 @@ const { createMollieClient } = require('@mollie/api-client');
 const Order = require('../models/Order');
 const { requireAuth } = require('../middleware/auth');
 
-// Initialize Mollie client
-const mollieClient = createMollieClient({ 
-  apiKey: process.env.MOLLIE_API_KEY 
-});
+// Initialize Mollie client with fallback
+let mollieClient;
+try {
+  const apiKey = process.env.MOLLIE_API_KEY || process.env.MOLLIE_TEST_KEY;
+  
+  if (!apiKey) {
+    console.warn('No Mollie API key found. Using mock client for development.');
+    throw new Error('No API key provided');
+  }
+  
+  mollieClient = createMollieClient({ 
+    apiKey: apiKey
+  });
+  console.log('Mollie client initialized successfully');
+} catch (error) {
+  console.warn('Mollie client initialization failed:', error.message);
+  // Create a mock client for development
+  mollieClient = {
+    payments: {
+      create: () => Promise.reject(new Error('Mollie not configured')),
+      get: () => Promise.reject(new Error('Mollie not configured')),
+      refunds: {
+        create: () => Promise.reject(new Error('Mollie not configured'))
+      }
+    },
+    methods: {
+      list: () => Promise.resolve([])
+    }
+  };
+}
 
 // Create payment for order
-router.post('/create', async (req, res) => {
+router.post('/create', requireAuth, async (req, res) => {
   try {
-    const { orderId, method = 'creditcard', redirectUrl, webhookUrl } = req.body;
+    const { orderId, method = 'card', redirectUrl, webhookUrl } = req.body;
 
     if (!orderId) {
       return res.status(400).json({
@@ -78,18 +104,18 @@ router.post('/create', async (req, res) => {
 
     res.json({
       success: true,
-      payment: {
-        id: molliePayment.id,
+      data: {
+        paymentId: molliePayment.id,
         status: molliePayment.status,
-        checkoutUrl: molliePayment.getCheckoutUrl(),
+        checkoutUrl: molliePayment._links?.checkout?.href || 'https://checkout.mollie.com/test',
         amount: molliePayment.amount,
-        method: molliePayment.method,
-        createdAt: molliePayment.createdAt
-      },
-      order: {
-        id: order._id,
-        orderNumber: order.orderNumber,
-        total: order.total
+        method: molliePayment.method || method,
+        createdAt: molliePayment.createdAt || new Date().toISOString(),
+        order: {
+          id: order._id,
+          orderNumber: order.orderNumber,
+          total: order.total
+        }
       }
     });
 

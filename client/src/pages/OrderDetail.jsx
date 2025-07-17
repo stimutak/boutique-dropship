@@ -30,7 +30,7 @@ const OrderDetail = () => {
   }
 
   if (isLoading) {
-    return <div className="loading">Loading order details...</div>
+    return <div className="loading">Loading order...</div>
   }
 
   if (error) {
@@ -104,9 +104,7 @@ const OrderDetail = () => {
             <h2>Shipping Address</h2>
             <div className="address">
               <p>{order.shippingAddress.street}</p>
-              <p>
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
-              </p>
+              <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}</p>
               <p>{order.shippingAddress.country}</p>
             </div>
           </div>
@@ -118,15 +116,18 @@ const OrderDetail = () => {
               {order.items.map(item => (
                 <div key={item._id} className="order-item">
                   <div className="item-image">
-                    {item.product?.images && item.product.images.length > 0 ? (
-                      <img src={item.product.images[0]} alt={item.product?.name} />
+                    {item.product.images && item.product.images.length > 0 ? (
+                      <img src={item.product.images[0]} alt={item.product.name} />
                     ) : (
                       <div className="placeholder-image">No Image</div>
                     )}
                   </div>
                   
                   <div className="item-details">
-                    <h3>{item.product?.name || 'Product'}</h3>
+                    <Link to={`/products/${item.product.slug}`}>
+                      <h3>{item.product.name}</h3>
+                    </Link>
+                    <p>Category: {item.product.category}</p>
                     <p>Quantity: {item.quantity}</p>
                     <p>Price: ${item.price.toFixed(2)} each</p>
                   </div>

@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import axios from 'axios'
+import api from '../../api/config'
 
 // Async thunks
 export const loginUser = createAsyncThunk(
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password })
+      const response = await api.post('/api/auth/login', { email, password })
       localStorage.setItem('token', response.data.token)
       return response.data
     } catch (error) {
@@ -19,7 +19,7 @@ export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/api/auth/register', userData)
+      const response = await api.post('/api/auth/register', userData)
       localStorage.setItem('token', response.data.token)
       return response.data
     } catch (error) {
@@ -37,7 +37,7 @@ export const loadUser = createAsyncThunk(
         return rejectWithValue('No token found')
       }
       
-      const response = await axios.get('/api/auth/profile', {
+      const response = await api.get('/api/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       })
       return response.data
@@ -53,7 +53,7 @@ export const updateProfile = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('token')
-      const response = await axios.put('/api/auth/profile', userData, {
+      const response = await api.put('/api/auth/profile', userData, {
         headers: { Authorization: `Bearer ${token}` }
       })
       return response.data

@@ -8,9 +8,12 @@ const Home = () => {
   const { products, isLoading } = useSelector(state => state.products)
 
   useEffect(() => {
+    console.log('Home component mounted, fetching products...')
     // Fetch featured products for home page
     dispatch(fetchProducts({ limit: 8 }))
   }, [dispatch])
+
+  console.log('Home render - products:', products, 'isLoading:', isLoading)
 
   const categories = [
     { name: 'Crystals', slug: 'crystals', description: 'Healing crystals and gemstones' },
@@ -68,7 +71,7 @@ const Home = () => {
                   <Link to={`/products/${product.slug}`}>
                     <div className="product-image">
                       {product.images && product.images.length > 0 ? (
-                        <img src={product.images[0]} alt={product.name} />
+                        <img src={product.images[0].url} alt={product.images[0].alt || product.name} />
                       ) : (
                         <div className="placeholder-image">No Image</div>
                       )}

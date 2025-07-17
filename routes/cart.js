@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAuth } = require('../middleware/auth');
 
 // Middleware to initialize cart in session
 const initializeCart = (req, res, next) => {
@@ -12,7 +12,7 @@ const initializeCart = (req, res, next) => {
 };
 
 // Get cart contents
-router.get('/', initializeCart, async (req, res) => {
+router.get('/', authenticateToken, initializeCart, async (req, res) => {
   try {
     let cart = [];
     
@@ -62,11 +62,13 @@ router.get('/', initializeCart, async (req, res) => {
     
     res.json({
       success: true,
-      cart: {
-        items: validCart,
-        subtotal: Math.round(subtotal * 100) / 100,
-        itemCount,
-        isEmpty: validCart.length === 0
+      data: {
+        cart: {
+          items: validCart,
+          subtotal: Math.round(subtotal * 100) / 100,
+          itemCount,
+          isEmpty: validCart.length === 0
+        }
       }
     });
     
@@ -83,7 +85,7 @@ router.get('/', initializeCart, async (req, res) => {
 });
 
 // Add item to cart
-router.post('/add', initializeCart, async (req, res) => {
+router.post('/add', requireAuth, initializeCart, async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
     
@@ -160,8 +162,13 @@ router.post('/add', initializeCart, async (req, res) => {
       
       res.json({
         success: true,
-        message: 'Item added to cart',
-        cartItemCount: req.session.cart.reduce((sum, item) => sum + item.quantity, 0)
+        data: {
+          cart: {
+            items: req.session.cart,
+            itemCount: req.session.cart.reduce((sum, item) => sum + item.quantity, 0)
+          }
+        },
+        message: 'Item added to cart'
       });
     });
     

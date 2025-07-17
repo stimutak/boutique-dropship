@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import axios from 'axios'
+import api from '../../api/config'
 
 // Async thunks
 export const fetchProducts = createAsyncThunk(
@@ -13,10 +13,13 @@ export const fetchProducts = createAsyncThunk(
       if (search) params.append('search', search)
       if (sort) params.append('sort', sort)
       
-      const response = await axios.get(`/api/products?${params}`)
+      console.log('Fetching products from:', `/api/products?${params}`)
+      const response = await api.get(`/api/products?${params}`)
+      console.log('Products API response:', response.data)
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      console.error('Products API error:', error)
+      return rejectWithValue(error.response?.data?.error?.message || error.message)
     }
   }
 )
@@ -25,7 +28,7 @@ export const fetchProductBySlug = createAsyncThunk(
   'products/fetchProductBySlug',
   async (slug, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/products/${slug}`)
+      const response = await api.get(`/api/products/${slug}`)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response.data.error.message)
@@ -37,7 +40,7 @@ export const searchProducts = createAsyncThunk(
   'products/searchProducts',
   async (searchTerm, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/products/search?q=${encodeURIComponent(searchTerm)}`)
+      const response = await api.get(`/api/products/search?q=${encodeURIComponent(searchTerm)}`)
       return response.data
     } catch (error) {
       return rejectWithValue(error.response.data.error.message)
@@ -97,8 +100,8 @@ const productsSlice = createSlice({
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.isLoading = false
-        state.products = action.payload.products
-        state.pagination = action.payload.pagination
+        state.products = action.payload.data.products
+        state.pagination = action.payload.data.pagination
       })
       .addCase(fetchProducts.rejected, (state, action) => {
         state.isLoading = false
@@ -111,7 +114,7 @@ const productsSlice = createSlice({
       })
       .addCase(fetchProductBySlug.fulfilled, (state, action) => {
         state.isLoading = false
-        state.currentProduct = action.payload.product
+        state.currentProduct = action.payload.data.product
       })
       .addCase(fetchProductBySlug.rejected, (state, action) => {
         state.isLoading = false
@@ -124,7 +127,7 @@ const productsSlice = createSlice({
       })
       .addCase(searchProducts.fulfilled, (state, action) => {
         state.isLoading = false
-        state.searchResults = action.payload.products
+        state.searchResults = action.payload.data.products
       })
       .addCase(searchProducts.rejected, (state, action) => {
         state.isLoading = false

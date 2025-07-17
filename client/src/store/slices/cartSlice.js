@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import axios from 'axios'
+import api from '../../api/config'
 
 // Async thunks
 export const fetchCart = createAsyncThunk(
   'cart/fetchCart',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/cart')
+      const response = await api.get('/api/cart')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response.data.error.message)
@@ -18,7 +18,7 @@ export const addToCart = createAsyncThunk(
   'cart/addToCart',
   async ({ productId, quantity = 1 }, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/api/cart/add', { productId, quantity })
+      const response = await api.post('/api/cart/add', { productId, quantity })
       return response.data
     } catch (error) {
       return rejectWithValue(error.response.data.error.message)
@@ -30,7 +30,7 @@ export const updateCartItem = createAsyncThunk(
   'cart/updateCartItem',
   async ({ productId, quantity }, { rejectWithValue }) => {
     try {
-      const response = await axios.put('/api/cart/update', { productId, quantity })
+      const response = await api.put('/api/cart/update', { productId, quantity })
       return response.data
     } catch (error) {
       return rejectWithValue(error.response.data.error.message)
@@ -42,7 +42,7 @@ export const removeFromCart = createAsyncThunk(
   'cart/removeFromCart',
   async (productId, { rejectWithValue }) => {
     try {
-      const response = await axios.delete('/api/cart/remove', { data: { productId } })
+      const response = await api.delete('/api/cart/remove', { data: { productId } })
       return response.data
     } catch (error) {
       return rejectWithValue(error.response.data.error.message)
@@ -54,7 +54,7 @@ export const clearCart = createAsyncThunk(
   'cart/clearCart',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.delete('/api/cart/clear')
+      const response = await api.delete('/api/cart/clear')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response.data.error.message)

@@ -3,6 +3,7 @@
 ## Phase 1: Core Infrastructure Setup
 
 ### Task 1.1: Install Dependencies
+
 **Priority:** High  
 **Estimated Time:** 30 minutes
 
@@ -13,11 +14,13 @@ npm install passport passport-google-oauth20 passport-facebook passport-twitter 
 ```
 
 **Acceptance Criteria:**
+
 - All passport strategies are installed and available
 - Package.json is updated with new dependencies
 - No version conflicts with existing packages
 
 ### Task 1.2: Environment Configuration
+
 **Priority:** High  
 **Estimated Time:** 45 minutes
 
@@ -28,11 +31,13 @@ Update environment configuration for OAuth providers:
 3. Add session configuration for OAuth flows
 
 **Acceptance Criteria:**
+
 - All required environment variables are documented
 - OAuth config utility exports provider configurations
 - Session middleware is configured for OAuth state management
 
 ### Task 1.3: Database Schema Updates
+
 **Priority:** High  
 **Estimated Time:** 1 hour
 
@@ -44,6 +49,7 @@ Extend User model to support social authentication:
 4. Add validation for social account data
 
 **Acceptance Criteria:**
+
 - User model supports multiple social accounts
 - Database indexes are created for performance
 - Schema validation prevents duplicate social accounts
@@ -52,6 +58,7 @@ Extend User model to support social authentication:
 ## Phase 2: Passport Integration
 
 ### Task 2.1: Passport Configuration
+
 **Priority:** High  
 **Estimated Time:** 2 hours
 
@@ -63,12 +70,14 @@ Set up Passport.js with all social strategies:
 4. Add Passport initialization to main server
 
 **Acceptance Criteria:**
+
 - All 6 social providers are configured as Passport strategies
 - Unified callback handler processes all provider responses
 - User sessions work correctly with Passport
 - Server initializes Passport middleware without errors
 
 ### Task 2.2: Social Account Service
+
 **Priority:** High  
 **Estimated Time:** 2.5 hours
 
@@ -80,6 +89,7 @@ Create service for managing social account operations:
 4. Add profile data synchronization
 
 **Acceptance Criteria:**
+
 - Service can link new social accounts to existing users
 - Service prevents unlinking the last authentication method
 - Find-or-create logic handles email conflicts correctly
@@ -88,6 +98,7 @@ Create service for managing social account operations:
 ## Phase 3: API Routes
 
 ### Task 3.1: Social Authentication Routes
+
 **Priority:** High  
 **Estimated Time:** 1.5 hours
 
@@ -99,12 +110,14 @@ Create OAuth flow endpoints:
 4. Add error handling and redirects
 
 **Acceptance Criteria:**
+
 - Each provider has initiation and callback routes
 - Routes handle OAuth state parameter correctly
 - Success/failure redirects work properly
 - Error messages are user-friendly
 
 ### Task 3.2: Account Management API
+
 **Priority:** Medium  
 **Estimated Time:** 2 hours
 
@@ -116,6 +129,7 @@ Add API endpoints for managing social accounts:
 4. Implement DELETE `/api/auth/unlink/:provider` to unlink accounts
 
 **Acceptance Criteria:**
+
 - Users can view their linked social accounts
 - Users can link additional social accounts when logged in
 - Users can unlink social accounts with proper validation
@@ -124,6 +138,7 @@ Add API endpoints for managing social accounts:
 ## Phase 4: Frontend Integration
 
 ### Task 4.1: Login Page Updates
+
 **Priority:** High  
 **Estimated Time:** 2 hours
 
@@ -135,12 +150,14 @@ Add social sign-in buttons to login interface:
 4. Update login page layout
 
 **Acceptance Criteria:**
+
 - Social login buttons are visually appealing and accessible
 - Buttons initiate OAuth flows correctly
 - Login page layout accommodates new buttons
 - Mobile responsive design works properly
 
 ### Task 4.2: Profile Management Interface
+
 **Priority:** Medium  
 **Estimated Time:** 2.5 hours
 
@@ -152,6 +169,7 @@ Add social account management to user profile:
 4. Show account linking status and errors
 
 **Acceptance Criteria:**
+
 - Users can see all their connected social accounts
 - Link/unlink actions work with proper confirmation
 - Error states are handled gracefully
@@ -160,6 +178,7 @@ Add social account management to user profile:
 ## Phase 5: Security & Error Handling
 
 ### Task 5.1: Security Implementation
+
 **Priority:** High  
 **Estimated Time:** 1.5 hours
 
@@ -171,12 +190,14 @@ Implement OAuth security measures:
 4. Validate OAuth responses and sanitize data
 
 **Acceptance Criteria:**
+
 - CSRF attacks are prevented with state validation
 - OAuth tokens are encrypted in database
 - Rate limiting prevents OAuth abuse
 - All user input from providers is sanitized
 
 ### Task 5.2: Error Handling & Logging
+
 **Priority:** Medium  
 **Estimated Time:** 1 hour
 
@@ -188,6 +209,7 @@ Implement comprehensive error handling:
 4. Add fallback mechanisms for provider outages
 
 **Acceptance Criteria:**
+
 - OAuth errors don't crash the application
 - Security events are logged appropriately
 - Users receive helpful error messages
@@ -196,6 +218,7 @@ Implement comprehensive error handling:
 ## Phase 6: Testing & Documentation
 
 ### Task 6.1: Unit Tests
+
 **Priority:** Medium  
 **Estimated Time:** 3 hours
 
@@ -207,12 +230,14 @@ Create comprehensive test suite:
 4. Mock OAuth provider responses
 
 **Acceptance Criteria:**
+
 - All social account service methods have unit tests
 - OAuth flows are tested with mocked providers
 - Edge cases and error conditions are covered
 - Tests achieve >90% code coverage
 
 ### Task 6.2: Integration Tests
+
 **Priority:** Medium  
 **Estimated Time:** 2 hours
 
@@ -224,12 +249,14 @@ Test complete OAuth flows:
 4. Test security measures (CSRF, rate limiting)
 
 **Acceptance Criteria:**
+
 - Complete OAuth flows work end-to-end
 - Account management operations are tested
 - Security measures are validated
 - Error scenarios are properly handled
 
 ### Task 6.3: Documentation Updates
+
 **Priority:** Low  
 **Estimated Time:** 1 hour
 
@@ -241,6 +268,7 @@ Update project documentation:
 4. Create troubleshooting guide
 
 **Acceptance Criteria:**
+
 - Setup instructions are clear and complete
 - All new environment variables are documented
 - API endpoints are documented with examples
@@ -249,6 +277,7 @@ Update project documentation:
 ## Phase 7: Provider-Specific Configuration
 
 ### Task 7.1: Google OAuth Setup
+
 **Priority:** High  
 **Estimated Time:** 45 minutes
 
@@ -260,12 +289,14 @@ Configure Google OAuth integration:
 4. Test Google sign-in flow
 
 **Acceptance Criteria:**
+
 - Google OAuth app is properly configured
 - Consent screen shows correct app information
 - Sign-in flow works without errors
 - Required user data is retrieved correctly
 
 ### Task 7.2: Facebook/Instagram OAuth Setup
+
 **Priority:** High  
 **Estimated Time:** 1 hour
 
@@ -277,12 +308,14 @@ Configure Facebook and Instagram OAuth:
 4. Test both Facebook and Instagram flows
 
 **Acceptance Criteria:**
+
 - Facebook app is approved for production use
 - Instagram integration works correctly
 - Required permissions are properly requested
 - User profile data is retrieved accurately
 
 ### Task 7.3: Apple Sign In Setup
+
 **Priority:** High  
 **Estimated Time:** 1 hour
 
@@ -294,12 +327,14 @@ Configure Apple Sign In:
 4. Test Apple sign-in flow
 
 **Acceptance Criteria:**
+
 - Apple Sign In is properly configured
 - Private key authentication works
 - Sign-in flow handles Apple's privacy features
 - Email relay functionality works if used
 
 ### Task 7.4: X (Twitter) OAuth Setup
+
 **Priority:** Medium  
 **Estimated Time:** 45 minutes
 
@@ -311,12 +346,14 @@ Configure X (Twitter) OAuth:
 4. Test X sign-in flow
 
 **Acceptance Criteria:**
+
 - X OAuth app is properly configured
 - Sign-in flow works with current X API
 - User profile data is retrieved correctly
 - Rate limits are handled appropriately
 
 ### Task 7.5: Snapchat OAuth Setup
+
 **Priority:** Low  
 **Estimated Time:** 45 minutes
 
@@ -328,6 +365,7 @@ Configure Snapchat OAuth:
 4. Test Snapchat sign-in flow
 
 **Acceptance Criteria:**
+
 - Snapchat Login Kit is properly configured
 - Sign-in flow works without errors
 - Required user data is retrieved
@@ -336,6 +374,7 @@ Configure Snapchat OAuth:
 ## Deployment Checklist
 
 ### Pre-Deployment Tasks
+
 - [ ] All OAuth apps are configured for production domains
 - [ ] Environment variables are set in production
 - [ ] Database migrations are applied
@@ -343,6 +382,7 @@ Configure Snapchat OAuth:
 - [ ] Rate limiting is configured appropriately
 
 ### Post-Deployment Verification
+
 - [ ] All social sign-in flows work in production
 - [ ] OAuth callbacks resolve correctly
 - [ ] User accounts are created and linked properly
@@ -354,6 +394,7 @@ Configure Snapchat OAuth:
 **Critical Path:** Tasks 1.1 → 1.2 → 1.3 → 2.1 → 2.2 → 3.1 → 4.1 → 5.1
 
 **Dependencies:**
+
 - Task 2.1 depends on Tasks 1.1, 1.2, 1.3
 - Task 2.2 depends on Task 1.3
 - Task 3.1 depends on Task 2.1

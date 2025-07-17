@@ -1,37 +1,51 @@
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
-// Set up test environment variables
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-jwt-secret';
-process.env.MOLLIE_API_KEY = 'test_dummy_key';
-process.env.SESSION_SECRET = 'test-session-secret';
+// Import mocks before anything else
+require('./helpers/mockServices');
 
-let mongod;
+let mongoServer;
 
+// Setup before all tests
 beforeAll(async () => {
   // Start in-memory MongoDB instance
-  mongod = await MongoMemoryServer.create();
-  const uri = mongod.getUri();
+  mongoServer = await MongoMemoryServer.create();
+  const mongoUri = mongoServer.getUri();
   
-  await mongoose.connect(uri, {
+  // Set test environment variables
+  process.env.NODE_ENV = 'test';
+  process.env.JWT_SECRET = 'test-secret-key-for-testing';
+  process.env.MONGODB_TEST_URI = mongoUri;
+  
+  // Connect to the in-memory database
+  await mongoose.connect(mongoUri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   });
-});
+}, 30000);
 
-afterAll(async () => {
-  // Clean up
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  await mongod.stop();
-});
-
+// Cleanup after each test
 afterEach(async () => {
-  // Clean up after each test
-  const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    const collection = collections[key];
-    await collection.deleteMany({});
+  if (mongoose.connection.readyState === 1) {
+    const collections = mongoose.connection.collections;
+    for (const key in collections) {
+      const collection = collections[key];
+      await collection.deleteMany({});
+    }
   }
+});
+
+// Cleanup after all tests
+afterAll(async () => {
+  if (mongoose.connection.readyState === 1) {
+    await mongoose.connection.close();
+  }
+  if (mongoServer) {
+    await mongoServer.stop();
+  }
+}, 30000);
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.log('Unhandled Rejection at:', promise, 'reason:', reason);
 });

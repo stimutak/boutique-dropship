@@ -1,44 +1,29 @@
-// Simple API test without starting full server
-const express = require('express');
-const wholesalerRoutes = require('./routes/wholesalers');
+const axios = require('axios');
 
-const app = express();
-app.use(express.json());
-app.use('/api/wholesalers', wholesalerRoutes);
-
-// Test the test endpoint
-const request = require('http');
-
-const testEndpoint = () => {
-  const server = app.listen(3001, () => {
-    console.log('Test server started on port 3001');
+async function testAPI() {
+  try {
+    console.log('Testing API connection...');
     
-    // Make a test request
-    const options = {
-      hostname: 'localhost',
-      port: 3001,
-      path: '/api/wholesalers/test',
-      method: 'GET'
-    };
-
-    const req = request.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      res.on('end', () => {
-        console.log('API Response:', JSON.parse(data));
-        server.close();
-      });
+    // Test health endpoint
+    const healthResponse = await axios.get('http://localhost:5003/health');
+    console.log('✅ Health check:', healthResponse.data);
+    
+    // Test products endpoint
+    const productsResponse = await axios.get('http://localhost:5003/api/products');
+    console.log('✅ Products count:', productsResponse.data.data.products.length);
+    
+    // Test registration
+    const registerResponse = await axios.post('http://localhost:5003/api/auth/register', {
+      firstName: 'API',
+      lastName: 'Test',
+      email: 'apitest@example.com',
+      password: 'Password123!'
     });
+    console.log('✅ Registration successful:', registerResponse.data.success);
+    
+  } catch (error) {
+    console.error('❌ API Error:', error.response?.data || error.message);
+  }
+}
 
-    req.on('error', (e) => {
-      console.error('Request error:', e.message);
-      server.close();
-    });
-
-    req.end();
-  });
-};
-
-testEndpoint();
+testAPI();

@@ -398,8 +398,8 @@ router.post('/registered', requireAuth, async (req, res) => {
   }
 });
 
-// Get order by ID (public - works for both guest and registered users)
-router.get('/:id', async (req, res) => {
+// Get order by ID (requires authentication and ownership check)
+router.get('/:id', requireAuth, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('items.product', '-wholesaler')
@@ -415,10 +415,23 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    // Check if user owns this order (unless admin)
+    if (!req.user.isAdmin && order.customer && order.customer._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'ACCESS_DENIED',
+          message: 'You can only access your own orders'
+        }
+      });
+    }
+
     // Return public order data (excludes sensitive wholesaler info)
     res.json({
       success: true,
-      order: order.toPublicJSON()
+      data: {
+        order: order.toPublicJSON()
+      }
     });
 
   } catch (error) {
@@ -454,13 +467,15 @@ router.get('/', requireAuth, async (req, res) => {
 
     res.json({
       success: true,
-      orders: publicOrders,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalOrders,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
+      data: {
+        orders: publicOrders,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalOrders,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        }
       }
     });
 

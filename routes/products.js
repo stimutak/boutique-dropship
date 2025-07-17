@@ -117,25 +117,27 @@ router.get('/', async (req, res) => {
     
     res.json({
       success: true,
-      products: publicProducts,
-      pagination: {
-        currentPage: pageNum,
-        totalPages,
-        totalProducts,
-        limit: limitNum,
-        hasNextPage: pageNum < totalPages,
-        hasPrevPage: pageNum > 1
-      },
-      filters: {
-        category,
-        search,
-        chakra,
-        element,
-        zodiac,
-        healing,
-        priceRange: { min: minPrice, max: maxPrice },
-        featured,
-        sort
+      data: {
+        products: publicProducts,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalProducts,
+          limit: limitNum,
+          hasNextPage: pageNum < totalPages,
+          hasPrevPage: pageNum > 1
+        },
+        filters: {
+          category,
+          search,
+          chakra,
+          element,
+          zodiac,
+          healing,
+          priceRange: { min: minPrice, max: maxPrice },
+          featured,
+          sort
+        }
       }
     });
     
@@ -463,12 +465,14 @@ router.get('/:slug', async (req, res) => {
     
     res.json({
       success: true,
-      product: product.toPublicJSON(),
-      related: relatedProducts.map(p => p.toPublicJSON()),
-      meta: {
-        slug,
-        category: product.category,
-        relatedCount: relatedProducts.length
+      data: {
+        product: product.toPublicJSON(),
+        related: relatedProducts.map(p => p.toPublicJSON()),
+        meta: {
+          slug,
+          category: product.category,
+          relatedCount: relatedProducts.length
+        }
       }
     });
     

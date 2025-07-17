@@ -17,7 +17,7 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
   credentials: true
 }));
 
@@ -56,6 +56,20 @@ app.use(express.static('public'));
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+}).then(() => {
+  console.log('Connected to MongoDB');
+}).catch((error) => {
+  console.warn('MongoDB connection failed:', error.message);
+  console.warn('Running in development mode without database');
+});
+
+// Handle MongoDB connection events
+mongoose.connection.on('error', (error) => {
+  console.warn('MongoDB connection error:', error.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('MongoDB disconnected');
 });
 
 // Routes
@@ -72,6 +86,23 @@ app.use('/api/monitoring', require('./routes/monitoring'));
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Root route for API info
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Holistic Dropship Store API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      products: '/api/products',
+      cart: '/api/cart',
+      orders: '/api/orders',
+      payments: '/api/payments'
+    },
+    frontend: process.env.FRONTEND_URL || 'http://localhost:3000'
+  });
 });
 
 // Global error handling middleware (must be last)
