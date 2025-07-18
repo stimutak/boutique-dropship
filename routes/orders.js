@@ -177,6 +177,9 @@ router.post('/', validateGuestCheckout, async (req, res) => {
       referralSource
     };
 
+    // Note: Orders are created as guest orders by default
+    // They can be associated with users later via the /associate endpoint
+
     const order = await Order.create(orderData);
     
     // Populate product details for email
@@ -486,6 +489,55 @@ router.get('/', requireAuth, async (req, res) => {
       error: {
         code: 'ORDER_HISTORY_ERROR',
         message: 'Failed to fetch order history'
+      }
+    });
+  }
+});
+
+// Associate order with authenticated user
+router.post('/:id/associate', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the order
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'ORDER_NOT_FOUND',
+          message: 'Order not found'
+        }
+      });
+    }
+
+    // Check if order is already associated with a user
+    if (order.customer) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'ORDER_ALREADY_ASSOCIATED',
+          message: 'Order is already associated with a user'
+        }
+      });
+    }
+
+    // Associate order with the authenticated user
+    order.customer = req.user._id;
+    await order.save();
+
+    res.json({
+      success: true,
+      message: 'Order successfully associated with your account'
+    });
+
+  } catch (error) {
+    console.error('Error associating order:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'ORDER_ASSOCIATION_ERROR',
+        message: 'Failed to associate order with account'
       }
     });
   }

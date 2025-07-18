@@ -39,7 +39,7 @@ try {
 // Create payment for order
 router.post('/create', authenticateToken, [
   body('orderId').isMongoId().withMessage('Valid order ID is required'),
-  body('method').optional().isIn(['card', 'crypto', 'creditcard']).withMessage('Invalid payment method'),
+  body('method').optional().isIn(['card', 'crypto', 'creditcard', 'other']).withMessage('Invalid payment method'),
   body('redirectUrl').optional().custom((value) => {
     if (value && !value.match(/^https?:\/\/.+/)) {
       throw new Error('Valid redirect URL required');
@@ -226,6 +226,11 @@ router.post('/demo-complete/:orderId', authenticateToken, [
     order.payment.paidAt = new Date();
     order.payment.transactionId = `demo_${Date.now()}`;
     order.status = 'processing';
+    
+    // Associate order with authenticated user if not already associated
+    if (req.user && req.user._id && !order.customer) {
+      order.customer = req.user._id;
+    }
     
     await order.save();
 

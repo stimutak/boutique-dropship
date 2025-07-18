@@ -47,7 +47,7 @@ const Payment = () => {
       const paymentRequest = {
         orderId: order._id,
         method: paymentMethod,
-        redirectUrl: `http://localhost:3000/payment/success/${order._id}`,
+        redirectUrl: `${window.location.origin}/payment/success/${order._id}`,
         webhookUrl: `http://localhost:5001/api/payments/webhook`
       }
       

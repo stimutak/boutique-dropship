@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearCart, clearCartLocally } from '../store/slices/cartSlice'
+import { fetchUserOrders } from '../store/slices/ordersSlice'
 import api from '../api/config'
 
 const PaymentSuccess = () => {
@@ -89,17 +90,29 @@ const PaymentSuccess = () => {
           )}
           
           <div className="success-actions">
+            {isAuthenticated ? (
+              <button 
+                onClick={() => {
+                  dispatch(fetchUserOrders())
+                  navigate('/orders')
+                }} 
+                className="btn btn-primary"
+              >
+                View My Orders
+              </button>
+            ) : (
+              <button 
+                onClick={() => navigate('/products')} 
+                className="btn btn-primary"
+              >
+                Continue Shopping
+              </button>
+            )}
             <button 
-              onClick={() => navigate('/orders')} 
-              className="btn btn-primary"
-            >
-              View My Orders
-            </button>
-            <button 
-              onClick={() => navigate('/products')} 
+              onClick={() => navigate('/')} 
               className="btn btn-secondary"
             >
-              Continue Shopping
+              Return to Home
             </button>
           </div>
         </div>
