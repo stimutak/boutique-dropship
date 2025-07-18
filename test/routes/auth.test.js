@@ -23,7 +23,7 @@ describe('Auth Routes', () => {
     password: 'password123',
     firstName: 'John',
     lastName: 'Doe',
-    phone: '555-123-4567'
+    phone: '+15551234567'
   };
   
   beforeAll(async () => {
@@ -81,11 +81,19 @@ describe('Auth Routes', () => {
     });
     
     it('should reject registration with existing email', async () => {
+      // Use data without phone to avoid validation issues
+      const testData = {
+        email: 'test@example.com',
+        password: 'password123',
+        firstName: 'John',
+        lastName: 'Doe'
+      };
+      
       const response = await request(app)
         .post('/api/auth/register')
-        .send(validUserData)
-        .expect(409);
+        .send(testData);
       
+      expect(response.status).toBe(409);
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('USER_EXISTS');
     });
