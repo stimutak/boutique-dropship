@@ -89,39 +89,40 @@ const createRateLimit = (windowMs, max, message) => {
 };
 
 // Different rate limits for different endpoints
+// More forgiving limits for development while still providing protection
 const rateLimits = {
-  // General API rate limit
+  // General API rate limit - increased for development
   general: createRateLimit(
     15 * 60 * 1000, // 15 minutes
-    100, // 100 requests per window
+    500, // 500 requests per window (was 100)
     'Too many requests, please try again later'
   ),
   
-  // Strict rate limit for authentication endpoints
+  // Authentication endpoints - more forgiving for dev/testing
   auth: createRateLimit(
     15 * 60 * 1000, // 15 minutes
-    10, // 10 requests per window
+    50, // 50 requests per window (was 10)
     'Too many authentication attempts, please try again later'
   ),
   
-  // Payment endpoints rate limit
+  // Payment endpoints rate limit - slightly increased
   payment: createRateLimit(
     60 * 60 * 1000, // 1 hour
-    20, // 20 requests per hour
+    50, // 50 requests per hour (was 20)
     'Too many payment requests, please try again later'
   ),
   
-  // Admin endpoints rate limit
+  // Admin endpoints rate limit - increased
   admin: createRateLimit(
     15 * 60 * 1000, // 15 minutes
-    50, // 50 requests per window
+    200, // 200 requests per window (was 50)
     'Too many admin requests, please try again later'
   ),
   
-  // Cross-site integration rate limit
+  // Cross-site integration rate limit - increased
   integration: createRateLimit(
     60 * 1000, // 1 minute
-    30, // 30 requests per minute
+    100, // 100 requests per minute (was 30)
     'Too many integration requests, please try again later'
   )
 };
