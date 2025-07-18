@@ -9,10 +9,27 @@ const Orders = () => {
 
   useEffect(() => {
     console.log('Orders component mounted, fetching orders...')
-    dispatch(fetchUserOrders())
+    try {
+      dispatch(fetchUserOrders())
+    } catch (err) {
+      console.error('Error dispatching fetchUserOrders:', err)
+    }
   }, [dispatch])
 
   console.log('Orders component render:', { orders, isLoading, error, ordersLength: orders?.length })
+  
+  // Debug: Check state
+  try {
+    console.log('Orders component state debug:', {
+      ordersType: typeof orders,
+      ordersIsArray: Array.isArray(orders),
+      ordersActualLength: orders?.length,
+      isLoading,
+      error
+    })
+  } catch (debugError) {
+    console.error('Error in Orders component debug:', debugError)
+  }
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -43,62 +60,79 @@ const Orders = () => {
     )
   }
 
-  return (
-    <div className="orders-page">
-      <div className="container">
-        <h1>My Orders</h1>
-        
-        {(!orders || orders.length === 0) ? (
-          <div className="no-orders">
-            <p>You haven't placed any orders yet</p>
-            <Link to="/products" className="btn btn-primary">
-              Start Shopping
-            </Link>
-          </div>
-        ) : (
-          <div className="orders-list">
-            {(orders || []).map(order => (
-              <div key={order._id} className="order-card">
-                <div className="order-header">
-                  <div>
-                    <h3>Order #{order.orderNumber}</h3>
-                    <p>Placed on {new Date(order.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <span className={`status-badge ${getStatusBadgeClass(order.status)}`}>
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                  </span>
-                </div>
-                
-                <div className="order-items">
-                  {order.items.slice(0, 3).map(item => (
-                    <div key={item._id} className="order-item">
-                      <span>{item.product.name} x {item.quantity}</span>
-                      <span>${(item.price * item.quantity).toFixed(2)}</span>
+  try {
+    return (
+      <div className="orders-page">
+        <div className="container">
+          <h1>My Orders</h1>
+          
+          {(!orders || orders.length === 0) ? (
+            <div className="no-orders">
+              <p>You haven't placed any orders yet</p>
+              <Link to="/products" className="btn btn-primary">
+                Start Shopping
+              </Link>
+            </div>
+          ) : (
+            <div className="orders-list">
+              {(orders || []).map(order => (
+                <div key={order._id} className="order-card">
+                  <div className="order-header">
+                    <div>
+                      <h3>Order #{order.orderNumber}</h3>
+                      <p>Placed on {new Date(order.createdAt).toLocaleDateString()}</p>
                     </div>
-                  ))}
-                  {order.items.length > 3 && (
-                    <p>... and {order.items.length - 3} more items</p>
-                  )}
-                </div>
-                
-                <div className="order-footer">
-                  <div className="order-total">
-                    <strong>Total: ${order.total.toFixed(2)}</strong>
+                    <span className={`status-badge ${getStatusBadgeClass(order.status)}`}>
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </span>
                   </div>
-                  <Link 
-                    to={`/orders/${order._id}`} 
-                    className="btn btn-secondary"
-                  >
-                    View Details
-                  </Link>
+                  
+                  <div className="order-items">
+                    {order.items.slice(0, 3).map(item => (
+                      <div key={item._id} className="order-item">
+                        <span>{item.product.name} x {item.quantity}</span>
+                        <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    {order.items.length > 3 && (
+                      <p>... and {order.items.length - 3} more items</p>
+                    )}
+                  </div>
+                  
+                  <div className="order-footer">
+                    <div className="order-total">
+                      <strong>Total: ${order.total.toFixed(2)}</strong>
+                    </div>
+                    <Link 
+                      to={`/orders/${order._id}`} 
+                      className="btn btn-secondary"
+                    >
+                      View Details
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  } catch (renderError) {
+    console.error('Error rendering Orders component:', renderError)
+    return (
+      <div className="orders-page">
+        <div className="container">
+          <h1>My Orders</h1>
+          <div className="error">
+            <p>An error occurred while loading your orders.</p>
+            <button onClick={() => window.location.reload()} className="btn btn-primary">
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 }
 
 export default Orders
