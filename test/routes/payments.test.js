@@ -5,31 +5,47 @@ const jwt = require('jsonwebtoken');
 const Order = require('../../models/Order');
 const Product = require('../../models/Product');
 const User = require('../../models/User');
-const paymentRoutes = require('../../routes/payments');
 
-// Mock Mollie client
-jest.mock('@mollie/api-client', () => ({
-  createMollieClient: jest.fn(() => ({
-    payments: {
-      create: jest.fn(),
-      get: jest.fn(),
-      refunds: {
-        create: jest.fn()
-      }
-    },
-    methods: {
-      list: jest.fn()
+// Mock the entire Mollie module before requiring the routes
+const mockMollieClient = {
+  payments: {
+    create: jest.fn(),
+    get: jest.fn(),
+    refunds: {
+      create: jest.fn()
     }
-  }))
+  },
+  methods: {
+    list: jest.fn()
+  }
+};
+
+jest.mock('@mollie/api-client', () => ({
+  createMollieClient: jest.fn(() => mockMollieClient)
 }));
 
-const { createMollieClient } = require('@mollie/api-client');
-const mockMollieClient = createMollieClient();
+// Now require the payment routes after mocking
+const paymentRoutes = require('../../routes/payments');
 
 // Create test app
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
+  
+  // Add auth middleware for testing
+  app.use((req, res, next) => {
+    if (req.headers.authorization) {
+      const token = req.headers.authorization.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = { _id: decoded.userId, isAdmin: true };
+      } catch (error) {
+        return res.status(401).json({ success: false, error: { code: 'INVALID_TOKEN', message: 'Invalid token' } });
+      }
+    }
+    next();
+  });
+  
   app.use('/api/payments', paymentRoutes);
   return app;
 };
@@ -158,7 +174,11 @@ describe('Payment Routes', () => {
         amount: { currency: 'USD', value: '64.78' },
         method: 'creditcard',
         createdAt: '2023-01-01T00:00:00Z',
-        getCheckoutUrl: () => 'https://www.mollie.com/payscreen/select-method/test_payment_123'
+        _links: {
+          checkout: {
+            href: 'https://www.mollie.com/payscreen/select-method/test_payment_123'
+          }
+        }
       };
       
       mockMollieClient.payments.create.mockResolvedValue(mockPayment);
@@ -168,27 +188,28 @@ describe('Payment Routes', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderId: testOrder._id,
-          method: 'creditcard',
+          method: 'card',
           redirectUrl: 'http://localhost:3000/success',
           webhookUrl: 'http://localhost:5000/webhook'
         })
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.payment.id).toBe('tr_test_payment_123');
-      expect(response.body.payment.checkoutUrl).toBeDefined();
-      expect(response.body.order.orderNumber).toBe(testOrder.orderNumber);
+      expect(response.body.data.paymentId).toBe('tr_test_payment_123');
+      expect(response.body.data.checkoutUrl).toBeDefined();
+      expect(response.body.data.order.orderNumber).toBe(testOrder.orderNumber);
       
       // Verify order was updated
       const updatedOrder = await Order.findById(testOrder._id);
       expect(updatedOrder.payment.molliePaymentId).toBe('tr_test_payment_123');
-      expect(updatedOrder.payment.method).toBe('creditcard');
+      expect(updatedOrder.payment.method).toBe('card');
       expect(updatedOrder.payment.status).toBe('pending');
       
       // Verify Mollie client was called correctly
       expect(mockMollieClient.payments.create).toHaveBeenCalledWith({
         amount: { currency: 'USD', value: '64.78' },
         description: `Order ${testOrder.orderNumber}`,
+        method: 'card',
         redirectUrl: 'http://localhost:3000/success',
         webhookUrl: 'http://localhost:5000/webhook',
         metadata: {
@@ -261,7 +282,11 @@ describe('Payment Routes', () => {
         amount: { currency: 'USD', value: '64.78' },
         method: 'bitcoin',
         createdAt: '2023-01-01T00:00:00Z',
-        getCheckoutUrl: () => 'https://www.mollie.com/payscreen/bitcoin/test_crypto_123'
+        _links: {
+          checkout: {
+            href: 'https://www.mollie.com/payscreen/bitcoin/test_crypto_123'
+          }
+        }
       };
       
       mockMollieClient.payments.create.mockResolvedValue(mockPayment);
@@ -271,17 +296,17 @@ describe('Payment Routes', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           orderId: testOrder._id,
-          method: 'bitcoin'
+          method: 'crypto'
         })
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.payment.method).toBe('bitcoin');
+      expect(response.body.data.method).toBe('bitcoin');
       
       // Verify method was passed to Mollie
       expect(mockMollieClient.payments.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: 'bitcoin'
+          method: 'crypto'
         })
       );
     });
