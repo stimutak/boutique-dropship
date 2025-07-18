@@ -8,8 +8,11 @@ const Orders = () => {
   const { orders, isLoading, error } = useSelector(state => state.orders)
 
   useEffect(() => {
+    console.log('Orders component mounted, fetching orders...')
     dispatch(fetchUserOrders())
   }, [dispatch])
+
+  console.log('Orders component render:', { orders, isLoading, error })
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -70,7 +73,7 @@ const Orders = () => {
                 
                 <div className="order-footer">
                   <div className="order-total">
-                    <strong>Total: ${order.totalAmount.toFixed(2)}</strong>
+                    <strong>Total: ${order.total.toFixed(2)}</strong>
                   </div>
                   <Link 
                     to={`/orders/${order._id}`} 

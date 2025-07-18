@@ -215,13 +215,47 @@ router.get('/profile', requireAuth, async (req, res) => {
 // Update user profile
 router.put('/profile', requireAuth, async (req, res) => {
   try {
-    const { firstName, lastName, phone, preferences } = req.body;
+    const { firstName, lastName, phone, preferences, addresses } = req.body;
     
     const updateData = {};
     if (firstName) updateData.firstName = firstName.trim();
     if (lastName) updateData.lastName = lastName.trim();
     if (phone) updateData.phone = phone.trim();
     if (preferences) updateData.preferences = { ...req.user.preferences, ...preferences };
+    
+    // Handle addresses update
+    if (addresses && Array.isArray(addresses) && addresses.length > 0) {
+      const address = addresses[0]; // Take the first address from the profile form
+      
+      // Find existing address or create new one
+      const user = await User.findById(req.user._id);
+      let existingAddress = user.addresses.find(addr => addr.type === 'shipping');
+      
+      if (existingAddress) {
+        // Update existing address - only update if values are provided
+        if (address.street !== undefined) existingAddress.street = address.street;
+        if (address.city !== undefined) existingAddress.city = address.city;
+        if (address.state !== undefined) existingAddress.state = address.state;
+        if (address.zipCode !== undefined) existingAddress.zipCode = address.zipCode;
+        if (address.country !== undefined) existingAddress.country = address.country;
+      } else if (address.street && address.city && address.state && address.zipCode) {
+        // Add new address only if all required fields are provided
+        user.addresses.push({
+          type: 'shipping',
+          firstName: firstName || user.firstName,
+          lastName: lastName || user.lastName,
+          street: address.street,
+          city: address.city,
+          state: address.state,
+          zipCode: address.zipCode,
+          country: address.country || 'US',
+          isDefault: true
+        });
+      }
+      
+      await user.save();
+      updateData.addresses = user.addresses;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,

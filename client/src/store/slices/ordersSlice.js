@@ -26,7 +26,13 @@ export const fetchUserOrders = createAsyncThunk(
       })
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      console.error('Fetch orders error:', error)
+      return rejectWithValue(
+        error.response?.data?.error?.message || 
+        error.response?.data?.message || 
+        error.message || 
+        'Failed to fetch orders'
+      )
     }
   }
 )
@@ -41,7 +47,13 @@ export const fetchOrderById = createAsyncThunk(
       })
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      console.error('Fetch order error:', error)
+      return rejectWithValue(
+        error.response?.data?.error?.message || 
+        error.response?.data?.message || 
+        error.message || 
+        'Failed to fetch order'
+      )
     }
   }
 )
@@ -85,11 +97,11 @@ const ordersSlice = createSlice({
       })
       .addCase(fetchUserOrders.fulfilled, (state, action) => {
         state.isLoading = false
-        state.orders = action.payload.orders
+        state.orders = action.payload.data.orders
       })
       .addCase(fetchUserOrders.rejected, (state, action) => {
         state.isLoading = false
-        state.error = action.payload
+        state.error = action.payload || 'Failed to fetch orders'
       })
       // Fetch order by ID
       .addCase(fetchOrderById.pending, (state) => {
@@ -98,11 +110,11 @@ const ordersSlice = createSlice({
       })
       .addCase(fetchOrderById.fulfilled, (state, action) => {
         state.isLoading = false
-        state.currentOrder = action.payload.order
+        state.currentOrder = action.payload.data.order
       })
       .addCase(fetchOrderById.rejected, (state, action) => {
         state.isLoading = false
-        state.error = action.payload
+        state.error = action.payload || 'Failed to fetch order'
       })
   }
 })

@@ -9,6 +9,7 @@ const OrderDetail = () => {
   const { currentOrder: order, isLoading, error } = useSelector(state => state.orders)
 
   useEffect(() => {
+    console.log('OrderDetail component mounted, fetching order:', id)
     if (id) {
       dispatch(fetchOrderById(id))
     }
@@ -17,6 +18,8 @@ const OrderDetail = () => {
       dispatch(clearCurrentOrder())
     }
   }, [dispatch, id])
+
+  console.log('OrderDetail component render:', { order, isLoading, error })
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -73,7 +76,7 @@ const OrderDetail = () => {
               </div>
               <div className="info-item">
                 <span>Total Amount:</span>
-                <span>${order.totalAmount.toFixed(2)}</span>
+                <span>${order.total.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -84,16 +87,26 @@ const OrderDetail = () => {
             <div className="info-grid">
               <div className="info-item">
                 <span>Name:</span>
-                <span>{order.customerInfo.firstName} {order.customerInfo.lastName}</span>
+                <span>
+                  {order.customer 
+                    ? `${order.customer.firstName} ${order.customer.lastName}`
+                    : `${order.guestInfo.firstName} ${order.guestInfo.lastName}`
+                  }
+                </span>
               </div>
               <div className="info-item">
                 <span>Email:</span>
-                <span>{order.customerInfo.email}</span>
+                <span>
+                  {order.customer 
+                    ? order.customer.email
+                    : order.guestInfo.email
+                  }
+                </span>
               </div>
-              {order.customerInfo.phone && (
+              {(order.customer?.phone || order.guestInfo?.phone) && (
                 <div className="info-item">
                   <span>Phone:</span>
-                  <span>{order.customerInfo.phone}</span>
+                  <span>{order.customer?.phone || order.guestInfo?.phone}</span>
                 </div>
               )}
             </div>
@@ -140,7 +153,7 @@ const OrderDetail = () => {
             </div>
             
             <div className="order-total">
-              <strong>Total: ${order.totalAmount.toFixed(2)}</strong>
+              <strong>Total: ${order.total.toFixed(2)}</strong>
             </div>
           </div>
         </div>

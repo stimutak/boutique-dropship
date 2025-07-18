@@ -291,6 +291,185 @@ describe('Auth Routes', () => {
       
       expect(response.body.success).toBe(false);
     });
+
+    it('should update profile with new address', async () => {
+      const updateData = {
+        firstName: 'Updated',
+        lastName: 'Name',
+        addresses: [{
+          street: '123 New Street',
+          city: 'New City',
+          state: 'NY',
+          zipCode: '10001',
+          country: 'US'
+        }]
+      };
+      
+      const response = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.user.addresses).toHaveLength(1);
+      expect(response.body.user.addresses[0].street).toBe('123 New Street');
+      expect(response.body.user.addresses[0].city).toBe('New City');
+      expect(response.body.user.addresses[0].type).toBe('shipping');
+      expect(response.body.user.addresses[0].isDefault).toBe(true);
+      
+      // Verify in database
+      const updatedUser = await User.findById(testUser._id);
+      expect(updatedUser.addresses).toHaveLength(1);
+      expect(updatedUser.addresses[0].street).toBe('123 New Street');
+    });
+
+    it('should update existing address when user already has one', async () => {
+      // First add an address
+      await testUser.addAddress({
+        type: 'shipping',
+        firstName: 'John',
+        lastName: 'Doe',
+        street: '456 Old Street',
+        city: 'Old City',
+        state: 'CA',
+        zipCode: '90210',
+        country: 'US',
+        isDefault: true
+      });
+      
+      const updateData = {
+        addresses: [{
+          street: '789 Updated Street',
+          city: 'Updated City',
+          state: 'TX',
+          zipCode: '75001',
+          country: 'US'
+        }]
+      };
+      
+      const response = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.user.addresses).toHaveLength(1);
+      expect(response.body.user.addresses[0].street).toBe('789 Updated Street');
+      expect(response.body.user.addresses[0].city).toBe('Updated City');
+      expect(response.body.user.addresses[0].state).toBe('TX');
+      
+      // Verify in database
+      const updatedUser = await User.findById(testUser._id);
+      expect(updatedUser.addresses).toHaveLength(1);
+      expect(updatedUser.addresses[0].street).toBe('789 Updated Street');
+    });
+
+    it('should handle partial address updates', async () => {
+      const updateData = {
+        firstName: 'Updated',
+        addresses: [{
+          street: '123 Partial Street',
+          city: 'Partial City'
+          // Missing state, zipCode - should not create address
+        }]
+      };
+      
+      const response = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.user.addresses).toHaveLength(0); // No address created due to missing required fields
+      
+      // Verify in database
+      const updatedUser = await User.findById(testUser._id);
+      expect(updatedUser.addresses).toHaveLength(0);
+    });
+
+    it('should not create address when all fields are empty', async () => {
+      const updateData = {
+        firstName: 'Updated',
+        addresses: [{
+          street: '',
+          city: '',
+          state: '',
+          zipCode: ''
+        }]
+      };
+      
+      const response = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.user.addresses).toHaveLength(0);
+      
+      // Verify in database
+      const updatedUser = await User.findById(testUser._id);
+      expect(updatedUser.addresses).toHaveLength(0);
+    });
+
+    it('should handle empty addresses array', async () => {
+      const updateData = {
+        firstName: 'Updated',
+        addresses: []
+      };
+      
+      const response = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.user.firstName).toBe('Updated');
+      // Should not affect existing addresses
+    });
+
+    it('should handle null addresses', async () => {
+      const updateData = {
+        firstName: 'Updated',
+        addresses: null
+      };
+      
+      const response = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.user.firstName).toBe('Updated');
+    });
+
+    it('should use firstName and lastName from update for new address', async () => {
+      const updateData = {
+        firstName: 'NewFirst',
+        lastName: 'NewLast',
+        addresses: [{
+          street: '123 Test Street',
+          city: 'Test City',
+          state: 'CA',
+          zipCode: '90210'
+        }]
+      };
+      
+      const response = await request(app)
+        .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.user.addresses[0].firstName).toBe('NewFirst');
+      expect(response.body.user.addresses[0].lastName).toBe('NewLast');
+    });
   });
   
   describe('Address Management', () => {
