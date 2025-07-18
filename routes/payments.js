@@ -3,7 +3,7 @@ const router = express.Router();
 const { createMollieClient } = require('@mollie/api-client');
 const { body, param, validationResult } = require('express-validator');
 const Order = require('../models/Order');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, authenticateToken } = require('../middleware/auth');
 
 // Initialize Mollie client with fallback
 let mollieClient;
@@ -37,7 +37,7 @@ try {
 }
 
 // Create payment for order
-router.post('/create', requireAuth, async (req, res) => {
+router.post('/create', authenticateToken, async (req, res) => {
   try {
     const { orderId, method = 'card', redirectUrl, webhookUrl } = req.body;
 

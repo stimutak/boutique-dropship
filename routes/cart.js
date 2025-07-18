@@ -62,14 +62,10 @@ router.get('/', authenticateToken, initializeCart, async (req, res) => {
     
     res.json({
       success: true,
-      data: {
-        cart: {
-          items: validCart,
-          subtotal: Math.round(subtotal * 100) / 100,
-          itemCount,
-          isEmpty: validCart.length === 0
-        }
-      }
+      items: validCart,
+      totalItems: itemCount,
+      totalPrice: Math.round(subtotal * 100) / 100,
+      isEmpty: validCart.length === 0
     });
     
   } catch (error) {
@@ -85,7 +81,7 @@ router.get('/', authenticateToken, initializeCart, async (req, res) => {
 });
 
 // Add item to cart
-router.post('/add', requireAuth, initializeCart, async (req, res) => {
+router.post('/add', authenticateToken, initializeCart, async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
     
@@ -147,30 +143,59 @@ router.post('/add', requireAuth, initializeCart, async (req, res) => {
       });
     }
     
-    // Save session
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({
-          success: false,
-          error: {
-            code: 'SESSION_ERROR',
-            message: 'Failed to save cart'
-          }
+    // Save session and get updated cart
+    try {
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
         });
-      }
+      });
+      
+      // Get updated cart with populated products
+      const populatedCart = await Promise.all(
+        req.session.cart.map(async (item) => {
+          try {
+            const product = await Product.findById(item.productId).select('-wholesaler');
+            if (!product || !product.isActive) {
+              return null;
+            }
+            
+            return {
+              _id: item.productId,
+              product: product.toPublicJSON(),
+              quantity: item.quantity,
+              price: product.price,
+              subtotal: product.price * item.quantity
+            };
+          } catch (error) {
+            console.error('Error populating cart item:', error);
+            return null;
+          }
+        })
+      );
+      
+      const validCart = populatedCart.filter(item => item !== null);
+      const totalPrice = validCart.reduce((sum, item) => sum + item.subtotal, 0);
+      const totalItems = validCart.reduce((sum, item) => sum + item.quantity, 0);
       
       res.json({
         success: true,
-        data: {
-          cart: {
-            items: req.session.cart,
-            itemCount: req.session.cart.reduce((sum, item) => sum + item.quantity, 0)
-          }
-        },
+        items: validCart,
+        totalItems,
+        totalPrice: Math.round(totalPrice * 100) / 100,
         message: 'Item added to cart'
       });
-    });
+    } catch (sessionError) {
+      console.error('Session save error:', sessionError);
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'SESSION_ERROR',
+          message: 'Failed to save cart'
+        }
+      });
+    }
     
   } catch (error) {
     console.error('Error adding to cart:', error);

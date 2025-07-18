@@ -45,10 +45,19 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+      const errorCode = error.response?.data?.error?.code
+      
+      // Only redirect to login for specific authentication errors
+      // Don't redirect for optional authentication routes
+      if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'INVALID_TOKEN') {
+        // Clear token and redirect to login only if user was previously authenticated
+        const wasAuthenticated = localStorage.getItem('token')
+        if (wasAuthenticated) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          window.location.href = '/login'
+        }
+      }
     }
     return Promise.reject(error)
   }
