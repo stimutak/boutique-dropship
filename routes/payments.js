@@ -40,8 +40,18 @@ try {
 router.post('/create', authenticateToken, [
   body('orderId').isMongoId().withMessage('Valid order ID is required'),
   body('method').optional().isIn(['card', 'crypto', 'creditcard']).withMessage('Invalid payment method'),
-  body('redirectUrl').optional().isURL().withMessage('Valid redirect URL required'),
-  body('webhookUrl').optional().isURL().withMessage('Valid webhook URL required')
+  body('redirectUrl').optional().custom((value) => {
+    if (value && !value.match(/^https?:\/\/.+/)) {
+      throw new Error('Valid redirect URL required');
+    }
+    return true;
+  }),
+  body('webhookUrl').optional().custom((value) => {
+    if (value && !value.match(/^https?:\/\/.+/)) {
+      throw new Error('Valid webhook URL required');
+    }
+    return true;
+  })
 ], async (req, res) => {
   try {
     // Check validation errors

@@ -44,12 +44,16 @@ const Payment = () => {
       
       // Create Mollie payment
       const token = localStorage.getItem('token')
-      const response = await api.post('/api/payments/create', {
+      const paymentRequest = {
         orderId: order._id,
         method: paymentMethod,
-        redirectUrl: `${window.location.origin}/payment/success/${order._id}`,
-        webhookUrl: `${window.location.origin}/api/payments/webhook`
-      }, {
+        redirectUrl: `http://localhost:3000/payment/success/${order._id}`,
+        webhookUrl: `http://localhost:5001/api/payments/webhook`
+      }
+      
+      console.log('Payment request data:', paymentRequest)
+      
+      const response = await api.post('/api/payments/create', paymentRequest, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       })
 
@@ -90,7 +94,8 @@ const Payment = () => {
         dispatch(clearCartLocally())
       }
       
-      navigate(`/orders/${order._id}`)
+      // Navigate to payment success page instead of orders page
+      navigate(`/payment/success/${order._id}`)
     } catch (error) {
       console.error('Demo payment failed:', error)
       const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to complete demo payment'
