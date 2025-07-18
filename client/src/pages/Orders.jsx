@@ -12,7 +12,7 @@ const Orders = () => {
     dispatch(fetchUserOrders())
   }, [dispatch])
 
-  console.log('Orders component render:', { orders, isLoading, error })
+  console.log('Orders component render:', { orders, isLoading, error, ordersLength: orders?.length })
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -30,7 +30,17 @@ const Orders = () => {
   }
 
   if (error) {
-    return <div className="error">Error: {error}</div>
+    return (
+      <div className="orders-page">
+        <div className="container">
+          <h1>My Orders</h1>
+          <div className="error">Error: {error}</div>
+          <button onClick={() => dispatch(fetchUserOrders())} className="btn btn-primary">
+            Retry
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -38,7 +48,7 @@ const Orders = () => {
       <div className="container">
         <h1>My Orders</h1>
         
-        {orders.length === 0 ? (
+        {(!orders || orders.length === 0) ? (
           <div className="no-orders">
             <p>You haven't placed any orders yet</p>
             <Link to="/products" className="btn btn-primary">
@@ -47,7 +57,7 @@ const Orders = () => {
           </div>
         ) : (
           <div className="orders-list">
-            {orders.map(order => (
+            {(orders || []).map(order => (
               <div key={order._id} className="order-card">
                 <div className="order-header">
                   <div>

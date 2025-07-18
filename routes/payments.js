@@ -228,8 +228,10 @@ router.post('/demo-complete/:orderId', authenticateToken, [
     order.status = 'processing';
     
     // Associate order with authenticated user if not already associated
+    console.log('Demo payment - req.user:', req.user ? req.user.email : 'null', 'order.customer:', order.customer);
     if (req.user && req.user._id && !order.customer) {
       order.customer = req.user._id;
+      console.log('Associated order with user:', req.user.email);
     }
     
     await order.save();

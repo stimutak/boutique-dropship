@@ -21,9 +21,11 @@ export const fetchUserOrders = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('token')
+      console.log('Fetching user orders with token:', token ? 'present' : 'missing')
       const response = await api.get('/api/orders', {
         headers: { Authorization: `Bearer ${token}` }
       })
+      console.log('Orders API response:', response.data)
       return response.data
     } catch (error) {
       console.error('Fetch orders error:', error)

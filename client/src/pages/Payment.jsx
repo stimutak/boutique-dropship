@@ -87,14 +87,7 @@ const Payment = () => {
       
       console.log('Demo payment response:', response.data)
       
-      // Clear cart after successful payment
-      if (isAuthenticated) {
-        dispatch(clearCart())
-      } else {
-        dispatch(clearCartLocally())
-      }
-      
-      // Navigate to payment success page instead of orders page
+      // Navigate to payment success page (cart will be cleared there)
       navigate(`/payment/success/${order._id}`)
     } catch (error) {
       console.error('Demo payment failed:', error)
