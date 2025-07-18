@@ -57,8 +57,7 @@ router.post('/create', authenticateToken, [
     // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log('Payment validation errors:', errors.array());
-      return res.status(400).json({
+        return res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
@@ -69,11 +68,9 @@ router.post('/create', authenticateToken, [
     }
 
     const { orderId, method = 'card', redirectUrl, webhookUrl } = req.body;
-    console.log('Payment creation request:', { orderId, method, user: req.user?.email || 'guest' });
 
     // Find the order
     const order = await Order.findById(orderId);
-    console.log('Order found:', order ? `${order.orderNumber} - $${order.total}` : 'NOT FOUND');
     
     if (!order) {
       return res.status(404).json({
@@ -185,8 +182,7 @@ router.post('/demo-complete/:orderId', authenticateToken, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log('Demo payment validation errors:', errors.array());
-      return res.status(400).json({
+        return res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
@@ -197,7 +193,6 @@ router.post('/demo-complete/:orderId', authenticateToken, [
     }
 
     const { orderId } = req.params;
-    console.log('Demo payment request for order:', orderId, 'user:', req.user?.email || 'guest');
     
     const order = await Order.findById(orderId);
     if (!order) {
@@ -240,10 +235,8 @@ router.post('/demo-complete/:orderId', authenticateToken, [
     order.status = 'processing';
     
     // Associate order with authenticated user if not already associated
-    console.log('Demo payment - req.user:', req.user ? req.user.email : 'null', 'order.customer:', order.customer);
     if (req.user && req.user._id && !order.customer) {
       order.customer = req.user._id;
-      console.log('Associated order with user:', req.user.email);
     }
     
     await order.save();

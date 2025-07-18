@@ -8,28 +8,9 @@ const Orders = () => {
   const { orders, isLoading, error } = useSelector(state => state.orders)
 
   useEffect(() => {
-    console.log('Orders component mounted, fetching orders...')
-    try {
-      dispatch(fetchUserOrders())
-    } catch (err) {
-      console.error('Error dispatching fetchUserOrders:', err)
-    }
+    dispatch(fetchUserOrders())
   }, [dispatch])
 
-  console.log('Orders component render:', { orders, isLoading, error, ordersLength: orders?.length })
-  
-  // Debug: Check state
-  try {
-    console.log('Orders component state debug:', {
-      ordersType: typeof orders,
-      ordersIsArray: Array.isArray(orders),
-      ordersActualLength: orders?.length,
-      isLoading,
-      error
-    })
-  } catch (debugError) {
-    console.error('Error in Orders component debug:', debugError)
-  }
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -118,7 +99,6 @@ const Orders = () => {
       </div>
     )
   } catch (renderError) {
-    console.error('Error rendering Orders component:', renderError)
     return (
       <div className="orders-page">
         <div className="container">

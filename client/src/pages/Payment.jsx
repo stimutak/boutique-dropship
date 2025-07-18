@@ -25,10 +25,8 @@ const Payment = () => {
       const response = await api.get(`/api/orders/${orderId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       })
-      console.log('Order fetched:', response.data)
       setOrder(response.data.data.order)
     } catch (error) {
-      console.error('Failed to fetch order:', error)
       setError(`Order not found: ${error.response?.data?.error?.message || error.message}`)
     } finally {
       setIsLoading(false)
@@ -40,7 +38,6 @@ const Payment = () => {
       setIsLoading(true)
       setError(null)
       
-      console.log('Creating payment for order:', order._id, 'method:', paymentMethod)
       
       // Create Mollie payment
       const token = localStorage.getItem('token')
@@ -51,23 +48,19 @@ const Payment = () => {
         webhookUrl: `http://localhost:5001/api/payments/webhook`
       }
       
-      console.log('Payment request data:', paymentRequest)
       
       const response = await api.post('/api/payments/create', paymentRequest, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       })
 
-      console.log('Payment creation response:', response.data)
 
       if (response.data.success && response.data.data.checkoutUrl) {
-        console.log('Redirecting to:', response.data.data.checkoutUrl)
         // Redirect to Mollie payment page
         window.location.href = response.data.data.checkoutUrl
       } else {
         throw new Error('Failed to create payment - no checkout URL received')
       }
     } catch (error) {
-      console.error('Payment creation failed:', error)
       const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to process payment'
       setError(`Payment Error: ${errorMessage}`)
       setIsLoading(false)
@@ -78,19 +71,16 @@ const Payment = () => {
     // For demo purposes - mark as paid and clear cart
     try {
       setError(null)
-      console.log('Completing demo payment for order:', order._id)
       
       const token = localStorage.getItem('token')
       const response = await api.post(`/api/payments/demo-complete/${order._id}`, {}, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       })
       
-      console.log('Demo payment response:', response.data)
       
       // Navigate to payment success page (cart will be cleared there)
       navigate(`/payment/success/${order._id}`)
     } catch (error) {
-      console.error('Demo payment failed:', error)
       const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to complete demo payment'
       setError(`Demo Payment Error: ${errorMessage}`)
     }

@@ -37,7 +37,6 @@ const PaymentSuccess = () => {
       }
       
     } catch (error) {
-      console.error('Failed to fetch order:', error)
       setError('Order not found')
     } finally {
       setIsLoading(false)

@@ -9,13 +9,8 @@ const OrderDetail = () => {
   const { currentOrder: order, isLoading, error } = useSelector(state => state.orders)
 
   useEffect(() => {
-    console.log('OrderDetail component mounted, fetching order:', id)
-    try {
-      if (id) {
-        dispatch(fetchOrderById(id))
-      }
-    } catch (err) {
-      console.error('Error fetching order:', err)
+    if (id) {
+      dispatch(fetchOrderById(id))
     }
     
     return () => {
@@ -23,7 +18,6 @@ const OrderDetail = () => {
     }
   }, [dispatch, id])
 
-  console.log('OrderDetail component render:', { order, isLoading, error })
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -198,7 +192,6 @@ const OrderDetail = () => {
     </div>
     )
   } catch (renderError) {
-    console.error('Error rendering OrderDetail component:', renderError)
     return (
       <div className="order-detail-page">
         <div className="container">

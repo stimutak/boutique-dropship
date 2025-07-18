@@ -108,16 +108,14 @@ const Checkout = () => {
     }
 
     try {
-      console.log('Creating order with data:', orderData)
       const result = await dispatch(createOrder(orderData)).unwrap()
-      console.log('Order created successfully:', result)
       
       // Don't clear cart yet - wait until payment is complete
       
       // Redirect to payment page instead of order confirmation
       navigate(`/payment/${result.order._id}`)
     } catch (error) {
-      console.error('Order creation failed:', error)
+      // Error is handled by the order slice
     }
   }
 

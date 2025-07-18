@@ -454,7 +454,6 @@ router.get('/', requireAuth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    console.log('Orders GET request - User:', req.user.email, 'ID:', req.user._id);
     
     const orders = await Order.find({ customer: req.user._id })
       .populate('items.product', 'name slug images price')
@@ -465,14 +464,7 @@ router.get('/', requireAuth, async (req, res) => {
     const totalOrders = await Order.countDocuments({ customer: req.user._id });
     const totalPages = Math.ceil(totalOrders / limit);
     
-    console.log('Orders found:', orders.length, 'Total orders:', totalOrders);
     
-    // Debug: Check if there are any orders without customer
-    const allOrders = await Order.find({}).select('_id orderNumber customer');
-    console.log('All orders in database:', allOrders.length);
-    allOrders.forEach(order => {
-      console.log(`Order ${order.orderNumber}: customer=${order.customer}`);
-    });
 
     // Return public order data
     const publicOrders = orders.map(order => order.toPublicJSON());

@@ -8,12 +8,10 @@ const Home = () => {
   const { products, isLoading } = useSelector(state => state.products)
 
   useEffect(() => {
-    console.log('Home component mounted, fetching products...')
     // Fetch featured products for home page
     dispatch(fetchProducts({ limit: 8 }))
   }, [dispatch])
 
-  console.log('Home render - products:', products, 'isLoading:', isLoading)
 
   const categories = [
     { name: 'Crystals', slug: 'crystals', description: 'Healing crystals and gemstones' },
