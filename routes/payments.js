@@ -146,7 +146,7 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 // Demo payment completion endpoint (for testing)
-router.post('/demo-complete/:orderId', authenticateToken, [
+router.post('/demo-complete/:orderId', requireAuth, [
   param('orderId').isMongoId().withMessage('Valid order ID is required')
 ], async (req, res) => {
   try {

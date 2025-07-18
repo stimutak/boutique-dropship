@@ -62,15 +62,49 @@ export const clearCart = createAsyncThunk(
   }
 )
 
-const cartSlice = createSlice({
-  name: 'cart',
-  initialState: {
+// Load cart from localStorage for guest users
+const loadCartFromStorage = () => {
+  try {
+    const savedCart = localStorage.getItem('guestCart')
+    if (savedCart) {
+      const cart = JSON.parse(savedCart)
+      return {
+        items: cart.items || [],
+        totalItems: cart.totalItems || 0,
+        totalPrice: cart.totalPrice || 0,
+        isLoading: false,
+        error: null,
+      }
+    }
+  } catch (error) {
+    console.error('Error loading cart from localStorage:', error)
+  }
+  return {
     items: [],
     totalItems: 0,
     totalPrice: 0,
     isLoading: false,
     error: null,
-  },
+  }
+}
+
+// Save cart to localStorage for guest users
+const saveCartToStorage = (state) => {
+  try {
+    const cartData = {
+      items: state.items,
+      totalItems: state.totalItems,
+      totalPrice: state.totalPrice
+    }
+    localStorage.setItem('guestCart', JSON.stringify(cartData))
+  } catch (error) {
+    console.error('Error saving cart to localStorage:', error)
+  }
+}
+
+const cartSlice = createSlice({
+  name: 'cart',
+  initialState: loadCartFromStorage(),
   reducers: {
     clearError: (state) => {
       state.error = null
@@ -88,6 +122,7 @@ const cartSlice = createSlice({
       
       state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0)
       state.totalPrice = state.items.reduce((total, item) => total + (item.product.price * item.quantity), 0)
+      saveCartToStorage(state)
     },
     updateItemLocally: (state, action) => {
       const { productId, quantity } = action.payload
@@ -103,17 +138,20 @@ const cartSlice = createSlice({
       
       state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0)
       state.totalPrice = state.items.reduce((total, item) => total + (item.product.price * item.quantity), 0)
+      saveCartToStorage(state)
     },
     removeItemLocally: (state, action) => {
       const productId = action.payload
       state.items = state.items.filter(item => item.product._id !== productId)
       state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0)
       state.totalPrice = state.items.reduce((total, item) => total + (item.product.price * item.quantity), 0)
+      saveCartToStorage(state)
     },
     clearCartLocally: (state) => {
       state.items = []
       state.totalItems = 0
       state.totalPrice = 0
+      localStorage.removeItem('guestCart')
     }
   },
   extraReducers: (builder) => {

@@ -38,6 +38,9 @@ const Payment = () => {
   const handlePayment = async () => {
     try {
       setIsLoading(true)
+      setError(null)
+      
+      console.log('Creating payment for order:', order._id, 'method:', paymentMethod)
       
       // Create Mollie payment
       const token = localStorage.getItem('token')
@@ -50,15 +53,19 @@ const Payment = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       })
 
+      console.log('Payment creation response:', response.data)
+
       if (response.data.success && response.data.data.checkoutUrl) {
+        console.log('Redirecting to:', response.data.data.checkoutUrl)
         // Redirect to Mollie payment page
         window.location.href = response.data.data.checkoutUrl
       } else {
-        throw new Error('Failed to create payment')
+        throw new Error('Failed to create payment - no checkout URL received')
       }
     } catch (error) {
       console.error('Payment creation failed:', error)
-      setError('Failed to process payment. Please try again.')
+      const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to process payment'
+      setError(`Payment Error: ${errorMessage}`)
       setIsLoading(false)
     }
   }
@@ -66,10 +73,15 @@ const Payment = () => {
   const handleSkipPayment = async () => {
     // For demo purposes - mark as paid and clear cart
     try {
+      setError(null)
+      console.log('Completing demo payment for order:', order._id)
+      
       const token = localStorage.getItem('token')
-      await api.post(`/api/payments/demo-complete/${order._id}`, {}, {
+      const response = await api.post(`/api/payments/demo-complete/${order._id}`, {}, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       })
+      
+      console.log('Demo payment response:', response.data)
       
       // Clear cart after successful payment
       if (isAuthenticated) {
@@ -81,7 +93,8 @@ const Payment = () => {
       navigate(`/orders/${order._id}`)
     } catch (error) {
       console.error('Demo payment failed:', error)
-      setError('Failed to complete demo payment')
+      const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to complete demo payment'
+      setError(`Demo Payment Error: ${errorMessage}`)
     }
   }
 
