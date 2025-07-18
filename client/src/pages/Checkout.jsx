@@ -16,7 +16,7 @@ const Checkout = () => {
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
-    phone: '',
+    phone: user?.phone || '',
     
     // Shipping Address
     shippingAddress: {
@@ -92,7 +92,7 @@ const Checkout = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone || ''
+        ...(formData.phone && formData.phone.trim() && { phone: formData.phone.trim() })
       },
       shippingAddress: {
         firstName: formData.firstName,
@@ -108,7 +108,9 @@ const Checkout = () => {
     }
 
     try {
+      console.log('Creating order with data:', orderData)
       const result = await dispatch(createOrder(orderData)).unwrap()
+      console.log('Order created successfully:', result)
       
       // Don't clear cart yet - wait until payment is complete
       

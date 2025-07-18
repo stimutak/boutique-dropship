@@ -37,22 +37,33 @@ try {
 }
 
 // Create payment for order
-router.post('/create', authenticateToken, async (req, res) => {
+router.post('/create', authenticateToken, [
+  body('orderId').isMongoId().withMessage('Valid order ID is required'),
+  body('method').optional().isIn(['card', 'crypto', 'creditcard']).withMessage('Invalid payment method'),
+  body('redirectUrl').optional().isURL().withMessage('Valid redirect URL required'),
+  body('webhookUrl').optional().isURL().withMessage('Valid webhook URL required')
+], async (req, res) => {
   try {
-    const { orderId, method = 'card', redirectUrl, webhookUrl } = req.body;
-
-    if (!orderId) {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_ORDER_ID',
-          message: 'Order ID is required'
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: errors.array()
         }
       });
     }
 
+    const { orderId, method = 'card', redirectUrl, webhookUrl } = req.body;
+    console.log('Payment creation request:', { orderId, method, user: req.user?.email || 'guest' });
+
     // Find the order
     const order = await Order.findById(orderId);
+    console.log('Order found:', order ? `${order.orderNumber} - $${order.total}` : 'NOT FOUND');
+    
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -146,12 +157,13 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 // Demo payment completion endpoint (for testing)
-router.post('/demo-complete/:orderId', requireAuth, [
+router.post('/demo-complete/:orderId', authenticateToken, [
   param('orderId').isMongoId().withMessage('Valid order ID is required')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Demo payment validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         error: {
@@ -163,6 +175,7 @@ router.post('/demo-complete/:orderId', requireAuth, [
     }
 
     const { orderId } = req.params;
+    console.log('Demo payment request for order:', orderId, 'user:', req.user?.email || 'guest');
     
     const order = await Order.findById(orderId);
     if (!order) {

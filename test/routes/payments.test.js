@@ -227,7 +227,12 @@ describe('Payment Routes', () => {
         .expect(400);
       
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('MISSING_ORDER_ID');
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.details).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ msg: 'Valid order ID is required' })
+        ])
+      );
     });
     
     it('should reject non-existent order', async () => {
