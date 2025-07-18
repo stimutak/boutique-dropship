@@ -157,6 +157,17 @@ router.post('/create', authenticateToken, [
       });
     }
 
+    // Handle Mollie API key errors
+    if (error.title === 'Bad Request' && error.statusCode === 400) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MOLLIE_API_ERROR',
+          message: 'Payment service unavailable. Please use demo payment or contact support.'
+        }
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: {

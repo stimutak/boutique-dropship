@@ -10,8 +10,12 @@ const OrderDetail = () => {
 
   useEffect(() => {
     console.log('OrderDetail component mounted, fetching order:', id)
-    if (id) {
-      dispatch(fetchOrderById(id))
+    try {
+      if (id) {
+        dispatch(fetchOrderById(id))
+      }
+    } catch (err) {
+      console.error('Error fetching order:', err)
     }
     
     return () => {
@@ -37,15 +41,36 @@ const OrderDetail = () => {
   }
 
   if (error) {
-    return <div className="error">Error: {error}</div>
+    return (
+      <div className="order-detail-page">
+        <div className="container">
+          <h1>Order Details</h1>
+          <div className="error">Error: {error}</div>
+          <Link to="/orders" className="btn btn-primary">
+            Back to Orders
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   if (!order) {
-    return <div className="error">Order not found</div>
+    return (
+      <div className="order-detail-page">
+        <div className="container">
+          <h1>Order Details</h1>
+          <div className="error">Order not found</div>
+          <Link to="/orders" className="btn btn-primary">
+            Back to Orders
+          </Link>
+        </div>
+      </div>
+    )
   }
 
-  return (
-    <div className="order-detail-page">
+  try {
+    return (
+      <div className="order-detail-page">
       <div className="container">
         <div className="order-header">
           <div>
@@ -126,7 +151,7 @@ const OrderDetail = () => {
           <div className="order-items-section">
             <h2>Order Items</h2>
             <div className="items-list">
-              {order.items.map(item => (
+              {(order.items || []).map(item => (
                 <div key={item._id} className="order-item">
                   <div className="item-image">
                     {item.product.images && item.product.images.length > 0 ? (
@@ -171,7 +196,23 @@ const OrderDetail = () => {
         </div>
       </div>
     </div>
-  )
+    )
+  } catch (renderError) {
+    console.error('Error rendering OrderDetail component:', renderError)
+    return (
+      <div className="order-detail-page">
+        <div className="container">
+          <h1>Order Details</h1>
+          <div className="error">
+            <p>An error occurred while loading the order details.</p>
+            <Link to="/orders" className="btn btn-primary">
+              Back to Orders
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 }
 
 export default OrderDetail
