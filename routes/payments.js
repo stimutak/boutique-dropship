@@ -57,6 +57,7 @@ router.post('/create', authenticateToken, [
     // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Payment validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         error: {
