@@ -78,7 +78,7 @@ const Cart = () => {
                 <div key={item.product._id} className="cart-item">
                   <div className="item-image">
                     {item.product.images && item.product.images.length > 0 ? (
-                      <img src={item.product.images[0]} alt={item.product.name} />
+                      <img src={item.product.images[0].url} alt={item.product.images[0].alt || item.product.name} />
                     ) : (
                       <div className="placeholder-image">No Image</div>
                     )}
