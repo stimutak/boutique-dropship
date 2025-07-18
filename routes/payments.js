@@ -248,6 +248,11 @@ router.post('/demo-complete/:orderId', authenticateToken, [
     
     await order.save();
 
+    // Clear cart session after successful payment
+    if (req.session && req.session.cart) {
+      req.session.cart = [];
+    }
+
     // Send wholesaler notifications
     try {
       const { processOrderNotifications } = require('../utils/wholesalerNotificationService');

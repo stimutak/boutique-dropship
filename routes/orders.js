@@ -209,10 +209,8 @@ router.post('/', validateGuestCheckout, async (req, res) => {
       console.error('Error sending order confirmation email:', emailError);
     }
 
-    // Clear cart session after successful order creation
-    if (req.session && req.session.cart) {
-      req.session.cart = [];
-    }
+    // Note: Cart will be cleared after successful payment, not here
+    // This allows users to retry payment if it fails
 
     res.status(201).json({
       success: true,
