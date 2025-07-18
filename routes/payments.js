@@ -146,7 +146,7 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 // Demo payment completion endpoint (for testing)
-router.post('/demo-complete/:orderId', requireAuth, [
+router.post('/demo-complete/:orderId', authenticateToken, [
   param('orderId').isMongoId().withMessage('Valid order ID is required')
 ], async (req, res) => {
   try {
@@ -175,8 +175,8 @@ router.post('/demo-complete/:orderId', requireAuth, [
       });
     }
 
-    // Check if user owns this order or is admin
-    if (!req.user.isAdmin && order.customer && order.customer.toString() !== req.user._id.toString()) {
+    // Check if user owns this order or is admin (allow guest orders)
+    if (req.user && !req.user.isAdmin && order.customer && order.customer.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         error: {

@@ -19,6 +19,7 @@ import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
+import PaymentSuccess from './pages/PaymentSuccess'
 import NotFound from './pages/NotFound'
 
 // Protected Route Component
@@ -46,6 +47,7 @@ function App() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/payment/:orderId" element={<Payment />} />
+          <Route path="/payment/success/:orderId" element={<PaymentSuccess />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route 

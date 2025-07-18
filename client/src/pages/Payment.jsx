@@ -21,11 +21,15 @@ const Payment = () => {
 
   const fetchOrder = async () => {
     try {
-      const response = await api.get(`/api/orders/${orderId}`)
+      const token = localStorage.getItem('token')
+      const response = await api.get(`/api/orders/${orderId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      })
+      console.log('Order fetched:', response.data)
       setOrder(response.data.data.order)
     } catch (error) {
       console.error('Failed to fetch order:', error)
-      setError('Order not found')
+      setError(`Order not found: ${error.response?.data?.error?.message || error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -36,16 +40,19 @@ const Payment = () => {
       setIsLoading(true)
       
       // Create Mollie payment
+      const token = localStorage.getItem('token')
       const response = await api.post('/api/payments/create', {
         orderId: order._id,
         method: paymentMethod,
-        returnUrl: `${window.location.origin}/payment/success/${order._id}`,
+        redirectUrl: `${window.location.origin}/payment/success/${order._id}`,
         webhookUrl: `${window.location.origin}/api/payments/webhook`
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       })
 
-      if (response.data.success && response.data.paymentUrl) {
+      if (response.data.success && response.data.data.checkoutUrl) {
         // Redirect to Mollie payment page
-        window.location.href = response.data.paymentUrl
+        window.location.href = response.data.data.checkoutUrl
       } else {
         throw new Error('Failed to create payment')
       }
@@ -59,7 +66,10 @@ const Payment = () => {
   const handleSkipPayment = async () => {
     // For demo purposes - mark as paid and clear cart
     try {
-      await api.post(`/api/payments/demo-complete/${order._id}`)
+      const token = localStorage.getItem('token')
+      await api.post(`/api/payments/demo-complete/${order._id}`, {}, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      })
       
       // Clear cart after successful payment
       if (isAuthenticated) {
