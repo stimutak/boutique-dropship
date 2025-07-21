@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { loginUser, clearError } from '../store/slices/authSlice'
+import { mergeGuestCart } from '../store/slices/cartSlice'
 
 const Login = () => {
   const dispatch = useDispatch()
@@ -15,6 +16,23 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      // Check if there's a guest cart to merge
+      const guestCart = localStorage.getItem('guestCart')
+      if (guestCart) {
+        try {
+          const parsedCart = JSON.parse(guestCart)
+          if (parsedCart.items && parsedCart.items.length > 0) {
+            // Convert guest cart format to API format
+            const guestCartItems = parsedCart.items.map(item => ({
+              productId: item.product._id,
+              quantity: item.quantity
+            }))
+            dispatch(mergeGuestCart(guestCartItems))
+          }
+        } catch (error) {
+          console.error('Error parsing guest cart:', error)
+        }
+      }
       navigate('/')
     }
     

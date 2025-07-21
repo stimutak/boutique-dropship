@@ -12,12 +12,13 @@ const initializeCart = (req, res, next) => {
 };
 
 // Get cart contents
-router.get('/', requireAuth, initializeCart, async (req, res) => {
+router.get('/', authenticateToken, initializeCart, async (req, res) => {
   try {
     let cart = [];
     
     if (req.user) {
-      // For authenticated users, get cart from user session or database
+      // For authenticated users, get cart from session
+      // TODO: Consider implementing persistent cart storage in user model
       cart = req.session.cart || [];
     } else {
       // For guests, get cart from session
@@ -86,7 +87,7 @@ router.get('/', requireAuth, initializeCart, async (req, res) => {
 });
 
 // Add item to cart
-router.post('/add', requireAuth, initializeCart, async (req, res) => {
+router.post('/add', authenticateToken, initializeCart, async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
     
@@ -220,7 +221,7 @@ router.post('/add', requireAuth, initializeCart, async (req, res) => {
 });
 
 // Update cart item quantity
-router.put('/update', initializeCart, async (req, res) => {
+router.put('/update', authenticateToken, initializeCart, async (req, res) => {
   try {
     const { productId, quantity } = req.body;
     
@@ -298,7 +299,7 @@ router.put('/update', initializeCart, async (req, res) => {
 });
 
 // Remove item from cart
-router.delete('/remove', initializeCart, async (req, res) => {
+router.delete('/remove', authenticateToken, initializeCart, async (req, res) => {
   try {
     const { productId } = req.body;
     
@@ -360,7 +361,7 @@ router.delete('/remove', initializeCart, async (req, res) => {
 });
 
 // Clear entire cart
-router.delete('/clear', initializeCart, async (req, res) => {
+router.delete('/clear', authenticateToken, initializeCart, async (req, res) => {
   try {
     req.session.cart = [];
     
@@ -390,6 +391,105 @@ router.delete('/clear', initializeCart, async (req, res) => {
       error: {
         code: 'CART_CLEAR_ERROR',
         message: 'Failed to clear cart'
+      }
+    });
+  }
+});
+
+// Merge guest cart with user cart (called after login)
+router.post('/merge', authenticateToken, initializeCart, async (req, res) => {
+  try {
+    const { guestCart } = req.body;
+    
+    if (!guestCart || !Array.isArray(guestCart) || guestCart.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No guest cart to merge',
+        data: {
+          cart: {
+            items: [],
+            itemCount: 0,
+            subtotal: 0,
+            total: 0,
+            isEmpty: true
+          }
+        }
+      });
+    }
+
+    // Merge guest cart items with session cart
+    for (const guestItem of guestCart) {
+      const existingItemIndex = req.session.cart.findIndex(
+        item => item.productId === guestItem.productId
+      );
+
+      if (existingItemIndex >= 0) {
+        // Update quantity if item already exists
+        req.session.cart[existingItemIndex].quantity += guestItem.quantity;
+      } else {
+        // Add new item
+        req.session.cart.push({
+          productId: guestItem.productId,
+          quantity: guestItem.quantity
+        });
+      }
+    }
+
+    // Save session
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Return updated cart
+    const populatedCart = await Promise.all(
+      req.session.cart.map(async (item) => {
+        try {
+          const product = await Product.findById(item.productId).select('-wholesaler');
+          if (!product || !product.isActive) {
+            return null;
+          }
+          
+          return {
+            _id: item.productId,
+            product: product.toPublicJSON(),
+            quantity: item.quantity,
+            subtotal: product.price * item.quantity
+          };
+        } catch (error) {
+          console.error('Error populating cart item:', error);
+          return null;
+        }
+      })
+    );
+
+    const validCart = populatedCart.filter(item => item !== null);
+    const totalPrice = validCart.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalItems = validCart.reduce((sum, item) => sum + item.quantity, 0);
+
+    res.json({
+      success: true,
+      message: 'Cart merged successfully',
+      data: {
+        cart: {
+          items: validCart,
+          itemCount: totalItems,
+          subtotal: Math.round(totalPrice * 100) / 100,
+          total: Math.round(totalPrice * 100) / 100,
+          isEmpty: validCart.length === 0
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error merging cart:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'CART_MERGE_ERROR',
+        message: 'Failed to merge cart'
       }
     });
   }

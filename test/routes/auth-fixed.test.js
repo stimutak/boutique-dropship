@@ -84,10 +84,10 @@ describe('Auth Routes', () => {
       const response = await request(app)
         .post('/api/auth/register')
         .send(validUserData)
-        .expect(400);
+        .expect(409);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('DUPLICATE_FIELD');
+      expect(response.body.error.code).toBe('USER_EXISTS');
     });
   });
 

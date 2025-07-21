@@ -9,7 +9,7 @@ export const fetchCart = createAsyncThunk(
       const response = await api.get('/api/cart')
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to fetch cart')
     }
   }
 )
@@ -21,7 +21,7 @@ export const addToCart = createAsyncThunk(
       const response = await api.post('/api/cart/add', { productId, quantity })
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to add item to cart')
     }
   }
 )
@@ -33,7 +33,7 @@ export const updateCartItem = createAsyncThunk(
       const response = await api.put('/api/cart/update', { productId, quantity })
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to update cart item')
     }
   }
 )
@@ -45,7 +45,7 @@ export const removeFromCart = createAsyncThunk(
       const response = await api.delete('/api/cart/remove', { data: { productId } })
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to remove item from cart')
     }
   }
 )
@@ -57,7 +57,19 @@ export const clearCart = createAsyncThunk(
       const response = await api.delete('/api/cart/clear')
       return response.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to clear cart')
+    }
+  }
+)
+
+export const mergeGuestCart = createAsyncThunk(
+  'cart/mergeGuestCart',
+  async (guestCart, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/api/cart/merge', { guestCart })
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to merge cart')
     }
   }
 )
@@ -163,9 +175,10 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.isLoading = false
-        state.items = action.payload.items || []
-        state.totalItems = action.payload.totalItems || 0
-        state.totalPrice = action.payload.totalPrice || 0
+        const cart = action.payload.data?.cart || action.payload
+        state.items = cart.items || []
+        state.totalItems = cart.itemCount || 0
+        state.totalPrice = cart.total || 0
       })
       .addCase(fetchCart.rejected, (state, action) => {
         state.isLoading = false
@@ -178,9 +191,10 @@ const cartSlice = createSlice({
       })
       .addCase(addToCart.fulfilled, (state, action) => {
         state.isLoading = false
-        state.items = action.payload.items
-        state.totalItems = action.payload.totalItems
-        state.totalPrice = action.payload.totalPrice
+        const cart = action.payload.data?.cart || action.payload
+        state.items = cart.items || []
+        state.totalItems = cart.itemCount || 0
+        state.totalPrice = cart.total || 0
       })
       .addCase(addToCart.rejected, (state, action) => {
         state.isLoading = false
@@ -193,9 +207,10 @@ const cartSlice = createSlice({
       })
       .addCase(updateCartItem.fulfilled, (state, action) => {
         state.isLoading = false
-        state.items = action.payload.items
-        state.totalItems = action.payload.totalItems
-        state.totalPrice = action.payload.totalPrice
+        const cart = action.payload.data?.cart || action.payload
+        state.items = cart.items || []
+        state.totalItems = cart.itemCount || 0
+        state.totalPrice = cart.total || 0
       })
       .addCase(updateCartItem.rejected, (state, action) => {
         state.isLoading = false
@@ -208,9 +223,10 @@ const cartSlice = createSlice({
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
         state.isLoading = false
-        state.items = action.payload.items
-        state.totalItems = action.payload.totalItems
-        state.totalPrice = action.payload.totalPrice
+        const cart = action.payload.data?.cart || action.payload
+        state.items = cart.items || []
+        state.totalItems = cart.itemCount || 0
+        state.totalPrice = cart.total || 0
       })
       .addCase(removeFromCart.rejected, (state, action) => {
         state.isLoading = false
@@ -228,6 +244,24 @@ const cartSlice = createSlice({
         state.totalPrice = 0
       })
       .addCase(clearCart.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.payload
+      })
+      // Merge guest cart
+      .addCase(mergeGuestCart.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
+      .addCase(mergeGuestCart.fulfilled, (state, action) => {
+        state.isLoading = false
+        const cart = action.payload.data?.cart || action.payload
+        state.items = cart.items || []
+        state.totalItems = cart.itemCount || 0
+        state.totalPrice = cart.total || 0
+        // Clear guest cart from localStorage after successful merge
+        localStorage.removeItem('guestCart')
+      })
+      .addCase(mergeGuestCart.rejected, (state, action) => {
         state.isLoading = false
         state.error = action.payload
       })

@@ -112,8 +112,10 @@ router.post('/register', validateRegistration, async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      token,
-      user: user.toPublicJSON()
+      data: {
+        token,
+        user: user.toPublicJSON()
+      }
     });
 
   } catch (error) {
@@ -174,11 +176,25 @@ router.post('/login', validateLogin, async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
+    // Preserve guest cart on login
+    let cartInfo = {};
+    if (req.session && req.session.cart && req.session.cart.length > 0) {
+      cartInfo = {
+        preservedCart: true,
+        itemCount: req.session.cart.length
+      };
+      // Keep the cart in session for the authenticated user
+      // The cart will be accessible via the cart API endpoints
+    }
+
     res.json({
       success: true,
       message: 'Login successful',
-      token,
-      user: user.toPublicJSON()
+      data: {
+        token,
+        user: user.toPublicJSON(),
+        cart: cartInfo
+      }
     });
 
   } catch (error) {
@@ -198,7 +214,9 @@ router.get('/profile', requireAuth, async (req, res) => {
   try {
     res.json({
       success: true,
-      user: req.user.toPublicJSON()
+      data: {
+        user: req.user.toPublicJSON()
+      }
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
@@ -295,7 +313,9 @@ router.put('/profile', requireAuth, [
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: updatedUser.toPublicJSON()
+      data: {
+        user: updatedUser.toPublicJSON()
+      }
     });
 
   } catch (error) {
