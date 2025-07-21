@@ -12,7 +12,7 @@ const initializeCart = (req, res, next) => {
 };
 
 // Get cart contents
-router.get('/', authenticateToken, initializeCart, async (req, res) => {
+router.get('/', requireAuth, initializeCart, async (req, res) => {
   try {
     let cart = [];
     
@@ -62,10 +62,15 @@ router.get('/', authenticateToken, initializeCart, async (req, res) => {
     
     res.json({
       success: true,
-      items: validCart,
-      totalItems: itemCount,
-      totalPrice: Math.round(subtotal * 100) / 100,
-      isEmpty: validCart.length === 0
+      data: {
+        cart: {
+          items: validCart,
+          itemCount: itemCount,
+          subtotal: Math.round(subtotal * 100) / 100,
+          total: Math.round(subtotal * 100) / 100,
+          isEmpty: validCart.length === 0
+        }
+      }
     });
     
   } catch (error) {
@@ -81,7 +86,7 @@ router.get('/', authenticateToken, initializeCart, async (req, res) => {
 });
 
 // Add item to cart
-router.post('/add', authenticateToken, initializeCart, async (req, res) => {
+router.post('/add', requireAuth, initializeCart, async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
     
@@ -181,10 +186,15 @@ router.post('/add', authenticateToken, initializeCart, async (req, res) => {
       
       res.json({
         success: true,
-        items: validCart,
-        totalItems,
-        totalPrice: Math.round(totalPrice * 100) / 100,
-        message: 'Item added to cart'
+        message: 'Item added to cart',
+        data: {
+          cart: {
+            items: validCart,
+            itemCount: totalItems,
+            subtotal: Math.round(totalPrice * 100) / 100,
+            total: Math.round(totalPrice * 100) / 100
+          }
+        }
       });
     } catch (sessionError) {
       console.error('Session save error:', sessionError);

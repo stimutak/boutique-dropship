@@ -213,11 +213,40 @@ router.get('/profile', requireAuth, async (req, res) => {
 });
 
 // Update user profile
-router.put('/profile', requireAuth, async (req, res) => {
+router.put('/profile', requireAuth, [
+  body('email')
+    .optional()
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Valid email is required'),
+  body('firstName')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('First name must be less than 50 characters'),
+  body('lastName')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Last name must be less than 50 characters')
+], async (req, res) => {
   try {
-    const { firstName, lastName, phone, preferences, addresses } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: errors.array()
+        }
+      });
+    }
+
+    const { email, firstName, lastName, phone, preferences, addresses } = req.body;
     
     const updateData = {};
+    if (email) updateData.email = email;
     if (firstName) updateData.firstName = firstName.trim();
     if (lastName) updateData.lastName = lastName.trim();
     if (phone) updateData.phone = phone.trim();
@@ -643,6 +672,66 @@ router.put('/email-preferences', requireAuth, async (req, res) => {
       error: {
         code: 'EMAIL_PREFERENCES_UPDATE_ERROR',
         message: 'Failed to update email preferences'
+      }
+    });
+  }
+});
+
+// Change password
+router.post('/change-password', requireAuth, [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters long')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: errors.array()
+        }
+      });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    // Get user with password for comparison
+    const user = await User.findById(req.user._id).select('+password');
+    
+    // Verify current password
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_CURRENT_PASSWORD',
+          message: 'Current password is incorrect'
+        }
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'PASSWORD_CHANGE_ERROR',
+        message: 'Failed to change password'
       }
     });
   }

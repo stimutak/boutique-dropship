@@ -45,6 +45,7 @@ describe('Cart Routes', () => {
       name: 'Test Crystal',
       slug: 'test-crystal',
       description: 'A test crystal for unit testing',
+      shortDescription: 'A test crystal for unit testing',
       price: 29.99,
       category: 'crystals',
       isActive: true,
@@ -73,10 +74,10 @@ describe('Cart Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.cart.items).toEqual([]);
-      expect(response.body.cart.subtotal).toBe(0);
-      expect(response.body.cart.itemCount).toBe(0);
-      expect(response.body.cart.isEmpty).toBe(true);
+      expect(response.body.data.cart.items).toEqual([]);
+      expect(response.body.data.cart.subtotal).toBe(0);
+      expect(response.body.data.cart.itemCount).toBe(0);
+      expect(response.body.data.cart.isEmpty).toBe(true);
     });
     
     it('should return cart with populated product details', async () => {
@@ -94,16 +95,16 @@ describe('Cart Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.cart.items).toHaveLength(1);
-      expect(response.body.cart.items[0].product.name).toBe('Test Crystal');
-      expect(response.body.cart.items[0].quantity).toBe(2);
-      expect(response.body.cart.items[0].subtotal).toBe(59.98);
-      expect(response.body.cart.subtotal).toBe(59.98);
-      expect(response.body.cart.itemCount).toBe(2);
-      expect(response.body.cart.isEmpty).toBe(false);
+      expect(response.body.data.cart.items).toHaveLength(1);
+      expect(response.body.data.cart.items[0].product.name).toBe('Test Crystal');
+      expect(response.body.data.cart.items[0].quantity).toBe(2);
+      expect(response.body.data.cart.items[0].subtotal).toBe(59.98);
+      expect(response.body.data.cart.subtotal).toBe(59.98);
+      expect(response.body.data.cart.itemCount).toBe(2);
+      expect(response.body.data.cart.isEmpty).toBe(false);
       
       // Ensure wholesaler info is not exposed
-      expect(response.body.cart.items[0].product.wholesaler).toBeUndefined();
+      expect(response.body.data.cart.items[0].product.wholesaler).toBeUndefined();
     });
     
     it('should filter out inactive products from cart', async () => {
@@ -125,8 +126,8 @@ describe('Cart Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.cart.items).toEqual([]);
-      expect(response.body.cart.isEmpty).toBe(true);
+      expect(response.body.data.cart.items).toEqual([]);
+      expect(response.body.data.cart.isEmpty).toBe(true);
     });
   });
   
@@ -139,7 +140,7 @@ describe('Cart Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Item added to cart');
-      expect(response.body.cartItemCount).toBe(1);
+      expect(response.body.data.cart.itemCount).toBe(1);
     });
     
     it('should update quantity for existing item', async () => {
@@ -158,7 +159,7 @@ describe('Cart Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.cartItemCount).toBe(5); // 2 + 3
+      expect(response.body.data.cart.itemCount).toBe(5); // 2 + 3
     });
     
     it('should reject invalid product ID', async () => {

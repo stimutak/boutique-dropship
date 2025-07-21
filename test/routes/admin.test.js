@@ -7,17 +7,19 @@ const User = require('../../models/User');
 const Product = require('../../models/Product');
 const Order = require('../../models/Order');
 
-// Import server after environment variables are set
+const { createTestApp } = require('../helpers/testApp');
+
 let app;
-beforeAll(async () => {
-  app = require('../../server');
-});
 
 describe('Admin Routes', () => {
   let adminToken;
   let regularUserToken;
   let adminUser;
   let regularUser;
+
+  beforeAll(async () => {
+    app = createTestApp();
+  });
   let testProduct;
   let testOrder;
 

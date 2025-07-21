@@ -99,7 +99,7 @@ describe('Performance and Load Testing', () => {
 
         times.push(endTime - startTime);
         expect(response.body.success).toBe(true);
-        expect(response.body.data.products.length).toBeGreaterThan(0);
+        expect(response.body.products.length).toBeGreaterThan(0);
       }
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
@@ -182,7 +182,7 @@ describe('Performance and Load Testing', () => {
       results.forEach((result, index) => {
         expect(result.status).toBe(201);
         expect(result.body.success).toBe(true);
-        expect(result.body.user.email).toBe(`concurrent${index}@test.com`);
+        expect(result.body.data.user.email).toBe(`concurrent${index}@test.com`);
       });
 
       console.log(`Concurrent registrations (10): ${endTime - startTime}ms`);
@@ -309,7 +309,7 @@ describe('Performance and Load Testing', () => {
 
         times.push(endTime - startTime);
         expect(response.body.success).toBe(true);
-        expect(response.body.data.products.length).toBeLessThanOrEqual(limit);
+        expect(response.body.products.length).toBeLessThanOrEqual(limit);
       }
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
@@ -333,13 +333,14 @@ describe('Performance and Load Testing', () => {
                 price: testProducts[j].price
               }],
               shippingAddress: testUsers[i].addresses[0],
+              billingAddress: testUsers[i].addresses[0],
               subtotal: testProducts[j].price,
               total: testProducts[j].price,
               payment: {
                 method: 'card',
-                status: 'completed'
+                status: 'paid'
               },
-              status: 'completed'
+              status: 'delivered'
             })
           );
         }

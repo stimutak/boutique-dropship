@@ -129,6 +129,52 @@ router.get('/products', async (req, res) => {
   }
 });
 
+// POST /api/admin/products - Create new product
+router.post('/products', async (req, res) => {
+  try {
+    const productData = req.body;
+    
+    // Generate slug if not provided
+    if (!productData.slug && productData.name) {
+      productData.slug = productData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    }
+    
+    const product = await Product.create(productData);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      data: {
+        product: product
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error creating product:', error);
+    
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'DUPLICATE_SLUG',
+          message: 'Product with this slug already exists'
+        }
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'PRODUCT_CREATION_ERROR',
+        message: 'Failed to create product'
+      }
+    });
+  }
+});
+
 // POST /api/admin/products/bulk-import - Import products from CSV
 router.post('/products/bulk-import', upload.single('csvFile'), async (req, res) => {
   try {

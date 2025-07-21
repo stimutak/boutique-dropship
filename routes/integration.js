@@ -69,6 +69,67 @@ router.get('/products/link/:referenceKey', [
   }
 });
 
+// Get product by slug for cross-site integration
+router.get('/products/:slug', [
+  param('slug').isLength({ min: 1, max: 100 }).matches(/^[a-zA-Z0-9-_]+$/).withMessage('Invalid slug format'),
+  query('source').optional().isLength({ max: 100 }).withMessage('Source parameter too long'),
+  handleValidationErrors
+], async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { source } = req.query;
+    
+    const product = await Product.findOne({
+      slug: slug,
+      isActive: true
+    });
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'PRODUCT_NOT_FOUND',
+          message: 'Product not found'
+        }
+      });
+    }
+    
+    // Track referral if source is provided
+    if (source) {
+      console.log(`Cross-site referral: ${source} -> ${product.slug}`);
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        product: {
+          _id: product._id,
+          name: product.name,
+          slug: product.slug,
+          description: product.description,
+          shortDescription: product.shortDescription,
+          price: product.price,
+          compareAtPrice: product.compareAtPrice,
+          images: product.images,
+          category: product.category,
+          properties: product.properties,
+          tags: product.tags
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching integration product:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTEGRATION_ERROR',
+        message: 'Failed to fetch product'
+      }
+    });
+  }
+});
+
 // Get embeddable product widget data
 router.get('/products/embed/:slug', [
   param('slug').isLength({ min: 1, max: 100 }).matches(/^[a-zA-Z0-9-_]+$/).withMessage('Invalid slug format'),

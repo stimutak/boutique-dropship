@@ -236,6 +236,124 @@ router.post('/', validateGuestCheckout, async (req, res) => {
   }
 });
 
+// Create order (guest checkout) - explicit guest route
+router.post('/guest', validateGuestCheckout, async (req, res) => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: errors.array()
+        }
+      });
+    }
+
+    const {
+      guestInfo,
+      shippingAddress,
+      billingAddress,
+      items: requestItems,
+      notes,
+      referralSource
+    } = req.body;
+
+    // Validate and process cart items
+    const orderItems = [];
+    let subtotal = 0;
+
+    for (const item of requestItems) {
+      const product = await Product.findById(item.product);
+      
+      if (!product || !product.isActive) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_PRODUCT',
+            message: `Product ${item.product} not found or unavailable`
+          }
+        });
+      }
+
+      const itemTotal = product.price * item.quantity;
+      subtotal += itemTotal;
+
+      orderItems.push({
+        product: product._id,
+        quantity: item.quantity,
+        price: product.price,
+        wholesaler: {
+          name: product.wholesaler.name,
+          email: product.wholesaler.email,
+          productCode: product.wholesaler.productCode,
+          notified: false,
+          notificationAttempts: 0
+        }
+      });
+    }
+
+    // Calculate totals
+    const tax = subtotal * 0.08; // 8% tax rate
+    const shipping = subtotal > 50 ? 0 : 9.99; // Free shipping over $50
+    const total = subtotal + tax + shipping;
+
+    // Create order
+    const orderData = {
+      guestInfo,
+      items: orderItems,
+      shippingAddress,
+      billingAddress: billingAddress || shippingAddress,
+      subtotal,
+      tax,
+      shipping,
+      total,
+      payment: {
+        method: 'card',
+        status: 'pending'
+      },
+      status: 'pending',
+      notes,
+      referralSource
+    };
+
+    const order = await Order.create(orderData);
+
+    res.status(201).json({
+      success: true,
+      message: 'Guest order created successfully',
+      data: {
+        order: {
+          _id: order._id,
+          orderNumber: order.orderNumber,
+          guestInfo: order.guestInfo,
+          items: order.items,
+          shippingAddress: order.shippingAddress,
+          billingAddress: order.billingAddress,
+          subtotal: order.subtotal,
+          tax: order.tax,
+          shipping: order.shipping,
+          total: order.total,
+          status: order.status,
+          createdAt: order.createdAt
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating guest order:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'ORDER_CREATION_ERROR',
+        message: 'Failed to create guest order'
+      }
+    });
+  }
+});
+
 // Create order for registered user
 router.post('/registered', requireAuth, async (req, res) => {
   try {

@@ -137,6 +137,7 @@ describe('Product Routes', () => {
         name: 'Inactive Product',
         slug: 'inactive-product',
         description: 'This product is inactive',
+        shortDescription: 'Inactive test product',
         price: 9.99,
         category: 'other',
         isActive: false,
@@ -162,13 +163,13 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products).toHaveLength(3); // Only active products
-      expect(response.body.pagination.currentPage).toBe(1);
-      expect(response.body.pagination.totalProducts).toBe(3);
-      expect(response.body.pagination.limit).toBe(20);
+      expect(response.body.data.products).toHaveLength(3); // Only active products
+      expect(response.body.data.pagination.currentPage).toBe(1);
+      expect(response.body.data.pagination.totalProducts).toBe(3);
+      expect(response.body.data.pagination.limit).toBe(20);
       
       // Ensure wholesaler info is not exposed
-      response.body.products.forEach(product => {
+      response.body.data.products.forEach(product => {
         expect(product.wholesaler).toBeUndefined();
       });
     });
@@ -180,9 +181,9 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products).toHaveLength(2);
-      expect(response.body.products.every(p => p.category === 'crystals')).toBe(true);
-      expect(response.body.filters.category).toBe('crystals');
+      expect(response.body.data.products).toHaveLength(2);
+      expect(response.body.data.products.every(p => p.category === 'crystals')).toBe(true);
+      expect(response.body.data.filters.category).toBe('crystals');
     });
     
     it('should search products by text', async () => {
@@ -192,8 +193,8 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products.length).toBeGreaterThan(0);
-      expect(response.body.filters.search).toBe('heart chakra');
+      expect(response.body.data.products.length).toBeGreaterThan(0);
+      expect(response.body.data.filters.search).toBe('heart chakra');
     });
     
     it('should filter by chakra properties', async () => {
@@ -203,8 +204,8 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products.length).toBeGreaterThan(0);
-      expect(response.body.products.every(p => p.properties.chakra.includes('heart'))).toBe(true);
+      expect(response.body.data.products.length).toBeGreaterThan(0);
+      expect(response.body.data.products.every(p => p.properties.chakra.includes('heart'))).toBe(true);
     });
     
     it('should filter by multiple chakras', async () => {
@@ -214,7 +215,7 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products.length).toBeGreaterThan(0);
+      expect(response.body.data.products.length).toBeGreaterThan(0);
     });
     
     it('should filter by element properties', async () => {
@@ -224,7 +225,7 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products.every(p => p.properties.element.includes('air'))).toBe(true);
+      expect(response.body.data.products.every(p => p.properties.element.includes('air'))).toBe(true);
     });
     
     it('should filter by healing properties', async () => {
@@ -234,7 +235,7 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products.every(p => p.properties.healing.includes('relaxation'))).toBe(true);
+      expect(response.body.data.products.every(p => p.properties.healing.includes('relaxation'))).toBe(true);
     });
     
     it('should filter by price range', async () => {
@@ -244,7 +245,7 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products.every(p => p.price >= 20 && p.price <= 30)).toBe(true);
+      expect(response.body.data.products.every(p => p.price >= 20 && p.price <= 30)).toBe(true);
     });
     
     it('should filter featured products', async () => {
@@ -254,7 +255,7 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products.every(p => p.isFeatured === true)).toBe(true);
+      expect(response.body.data.products.every(p => p.isFeatured === true)).toBe(true);
     });
     
     it('should sort products by price low to high', async () => {
@@ -264,7 +265,7 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      const prices = response.body.products.map(p => p.price);
+      const prices = response.body.data.products.map(p => p.price);
       expect(prices).toEqual([...prices].sort((a, b) => a - b));
     });
     
@@ -275,7 +276,7 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      const prices = response.body.products.map(p => p.price);
+      const prices = response.body.data.products.map(p => p.price);
       expect(prices).toEqual([...prices].sort((a, b) => b - a));
     });
     
@@ -286,7 +287,7 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      const names = response.body.products.map(p => p.name);
+      const names = response.body.data.products.map(p => p.name);
       expect(names).toEqual([...names].sort());
     });
     
@@ -297,11 +298,11 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.products).toHaveLength(2);
-      expect(response.body.pagination.currentPage).toBe(1);
-      expect(response.body.pagination.totalPages).toBe(2);
-      expect(response.body.pagination.hasNextPage).toBe(true);
-      expect(response.body.pagination.hasPrevPage).toBe(false);
+      expect(response.body.data.products).toHaveLength(2);
+      expect(response.body.data.pagination.currentPage).toBe(1);
+      expect(response.body.data.pagination.totalPages).toBe(2);
+      expect(response.body.data.pagination.hasNextPage).toBe(true);
+      expect(response.body.data.pagination.hasPrevPage).toBe(false);
     });
     
     it('should combine multiple filters', async () => {
@@ -316,9 +317,9 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.filters.category).toBe('crystals');
-      expect(response.body.filters.chakra).toBe('heart');
-      expect(response.body.filters.priceRange.min).toBe('25');
+      expect(response.body.data.filters.category).toBe('crystals');
+      expect(response.body.data.filters.chakra).toBe('heart');
+      expect(response.body.data.filters.priceRange.min).toBe('25');
     });
   });
   
@@ -332,7 +333,7 @@ describe('Product Routes', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.query).toBe('crystal');
       expect(response.body.results.length).toBeGreaterThan(0);
-      expect(response.body.meta.resultCount).toBeGreaterThan(0);
+      expect(response.body.data.meta.resultCount).toBeGreaterThan(0);
     });
     
     it('should provide search suggestions', async () => {
@@ -343,7 +344,7 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.suggestions).toBeDefined();
-      expect(response.body.meta.suggestionsEnabled).toBe(true);
+      expect(response.body.data.meta.suggestionsEnabled).toBe(true);
     });
     
     it('should require search query', async () => {
@@ -401,14 +402,14 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.filters.chakras).toContain('heart');
-      expect(response.body.filters.chakras).toContain('crown');
-      expect(response.body.filters.elements).toContain('air');
-      expect(response.body.filters.elements).toContain('earth');
-      expect(response.body.filters.healingProperties).toContain('love');
-      expect(response.body.filters.healingProperties).toContain('relaxation');
-      expect(response.body.filters.priceRange.min).toBeDefined();
-      expect(response.body.filters.priceRange.max).toBeDefined();
+      expect(response.body.data.filters.chakras).toContain('heart');
+      expect(response.body.data.filters.chakras).toContain('crown');
+      expect(response.body.data.filters.elements).toContain('air');
+      expect(response.body.data.filters.elements).toContain('earth');
+      expect(response.body.data.filters.healingProperties).toContain('love');
+      expect(response.body.data.filters.healingProperties).toContain('relaxation');
+      expect(response.body.data.filters.priceRange.min).toBeDefined();
+      expect(response.body.data.filters.priceRange.max).toBeDefined();
     });
     
     it('should filter options by category', async () => {
@@ -427,8 +428,8 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.filters.chakras).toEqual([...response.body.filters.chakras].sort());
-      expect(response.body.filters.elements).toEqual([...response.body.filters.elements].sort());
+      expect(response.body.data.filters.chakras).toEqual([...response.body.data.filters.chakras].sort());
+      expect(response.body.data.filters.elements).toEqual([...response.body.data.filters.elements].sort());
     });
   });
   
@@ -444,7 +445,7 @@ describe('Product Routes', () => {
       expect(response.body.recommendations).toBeDefined();
       expect(response.body.basedOn.productId).toBe(roseQuartz._id.toString());
       expect(response.body.basedOn.productName).toBe('Rose Quartz Crystal');
-      expect(response.body.meta.count).toBeDefined();
+      expect(response.body.data.meta.count).toBeDefined();
     });
     
     it('should limit recommendations', async () => {
@@ -457,7 +458,7 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.recommendations.length).toBeLessThanOrEqual(2);
-      expect(response.body.meta.limit).toBe(2);
+      expect(response.body.data.meta.limit).toBe(2);
     });
     
     it('should return 404 for non-existent product', async () => {
@@ -490,15 +491,15 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.product.name).toBe('Rose Quartz Crystal');
-      expect(response.body.product.slug).toBe('rose-quartz-crystal');
-      expect(response.body.product.price).toBe(29.99);
-      expect(response.body.related).toBeDefined();
-      expect(response.body.meta.slug).toBe('rose-quartz-crystal');
-      expect(response.body.meta.category).toBe('crystals');
+      expect(response.body.data.product.name).toBe('Rose Quartz Crystal');
+      expect(response.body.data.product.slug).toBe('rose-quartz-crystal');
+      expect(response.body.data.product.price).toBe(29.99);
+      expect(response.body.data.related).toBeDefined();
+      expect(response.body.data.meta.slug).toBe('rose-quartz-crystal');
+      expect(response.body.data.meta.category).toBe('crystals');
       
       // Ensure wholesaler info is not exposed
-      expect(response.body.product.wholesaler).toBeUndefined();
+      expect(response.body.data.product.wholesaler).toBeUndefined();
     });
     
     it('should return related products', async () => {
@@ -507,11 +508,11 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.related).toBeDefined();
-      expect(response.body.meta.relatedCount).toBeDefined();
+      expect(response.body.data.related).toBeDefined();
+      expect(response.body.data.meta.relatedCount).toBeDefined();
       
       // Related products should not include the main product
-      expect(response.body.related.every(p => p.slug !== 'rose-quartz-crystal')).toBe(true);
+      expect(response.body.data.related.every(p => p.slug !== 'rose-quartz-crystal')).toBe(true);
     });
     
     it('should return 404 for non-existent product', async () => {
@@ -563,8 +564,8 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Product created successfully');
-      expect(response.body.product.name).toBe('Green Aventurine');
-      expect(response.body.product.slug).toBe('green-aventurine');
+      expect(response.body.data.product.name).toBe('Green Aventurine');
+      expect(response.body.data.product.slug).toBe('green-aventurine');
       
       // Verify product was saved to database
       const savedProduct = await Product.findOne({ slug: 'green-aventurine' });
@@ -576,6 +577,7 @@ describe('Product Routes', () => {
       const newProduct = {
         name: 'Black Tourmaline Crystal',
         description: 'Protection crystal for negative energy',
+        shortDescription: 'Protection crystal for negative energy',
         price: 18.99,
         category: 'crystals',
         properties: { chakra: ['root'] },
@@ -594,13 +596,14 @@ describe('Product Routes', () => {
         .expect(201);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.product.slug).toBe('black-tourmaline-crystal');
+      expect(response.body.data.product.slug).toBe('black-tourmaline-crystal');
     });
     
     it('should handle duplicate slugs', async () => {
       const newProduct = {
         name: 'Rose Quartz Crystal', // Same name as existing product
         description: 'Another rose quartz crystal',
+        shortDescription: 'Another rose quartz crystal',
         price: 25.99,
         category: 'crystals',
         properties: { chakra: ['heart'] },
@@ -619,7 +622,7 @@ describe('Product Routes', () => {
         .expect(201);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.product.slug).toMatch(/^rose-quartz-crystal-\d+$/);
+      expect(response.body.data.product.slug).toMatch(/^rose-quartz-crystal-\d+$/);
     });
     
     it('should validate required fields', async () => {
@@ -644,6 +647,7 @@ describe('Product Routes', () => {
       const newProduct = {
         name: 'Test Product',
         description: 'Test description',
+        shortDescription: 'Test description',
         price: 19.99,
         category: 'crystals',
         wholesaler: {
@@ -679,8 +683,8 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Product updated successfully');
-      expect(response.body.product.price).toBe(34.99);
-      expect(response.body.product.shortDescription).toBe('Updated description for heart chakra crystal');
+      expect(response.body.data.product.price).toBe(34.99);
+      expect(response.body.data.product.shortDescription).toBe('Updated description for heart chakra crystal');
     });
     
     it('should return 404 for non-existent product', async () => {
@@ -719,7 +723,7 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Product deactivated successfully');
-      expect(response.body.product.isActive).toBe(false);
+      expect(response.body.data.product.isActive).toBe(false);
       
       // Verify product is deactivated in database
       const updatedProduct = await Product.findById(roseQuartz._id);

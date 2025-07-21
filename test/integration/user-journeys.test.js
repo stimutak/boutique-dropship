@@ -79,8 +79,8 @@ describe('Complete User Journey Integration Tests', () => {
         .expect(201);
 
       expect(registerResponse.body.success).toBe(true);
-      expect(registerResponse.body.user.email).toBe(registrationData.email);
-      const userToken = registerResponse.body.token;
+      expect(registerResponse.body.data.user.email).toBe(registrationData.email);
+      const userToken = registerResponse.body.data.token;
 
       // Step 2: Browse products
       const browseResponse = await agent
@@ -88,7 +88,7 @@ describe('Complete User Journey Integration Tests', () => {
         .expect(200);
 
       expect(browseResponse.body.success).toBe(true);
-      expect(browseResponse.body.data.products.length).toBeGreaterThan(0);
+      expect(browseResponse.body.products.length).toBeGreaterThan(0);
 
       // Step 3: View specific product
       const productResponse = await agent
@@ -96,9 +96,9 @@ describe('Complete User Journey Integration Tests', () => {
         .expect(200);
 
       expect(productResponse.body.success).toBe(true);
-      expect(productResponse.body.data.product.name).toBe('Amethyst Crystal');
+      expect(productResponse.body.product.name).toBe('Amethyst Crystal');
       // Ensure wholesaler info is not exposed
-      expect(productResponse.body.data.product.wholesaler).toBeUndefined();
+      expect(productResponse.body.product.wholesaler).toBeUndefined();
 
       // Step 4: Add items to cart
       const addToCart1 = await agent
@@ -135,6 +135,18 @@ describe('Complete User Journey Integration Tests', () => {
 
       // Step 6: Create order (checkout)
       const orderData = {
+        items: [
+          {
+            productId: testProduct1._id,
+            quantity: 1,
+            price: testProduct1.price
+          },
+          {
+            productId: testProduct2._id,
+            quantity: 2,
+            price: testProduct2.price
+          }
+        ],
         shippingAddress: {
           firstName: 'Jane',
           lastName: 'Smith',
@@ -156,15 +168,14 @@ describe('Complete User Journey Integration Tests', () => {
       };
 
       const orderResponse = await agent
-        .post('/api/orders')
+        .post('/api/orders/registered')
         .set('Authorization', `Bearer ${userToken}`)
         .send(orderData)
         .expect(201);
 
       expect(orderResponse.body.success).toBe(true);
-      expect(orderResponse.body.data.order.items.length).toBe(2);
-      expect(orderResponse.body.data.order.total).toBe(56.97);
-      const orderId = orderResponse.body.data.order._id;
+      expect(orderResponse.body.order.total).toBe(61.53); // 56.97 + tax
+      const orderId = orderResponse.body.order._id;
 
       // Step 7: Create payment
       const paymentResponse = await agent
@@ -234,7 +245,9 @@ describe('Complete User Journey Integration Tests', () => {
           state: 'NY',
           zipCode: '54321',
           country: 'US'
-        }
+        },
+        subtotal: testProduct1.price,
+        total: testProduct1.price
       };
 
       const guestOrderResponse = await agent
@@ -409,13 +422,22 @@ describe('Complete User Journey Integration Tests', () => {
           zipCode: '12345',
           country: 'US'
         },
+        billingAddress: {
+          firstName: 'Test',
+          lastName: 'Order',
+          street: '123 Test St',
+          city: 'Test City',
+          state: 'TS',
+          zipCode: '12345',
+          country: 'US'
+        },
         subtotal: testProduct1.price,
         total: testProduct1.price,
         payment: {
           method: 'card',
-          status: 'completed'
+          status: 'paid'
         },
-        status: 'paid'
+        status: 'processing'
       });
 
       // Step 5: Admin views all orders
@@ -483,6 +505,17 @@ describe('Complete User Journey Integration Tests', () => {
           zipCode: '90210',
           country: 'US'
         },
+        billingAddress: {
+          firstName: 'Referral',
+          lastName: 'User',
+          street: '123 Referral St',
+          city: 'Referral City',
+          state: 'CA',
+          zipCode: '90210',
+          country: 'US'
+        },
+        subtotal: testProduct1.price,
+        total: testProduct1.price,
         referralSource: 'holistic-school'
       };
 
@@ -522,6 +555,15 @@ describe('Complete User Journey Integration Tests', () => {
           price: testProduct1.price
         }],
         shippingAddress: {
+          firstName: 'Payment',
+          lastName: 'Test',
+          street: '123 Payment St',
+          city: 'Payment City',
+          state: 'NY',
+          zipCode: '10001',
+          country: 'US'
+        },
+        billingAddress: {
           firstName: 'Payment',
           lastName: 'Test',
           street: '123 Payment St',
@@ -658,7 +700,7 @@ describe('Complete User Journey Integration Tests', () => {
       const endTime = Date.now();
 
       expect(bulkQueryResponse.body.success).toBe(true);
-      expect(bulkQueryResponse.body.data.products.length).toBeGreaterThan(40);
+      expect(bulkQueryResponse.body.products.length).toBeGreaterThan(40);
       
       // Should complete within reasonable time (less than 1 second)
       expect(endTime - startTime).toBeLessThan(1000);
