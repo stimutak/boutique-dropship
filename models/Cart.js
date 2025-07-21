@@ -72,7 +72,11 @@ cartSchema.methods.addItem = function(productId, quantity, price) {
   }
   
   this.updatedAt = new Date();
-  this.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Reset expiry to 30 days
+  // Only extend expiry if cart is not already expired and hasn't been extended recently
+  const now = new Date();
+  if (!this.expiresAt || this.expiresAt < now) {
+    this.expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+  }
 };
 
 // Method to update item quantity

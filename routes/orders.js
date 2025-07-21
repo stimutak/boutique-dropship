@@ -266,14 +266,14 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
     let subtotal = 0;
 
     for (const item of requestItems) {
-      const product = await Product.findById(item.product);
+      const product = await Product.findById(item.productId);
       
       if (!product || !product.isActive) {
         return res.status(400).json({
           success: false,
           error: {
             code: 'INVALID_PRODUCT',
-            message: `Product ${item.product} not found or unavailable`
+            message: `Product ${item.productId} not found or unavailable`
           }
         });
       }
