@@ -7,10 +7,11 @@ export const loginUser = createAsyncThunk(
   async ({ email, password }, { rejectWithValue }) => {
     try {
       const response = await api.post('/api/auth/login', { email, password })
-      localStorage.setItem('token', response.data.token)
-      return response.data
+      // Store token in localStorage for now (will move to HTTP-only cookies later)
+      localStorage.setItem('token', response.data.data.token)
+      return response.data.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      return rejectWithValue(error.response?.data?.error?.message || 'Login failed')
     }
   }
 )
@@ -20,10 +21,11 @@ export const registerUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const response = await api.post('/api/auth/register', userData)
-      localStorage.setItem('token', response.data.token)
-      return response.data
+      // Store token in localStorage for now (will move to HTTP-only cookies later)
+      localStorage.setItem('token', response.data.data.token)
+      return response.data.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      return rejectWithValue(error.response?.data?.error?.message || 'Registration failed')
     }
   }
 )
@@ -40,10 +42,13 @@ export const loadUser = createAsyncThunk(
       const response = await api.get('/api/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      return response.data
+      return response.data.data
     } catch (error) {
-      localStorage.removeItem('token')
-      return rejectWithValue(error.response.data.error.message)
+      // Only remove token if it's actually invalid (401), not for other errors
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token')
+      }
+      return rejectWithValue(error.response?.data?.error?.message || 'Failed to load user')
     }
   }
 )
@@ -56,9 +61,11 @@ export const updateProfile = createAsyncThunk(
       const response = await api.put('/api/auth/profile', userData, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      return response.data
+      // Return the updated user data without affecting authentication
+      return response.data.data
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message)
+      // Don't remove token on profile update errors - this was causing the re-login loop
+      return rejectWithValue(error.response?.data?.error?.message || 'Profile update failed')
     }
   }
 )
@@ -138,6 +145,8 @@ const authSlice = createSlice({
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.isLoading = false
         state.user = action.payload.user
+        // Keep authentication state - don't force re-login
+        state.isAuthenticated = true
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.isLoading = false

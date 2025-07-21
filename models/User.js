@@ -65,6 +65,33 @@ const userSchema = new mongoose.Schema({
       promotionalEmails: { type: Boolean, default: false },
       welcomeEmails: { type: Boolean, default: true }
     }
+  },
+  cart: {
+    items: [{
+      product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+        required: true
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 99
+      },
+      price: {
+        type: Number,
+        required: true
+      },
+      addedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }],
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    }
   }
 }, {
   timestamps: true

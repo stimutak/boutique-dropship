@@ -1,45 +1,54 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
-const { authenticateToken, requireAuth } = require('../middleware/auth');
+const User = require('../models/User');
+const Cart = require('../models/Cart');
+const { authenticateToken } = require('../middleware/auth');
 
-// Middleware to initialize cart in session
-const initializeCart = (req, res, next) => {
-  if (!req.session.cart) {
-    req.session.cart = [];
+// Helper function to get or create cart
+const getOrCreateCart = async (req) => {
+  if (req.user) {
+    // For authenticated users, use user's cart
+    const user = await User.findById(req.user._id);
+    if (!user.cart) {
+      user.cart = { items: [], updatedAt: new Date() };
+      await user.save();
+    }
+    return { type: 'user', cart: user.cart, user };
+  } else {
+    // For guests, use session-based cart with database storage
+    const sessionId = req.sessionID;
+    let cart = await Cart.findOne({ sessionId });
+    
+    if (!cart) {
+      cart = new Cart({ sessionId, items: [] });
+      await cart.save();
+    }
+    
+    return { type: 'guest', cart, sessionId };
   }
-  next();
 };
 
 // Get cart contents
-router.get('/', authenticateToken, initializeCart, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
-    let cart = [];
-    
-    if (req.user) {
-      // For authenticated users, get cart from session
-      // TODO: Consider implementing persistent cart storage in user model
-      cart = req.session.cart || [];
-    } else {
-      // For guests, get cart from session
-      cart = req.session.cart || [];
-    }
+    const { type, cart, user } = await getOrCreateCart(req);
     
     // Populate product details for cart items
     const populatedCart = await Promise.all(
-      cart.map(async (item) => {
+      cart.items.map(async (item) => {
         try {
-          const product = await Product.findById(item.productId).select('-wholesaler');
+          const product = await Product.findById(item.product).select('-wholesaler');
           if (!product || !product.isActive) {
-            return null; // Remove inactive products
+            return null; // Filter out inactive products
           }
           
           return {
-            _id: item._id || item.productId,
+            _id: item.product,
             product: product.toPublicJSON(),
             quantity: item.quantity,
-            price: product.price,
-            subtotal: product.price * item.quantity
+            price: item.price,
+            subtotal: item.price * item.quantity
           };
         } catch (error) {
           console.error('Error populating cart item:', error);
@@ -47,167 +56,136 @@ router.get('/', authenticateToken, initializeCart, async (req, res) => {
         }
       })
     );
-    
+
     // Filter out null items (inactive products)
-    const validCart = populatedCart.filter(item => item !== null);
-    
-    // Update session cart to remove invalid items
-    req.session.cart = validCart.map(item => ({
-      productId: item.product._id,
-      quantity: item.quantity
-    }));
+    const validCartItems = populatedCart.filter(item => item !== null);
     
     // Calculate totals
-    const subtotal = validCart.reduce((sum, item) => sum + item.subtotal, 0);
-    const itemCount = validCart.reduce((sum, item) => sum + item.quantity, 0);
+    const itemCount = validCartItems.reduce((total, item) => total + item.quantity, 0);
+    const subtotal = validCartItems.reduce((total, item) => total + item.subtotal, 0);
     
     res.json({
       success: true,
       data: {
         cart: {
-          items: validCart,
-          itemCount: itemCount,
+          items: validCartItems,
+          itemCount,
           subtotal: Math.round(subtotal * 100) / 100,
           total: Math.round(subtotal * 100) / 100,
-          isEmpty: validCart.length === 0
+          isEmpty: validCartItems.length === 0
         }
       }
     });
-    
+
   } catch (error) {
-    console.error('Error getting cart:', error);
+    console.error('Error fetching cart:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'CART_ERROR',
-        message: 'Failed to retrieve cart contents'
+        code: 'CART_FETCH_ERROR',
+        message: 'Failed to fetch cart'
       }
     });
   }
 });
 
 // Add item to cart
-router.post('/add', authenticateToken, initializeCart, async (req, res) => {
+router.post('/add', authenticateToken, async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
-    
+
+    // Validation
     if (!productId) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_PRODUCT_ID',
+          code: 'VALIDATION_ERROR',
           message: 'Product ID is required'
         }
       });
     }
-    
-    if (quantity < 1 || quantity > 99) {
+
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'INVALID_QUANTITY',
+          code: 'VALIDATION_ERROR',
           message: 'Quantity must be between 1 and 99'
         }
       });
     }
-    
-    // Verify product exists and is active
+
+    // Check if product exists and is active
     const product = await Product.findById(productId);
     if (!product || !product.isActive) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
         error: {
-          code: 'PRODUCT_NOT_FOUND',
-          message: 'Product not found or unavailable'
+          code: 'VALIDATION_ERROR',
+          message: 'Product not found or inactive'
         }
       });
     }
-    
-    // Check if item already exists in cart
-    const existingItemIndex = req.session.cart.findIndex(
-      item => item.productId.toString() === productId
-    );
-    
-    if (existingItemIndex > -1) {
-      // Update quantity of existing item
-      const newQuantity = req.session.cart[existingItemIndex].quantity + parseInt(quantity);
-      if (newQuantity > 99) {
-        return res.status(400).json({
-          success: false,
-          error: {
-            code: 'MAX_QUANTITY_EXCEEDED',
-            message: 'Maximum quantity per item is 99'
-          }
+
+    const { type, cart, user } = await getOrCreateCart(req);
+
+    if (type === 'user') {
+      // Add to user's cart
+      const existingItemIndex = user.cart.items.findIndex(item => 
+        item.product.toString() === productId.toString()
+      );
+
+      if (existingItemIndex >= 0) {
+        user.cart.items[existingItemIndex].quantity += quantity;
+        user.cart.items[existingItemIndex].addedAt = new Date();
+      } else {
+        user.cart.items.push({
+          product: productId,
+          quantity,
+          price: product.price,
+          addedAt: new Date()
         });
       }
-      req.session.cart[existingItemIndex].quantity = newQuantity;
+      
+      user.cart.updatedAt = new Date();
+      await user.save();
     } else {
-      // Add new item to cart
-      req.session.cart.push({
-        productId: productId,
-        quantity: parseInt(quantity)
-      });
+      // Add to guest cart
+      cart.addItem(productId, quantity, product.price);
+      await cart.save();
     }
-    
-    // Save session and get updated cart
-    try {
-      await new Promise((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-      
-      // Get updated cart with populated products
-      const populatedCart = await Promise.all(
-        req.session.cart.map(async (item) => {
-          try {
-            const product = await Product.findById(item.productId).select('-wholesaler');
-            if (!product || !product.isActive) {
-              return null;
-            }
-            
-            return {
-              _id: item.productId,
-              product: product.toPublicJSON(),
-              quantity: item.quantity,
-              price: product.price,
-              subtotal: product.price * item.quantity
-            };
-          } catch (error) {
-            console.error('Error populating cart item:', error);
-            return null;
-          }
-        })
-      );
-      
-      const validCart = populatedCart.filter(item => item !== null);
-      const totalPrice = validCart.reduce((sum, item) => sum + item.subtotal, 0);
-      const totalItems = validCart.reduce((sum, item) => sum + item.quantity, 0);
-      
-      res.json({
-        success: true,
-        message: 'Item added to cart',
-        data: {
-          cart: {
-            items: validCart,
-            itemCount: totalItems,
-            subtotal: Math.round(totalPrice * 100) / 100,
-            total: Math.round(totalPrice * 100) / 100
-          }
+
+    // Return updated cart
+    const updatedCartData = await getOrCreateCart(req);
+    const populatedCart = await Promise.all(
+      updatedCartData.cart.items.map(async (item) => {
+        const prod = await Product.findById(item.product).select('-wholesaler');
+        return {
+          _id: item.product,
+          product: prod.toPublicJSON(),
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.price * item.quantity
+        };
+      })
+    );
+
+    const itemCount = populatedCart.reduce((total, item) => total + item.quantity, 0);
+    const subtotal = populatedCart.reduce((total, item) => total + item.subtotal, 0);
+
+    res.json({
+      success: true,
+      message: 'Item added to cart',
+      data: {
+        cart: {
+          items: populatedCart,
+          itemCount,
+          subtotal: Math.round(subtotal * 100) / 100,
+          total: Math.round(subtotal * 100) / 100
         }
-      });
-    } catch (sessionError) {
-      console.error('Session save error:', sessionError);
-      return res.status(500).json({
-        success: false,
-        error: {
-          code: 'SESSION_ERROR',
-          message: 'Failed to save cart'
-        }
-      });
-    }
-    
+      }
+    });
+
   } catch (error) {
     console.error('Error adding to cart:', error);
     res.status(500).json({
@@ -221,71 +199,83 @@ router.post('/add', authenticateToken, initializeCart, async (req, res) => {
 });
 
 // Update cart item quantity
-router.put('/update', authenticateToken, initializeCart, async (req, res) => {
+router.put('/update', authenticateToken, async (req, res) => {
   try {
     const { productId, quantity } = req.body;
-    
+
     if (!productId) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_PRODUCT_ID',
+          code: 'VALIDATION_ERROR',
           message: 'Product ID is required'
         }
       });
     }
-    
-    if (quantity < 0 || quantity > 99) {
+
+    if (!Number.isInteger(quantity) || quantity < 0 || quantity > 99) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'INVALID_QUANTITY',
+          code: 'VALIDATION_ERROR',
           message: 'Quantity must be between 0 and 99'
         }
       });
     }
-    
-    const itemIndex = req.session.cart.findIndex(
-      item => item.productId.toString() === productId
-    );
-    
-    if (itemIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ITEM_NOT_FOUND',
-          message: 'Item not found in cart'
+
+    const { type, cart, user } = await getOrCreateCart(req);
+
+    if (type === 'user') {
+      const itemIndex = user.cart.items.findIndex(item => 
+        item.product.toString() === productId.toString()
+      );
+
+      if (itemIndex >= 0) {
+        if (quantity === 0) {
+          user.cart.items.splice(itemIndex, 1);
+        } else {
+          user.cart.items[itemIndex].quantity = quantity;
+          user.cart.items[itemIndex].addedAt = new Date();
         }
-      });
-    }
-    
-    if (quantity === 0) {
-      // Remove item if quantity is 0
-      req.session.cart.splice(itemIndex, 1);
-    } else {
-      // Update quantity
-      req.session.cart[itemIndex].quantity = parseInt(quantity);
-    }
-    
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({
-          success: false,
-          error: {
-            code: 'SESSION_ERROR',
-            message: 'Failed to update cart'
-          }
-        });
+        user.cart.updatedAt = new Date();
+        await user.save();
       }
-      
-      res.json({
-        success: true,
-        message: quantity === 0 ? 'Item removed from cart' : 'Cart updated',
-        cartItemCount: req.session.cart.reduce((sum, item) => sum + item.quantity, 0)
-      });
+    } else {
+      cart.updateItem(productId, quantity);
+      await cart.save();
+    }
+
+    // Return updated cart
+    const updatedCartData = await getOrCreateCart(req);
+    const populatedCart = await Promise.all(
+      updatedCartData.cart.items.map(async (item) => {
+        const prod = await Product.findById(item.product).select('-wholesaler');
+        return {
+          _id: item.product,
+          product: prod.toPublicJSON(),
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.price * item.quantity
+        };
+      })
+    );
+
+    const itemCount = populatedCart.reduce((total, item) => total + item.quantity, 0);
+    const subtotal = populatedCart.reduce((total, item) => total + item.subtotal, 0);
+
+    res.json({
+      success: true,
+      message: 'Cart updated successfully',
+      data: {
+        cart: {
+          items: populatedCart,
+          itemCount,
+          subtotal: Math.round(subtotal * 100) / 100,
+          total: Math.round(subtotal * 100) / 100
+        }
+      }
     });
-    
+
   } catch (error) {
     console.error('Error updating cart:', error);
     res.status(500).json({
@@ -299,55 +289,68 @@ router.put('/update', authenticateToken, initializeCart, async (req, res) => {
 });
 
 // Remove item from cart
-router.delete('/remove', authenticateToken, initializeCart, async (req, res) => {
+router.delete('/remove', authenticateToken, async (req, res) => {
   try {
     const { productId } = req.body;
-    
+
     if (!productId) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_PRODUCT_ID',
+          code: 'VALIDATION_ERROR',
           message: 'Product ID is required'
         }
       });
     }
-    
-    const itemIndex = req.session.cart.findIndex(
-      item => item.productId.toString() === productId
-    );
-    
-    if (itemIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ITEM_NOT_FOUND',
-          message: 'Item not found in cart'
-        }
-      });
-    }
-    
-    req.session.cart.splice(itemIndex, 1);
-    
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({
-          success: false,
-          error: {
-            code: 'SESSION_ERROR',
-            message: 'Failed to remove item from cart'
-          }
-        });
+
+    const { type, cart, user } = await getOrCreateCart(req);
+
+    if (type === 'user') {
+      const itemIndex = user.cart.items.findIndex(item => 
+        item.product.toString() === productId.toString()
+      );
+
+      if (itemIndex >= 0) {
+        user.cart.items.splice(itemIndex, 1);
+        user.cart.updatedAt = new Date();
+        await user.save();
       }
-      
-      res.json({
-        success: true,
-        message: 'Item removed from cart',
-        cartItemCount: req.session.cart.reduce((sum, item) => sum + item.quantity, 0)
-      });
+    } else {
+      cart.removeItem(productId);
+      await cart.save();
+    }
+
+    // Return updated cart
+    const updatedCartData = await getOrCreateCart(req);
+    const populatedCart = await Promise.all(
+      updatedCartData.cart.items.map(async (item) => {
+        const prod = await Product.findById(item.product).select('-wholesaler');
+        return {
+          _id: item.product,
+          product: prod.toPublicJSON(),
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.price * item.quantity
+        };
+      })
+    );
+
+    const itemCount = populatedCart.reduce((total, item) => total + item.quantity, 0);
+    const subtotal = populatedCart.reduce((total, item) => total + item.subtotal, 0);
+
+    res.json({
+      success: true,
+      message: 'Item removed from cart',
+      data: {
+        cart: {
+          items: populatedCart,
+          itemCount,
+          subtotal: Math.round(subtotal * 100) / 100,
+          total: Math.round(subtotal * 100) / 100
+        }
+      }
     });
-    
+
   } catch (error) {
     console.error('Error removing from cart:', error);
     res.status(500).json({
@@ -361,29 +364,33 @@ router.delete('/remove', authenticateToken, initializeCart, async (req, res) => 
 });
 
 // Clear entire cart
-router.delete('/clear', authenticateToken, initializeCart, async (req, res) => {
+router.delete('/clear', authenticateToken, async (req, res) => {
   try {
-    req.session.cart = [];
-    
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({
-          success: false,
-          error: {
-            code: 'SESSION_ERROR',
-            message: 'Failed to clear cart'
-          }
-        });
+    const { type, cart, user } = await getOrCreateCart(req);
+
+    if (type === 'user') {
+      user.cart.items = [];
+      user.cart.updatedAt = new Date();
+      await user.save();
+    } else {
+      cart.clearCart();
+      await cart.save();
+    }
+
+    res.json({
+      success: true,
+      message: 'Cart cleared successfully',
+      data: {
+        cart: {
+          items: [],
+          itemCount: 0,
+          subtotal: 0,
+          total: 0,
+          isEmpty: true
+        }
       }
-      
-      res.json({
-        success: true,
-        message: 'Cart cleared',
-        cartItemCount: 0
-      });
     });
-    
+
   } catch (error) {
     console.error('Error clearing cart:', error);
     res.status(500).json({
@@ -399,6 +406,16 @@ router.delete('/clear', authenticateToken, initializeCart, async (req, res) => {
 // Merge guest cart with user cart (called after login)
 router.post('/merge', authenticateToken, initializeCart, async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'User must be authenticated to merge cart'
+        }
+      });
+    }
+
     const { guestCart } = req.body;
     
     if (!guestCart || !Array.isArray(guestCart) || guestCart.length === 0) {
@@ -451,11 +468,11 @@ router.post('/merge', authenticateToken, initializeCart, async (req, res) => {
           if (!product || !product.isActive) {
             return null;
           }
-          
           return {
             _id: item.productId,
             product: product.toPublicJSON(),
             quantity: item.quantity,
+            price: product.price,
             subtotal: product.price * item.quantity
           };
         } catch (error) {
@@ -465,20 +482,28 @@ router.post('/merge', authenticateToken, initializeCart, async (req, res) => {
       })
     );
 
-    const validCart = populatedCart.filter(item => item !== null);
-    const totalPrice = validCart.reduce((sum, item) => sum + item.subtotal, 0);
-    const totalItems = validCart.reduce((sum, item) => sum + item.quantity, 0);
+    // Filter out null items (inactive products)
+    const validItems = populatedCart.filter(item => item !== null);
+    const itemCount = validItems.reduce((total, item) => total + item.quantity, 0);
+    const subtotal = validItems.reduce((total, item) => total + item.subtotal, 0);
 
     res.json({
       success: true,
       message: 'Cart merged successfully',
       data: {
         cart: {
-          items: validCart,
-          itemCount: totalItems,
-          subtotal: Math.round(totalPrice * 100) / 100,
-          total: Math.round(totalPrice * 100) / 100,
-          isEmpty: validCart.length === 0
+          items: validItems,
+          itemCount: itemCount,
+          subtotal: subtotal,
+          total: subtotal,
+          isEmpty: validItems.length === 0
+        }
+      }
+    });
+          items: populatedCart,
+          itemCount,
+          subtotal: Math.round(subtotal * 100) / 100,
+          total: Math.round(subtotal * 100) / 100
         }
       }
     });

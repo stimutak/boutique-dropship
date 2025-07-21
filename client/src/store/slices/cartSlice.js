@@ -116,7 +116,13 @@ const saveCartToStorage = (state) => {
 
 const cartSlice = createSlice({
   name: 'cart',
-  initialState: loadCartFromStorage(),
+  initialState: {
+    items: [],
+    totalItems: 0,
+    totalPrice: 0,
+    isLoading: false,
+    error: null,
+  },
   reducers: {
     clearError: (state) => {
       state.error = null
@@ -211,6 +217,8 @@ const cartSlice = createSlice({
         state.items = cart.items || []
         state.totalItems = cart.itemCount || 0
         state.totalPrice = cart.total || 0
+        // Save to localStorage for guest users
+        saveCartToStorage(state)
       })
       .addCase(updateCartItem.rejected, (state, action) => {
         state.isLoading = false
@@ -227,6 +235,8 @@ const cartSlice = createSlice({
         state.items = cart.items || []
         state.totalItems = cart.itemCount || 0
         state.totalPrice = cart.total || 0
+        // Save to localStorage for guest users
+        saveCartToStorage(state)
       })
       .addCase(removeFromCart.rejected, (state, action) => {
         state.isLoading = false
