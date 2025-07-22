@@ -274,7 +274,12 @@ class CartService extends EventEmitter {
       );
 
       if (existingItemIndex >= 0) {
-        user.cart.items[existingItemIndex].quantity += quantity;
+        const newQuantity = user.cart.items[existingItemIndex].quantity + quantity;
+        if (newQuantity > 99) {
+          user.cart.items[existingItemIndex].quantity = 99;
+        } else {
+          user.cart.items[existingItemIndex].quantity = newQuantity;
+        }
         user.cart.items[existingItemIndex].addedAt = new Date();
       } else {
         user.cart.items.push({
@@ -299,7 +304,12 @@ class CartService extends EventEmitter {
         );
 
         if (existingItemIndex >= 0) {
-          cart.items[existingItemIndex].quantity += quantity;
+          const newQuantity = cart.items[existingItemIndex].quantity + quantity;
+          if (newQuantity > 99) {
+            cart.items[existingItemIndex].quantity = 99;
+          } else {
+            cart.items[existingItemIndex].quantity = newQuantity;
+          }
           cart.items[existingItemIndex].addedAt = new Date();
         } else {
           cart.items.push({
@@ -311,8 +321,14 @@ class CartService extends EventEmitter {
         }
         cart.updatedAt = new Date();
       }
-      await cart.save();
-      return { cart };
+      
+      // Use findByIdAndUpdate instead of save() for lean objects
+      const updatedCart = await Cart.findByIdAndUpdate(
+        cart._id,
+        { items: cart.items, updatedAt: cart.updatedAt },
+        { new: true, lean: true }
+      );
+      return { cart: updatedCart };
     }
   }
 
@@ -354,8 +370,14 @@ class CartService extends EventEmitter {
           cart.updatedAt = new Date();
         }
       }
-      await cart.save();
-      return { cart };
+      
+      // Use findByIdAndUpdate instead of save() for lean objects
+      const updatedCart = await Cart.findByIdAndUpdate(
+        cart._id,
+        { items: cart.items, updatedAt: cart.updatedAt },
+        { new: true, lean: true }
+      );
+      return { cart: updatedCart };
     }
   }
 
@@ -387,8 +409,14 @@ class CartService extends EventEmitter {
           cart.updatedAt = new Date();
         }
       }
-      await cart.save();
-      return { cart };
+      
+      // Use findByIdAndUpdate instead of save() for lean objects
+      const updatedCart = await Cart.findByIdAndUpdate(
+        cart._id,
+        { items: cart.items, updatedAt: cart.updatedAt },
+        { new: true, lean: true }
+      );
+      return { cart: updatedCart };
     }
   }
 

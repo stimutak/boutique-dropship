@@ -1,4 +1,5 @@
-import api from '../api/config'
+// We'll use axios directly to avoid circular dependency
+import axios from 'axios'
 
 class CSRFService {
   constructor() {
@@ -14,7 +15,9 @@ class CSRFService {
 
   async fetchToken() {
     try {
-      const response = await api.get('/api/csrf-token')
+      const response = await axios.get('/api/csrf-token', {
+        withCredentials: true
+      })
       this.token = response.data.csrfToken
       return this.token
     } catch (error) {

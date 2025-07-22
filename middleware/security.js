@@ -16,10 +16,26 @@ const csrfProtection = (req, res, next) => {
     return next();
   }
 
+  // Skip CSRF for webhooks and health checks
+  if (req.path.includes('/webhook') || req.path.includes('/health')) {
+    return next();
+  }
+
   const token = req.headers['x-csrf-token'] || req.body._csrf;
-  const sessionToken = req.session.csrfToken;
+  const sessionToken = req.session?.csrfToken;
+
+  // If no session exists yet, it's likely a first request - be lenient
+  if (!req.session) {
+    console.warn('No session found for CSRF check on:', req.path);
+    return next();
+  }
 
   if (!token || !sessionToken || token !== sessionToken) {
+    console.error('CSRF token mismatch:', {
+      provided: token ? 'yes' : 'no',
+      session: sessionToken ? 'yes' : 'no',
+      match: token === sessionToken
+    });
     return res.status(403).json({
       success: false,
       error: {

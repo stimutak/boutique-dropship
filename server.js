@@ -39,24 +39,22 @@ app.use(rateLimits.general);
 // Speed limiting for brute force protection
 app.use(speedLimiter);
 
-// Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'holistic-store-session-secret',
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store',
-    touchAfter: 24 * 3600 // lazy session update
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
-  }
-}));
+// Import unified session/CSRF management
+const { 
+  createSessionConfig, 
+  generateCSRFToken: unifiedCSRFToken,
+  enhanceGuestSession,
+  cleanupGuestSession 
+} = require('./middleware/sessionCSRF');
 
-// Generate CSRF tokens for sessions
-app.use(generateCSRFToken);
+// Session middleware with unified config
+const mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store';
+app.use(session(createSessionConfig(mongoUrl)));
+
+// Session enhancement middleware
+app.use(unifiedCSRFToken);
+app.use(enhanceGuestSession);
+app.use(cleanupGuestSession);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -106,7 +104,11 @@ app.get('/health', (req, res) => {
 app.get('/api/csrf-token', (req, res) => {
   res.json({ 
     success: true,
-    csrfToken: req.session.csrfToken 
+    csrfToken: req.session.csrfToken,
+    sessionInfo: {
+      isGuest: !req.user && !!req.session.guestId,
+      hasCart: !!req.session.cart && req.session.cart.items.length > 0
+    }
   });
 });
 

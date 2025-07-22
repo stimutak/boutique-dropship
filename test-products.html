@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Product Display Test</title>
+    <style>
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        .product-card {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Testing Product Display</h1>
+    <div id="status"></div>
+    <div id="products" class="products-grid"></div>
+
+    <script>
+        async function loadProducts() {
+            const status = document.getElementById('status');
+            const productsDiv = document.getElementById('products');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/products');
+                const data = await response.json();
+                
+                if (data.success) {
+                    status.innerHTML = `<p class="success">✅ Loaded ${data.data.products.length} products</p>`;
+                    
+                    data.data.products.forEach((product, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'product-card';
+                        card.innerHTML = `
+                            <h3>${index + 1}. ${product.name}</h3>
+                            ${product.images && product.images[0] 
+                                ? `<img src="${product.images[0].url}" alt="${product.name}" class="product-image" onload="this.style.border='2px solid green'" onerror="this.style.border='2px solid red'; this.alt='Failed to load'"/>`
+                                : '<p>No image</p>'
+                            }
+                            <p>$${product.price.toFixed(2)}</p>
+                            <small>ID: ${product._id}</small>
+                        `;
+                        productsDiv.appendChild(card);
+                    });
+                } else {
+                    status.innerHTML = '<p class="error">Failed to load products</p>';
+                }
+            } catch (error) {
+                status.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        loadProducts();
+    </script>
+</body>
+</html>

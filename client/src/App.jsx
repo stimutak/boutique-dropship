@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { loadUser } from './store/slices/authSlice'
+import csrfService from './services/csrf'
 
 // Components
 import Header from './components/Layout/Header'
@@ -17,6 +18,8 @@ import Payment from './pages/Payment'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import PaymentSuccess from './pages/PaymentSuccess'
@@ -29,6 +32,11 @@ function App() {
   const dispatch = useDispatch()
 
   useEffect(() => {
+    // Initialize CSRF token for all users (including guests)
+    csrfService.fetchToken().catch(err => {
+      console.warn('Failed to initialize CSRF token:', err)
+    })
+    
     // Load user if token exists
     const token = localStorage.getItem('token')
     if (token) {
@@ -50,6 +58,8 @@ function App() {
           <Route path="/payment/success/:orderId" element={<PaymentSuccess />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route 
             path="/profile" 
             element={

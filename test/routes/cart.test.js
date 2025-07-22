@@ -13,8 +13,12 @@ const createTestApp = () => {
   app.use(session({
     secret: 'test-secret',
     resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false }
+    saveUninitialized: true, // Important for guest carts
+    cookie: { 
+      secure: false,
+      httpOnly: false,
+      maxAge: 1000 * 60 * 60 // 1 hour
+    }
   }));
   
   app.use(express.json());
@@ -166,7 +170,10 @@ describe('Cart Routes', () => {
       const response = await request(app)
         .post('/api/cart/add')
         .send({ productId: 'invalid-id', quantity: 1 })
-        .expect(500); // Will fail on mongoose validation
+        .expect(400); // Invalid format validation
+        
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('INVALID_PRODUCT_ID');
     });
     
     it('should reject missing product ID', async () => {

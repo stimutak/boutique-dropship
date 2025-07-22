@@ -18,8 +18,17 @@ const getOrCreateCart = async (req) => {
     return { type: 'user', cart: user.cart, user };
   } else {
     // For guests, use session-based cart with database storage
-    // Generate a more reliable session identifier
-    const sessionId = req.sessionID || `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Store cart ID in session to maintain persistence
+    if (!req.session) {
+      req.session = {};
+    }
+    
+    let sessionId = req.session.cartId || req.sessionID;
+    if (!sessionId) {
+      sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      req.session.cartId = sessionId;
+    }
+    
     let cart = await Cart.findOne({ sessionId });
     
     if (!cart) {
@@ -110,7 +119,7 @@ router.post('/add', authenticateToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
+          code: 'MISSING_PRODUCT_ID',
           message: 'Product ID is required'
         }
       });
@@ -120,22 +129,82 @@ router.post('/add', authenticateToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
+          code: 'INVALID_QUANTITY',
           message: 'Quantity must be between 1 and 99'
+        }
+      });
+    }
+
+        // Validate product ID format
+    if (!productId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_PRODUCT_ID',
+          message: 'Invalid product ID format'
         }
       });
     }
 
     // Check if product exists and is active
     const product = await Product.findById(productId);
-    if (!product || !product.isActive) {
-      return res.status(400).json({
+    if (!product) {
+      return res.status(404).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
+          code: 'PRODUCT_NOT_FOUND',
+          message: 'Product not found'
+        }
+      });
+    }
+    
+    if (!product.isActive) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'PRODUCT_NOT_FOUND',
           message: 'Product not found or inactive'
         }
       });
+    }
+
+    // Check for existing item and validate maximum quantity
+    const { type, cart, user } = await getOrCreateCart(req);
+    
+    if (type === 'user') {
+      const existingItemIndex = user.cart.items.findIndex(item => 
+        item.product.toString() === productId.toString()
+      );
+      
+      if (existingItemIndex >= 0) {
+        const currentQuantity = user.cart.items[existingItemIndex].quantity;
+        if (currentQuantity + quantity > 99) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'MAX_QUANTITY_EXCEEDED',
+              message: 'Cannot exceed maximum quantity of 99'
+            }
+          });
+        }
+      }
+    } else {
+      const existingItemIndex = cart.items.findIndex(item => 
+        item.product.toString() === productId.toString()
+      );
+      
+      if (existingItemIndex >= 0) {
+        const currentQuantity = cart.items[existingItemIndex].quantity;
+        if (currentQuantity + quantity > 99) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'MAX_QUANTITY_EXCEEDED',
+              message: 'Cannot exceed maximum quantity of 99'
+            }
+          });
+        }
+      }
     }
 
     // Use optimistic cart service with fallback
@@ -147,20 +216,20 @@ router.post('/add', authenticateToken, async (req, res) => {
       });
     } catch (serviceError) {
       console.warn('Cart service failed, using fallback:', serviceError.message);
-      // Fallback to original logic
-      const { type, cart, user } = await getOrCreateCart(req);
-
-      if (type === 'user') {
+      // Fallback to original logic - need to re-fetch cart since service failed
+      const fallbackCart = await getOrCreateCart(req);
+      
+      if (fallbackCart.type === 'user') {
         // Add to user's cart
-        const existingItemIndex = user.cart.items.findIndex(item => 
+        const existingItemIndex = fallbackCart.user.cart.items.findIndex(item => 
           item.product.toString() === productId.toString()
         );
 
         if (existingItemIndex >= 0) {
-          user.cart.items[existingItemIndex].quantity += quantity;
-          user.cart.items[existingItemIndex].addedAt = new Date();
+          fallbackCart.user.cart.items[existingItemIndex].quantity += quantity;
+          fallbackCart.user.cart.items[existingItemIndex].addedAt = new Date();
         } else {
-          user.cart.items.push({
+          fallbackCart.user.cart.items.push({
             product: productId,
             quantity,
             price: product.price,
@@ -168,23 +237,23 @@ router.post('/add', authenticateToken, async (req, res) => {
           });
         }
         
-        user.cart.updatedAt = new Date();
-        await user.save();
+        fallbackCart.user.cart.updatedAt = new Date();
+        await fallbackCart.user.save();
       } else {
         // Add to guest cart - use the Cart model method
-        if (cart.addItem && typeof cart.addItem === 'function') {
-          cart.addItem(productId, quantity, product.price);
+        if (fallbackCart.cart.addItem && typeof fallbackCart.cart.addItem === 'function') {
+          fallbackCart.cart.addItem(productId, quantity, product.price);
         } else {
           // Fallback: manually add item
-          const existingItemIndex = cart.items.findIndex(item => 
+          const existingItemIndex = fallbackCart.cart.items.findIndex(item => 
             item.product.toString() === productId.toString()
           );
 
           if (existingItemIndex >= 0) {
-            cart.items[existingItemIndex].quantity += quantity;
-            cart.items[existingItemIndex].addedAt = new Date();
+            fallbackCart.cart.items[existingItemIndex].quantity += quantity;
+            fallbackCart.cart.items[existingItemIndex].addedAt = new Date();
           } else {
-            cart.items.push({
+            fallbackCart.cart.items.push({
               product: productId,
               quantity,
               price: product.price,
@@ -192,14 +261,21 @@ router.post('/add', authenticateToken, async (req, res) => {
             });
           }
         }
-        await cart.save();
+        await fallbackCart.cart.save();
       }
       
       result = { duration: 0, performance: 'fallback' };
     }
 
     // Return updated cart with performance metrics
-    const updatedCartData = await cartService.getCartWithPerformanceOptimization(req);
+    let updatedCartData;
+    try {
+      updatedCartData = await cartService.getCartWithPerformanceOptimization(req);
+    } catch (serviceError) {
+      console.warn('Cart service failed after add, using fallback:', serviceError.message);
+      updatedCartData = await getOrCreateCart(req);
+    }
+    
     const populatedCart = await Promise.all(
       updatedCartData.cart.items.map(async (item) => {
         const prod = await Product.findById(item.product).select('-wholesaler');
@@ -256,7 +332,7 @@ router.put('/update', authenticateToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
+          code: 'MISSING_PRODUCT_ID',
           message: 'Product ID is required'
         }
       });
@@ -266,7 +342,7 @@ router.put('/update', authenticateToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
+          code: 'INVALID_QUANTITY',
           message: 'Quantity must be between 0 and 99'
         }
       });
@@ -289,11 +365,54 @@ router.put('/update', authenticateToken, async (req, res) => {
         }
         user.cart.updatedAt = new Date();
         await user.save();
+      } else {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'ITEM_NOT_FOUND',
+            message: 'Item not found in cart'
+          }
+        });
       }
     } else {
       // Update guest cart
-      cart.updateItem(productId, quantity);
-      await cart.save();
+      const itemIndex = cart.items.findIndex(item => 
+        item.product.toString() === productId.toString()
+      );
+      
+      if (itemIndex >= 0) {
+        if (cart.updateItem && typeof cart.updateItem === 'function') {
+          cart.updateItem(productId, quantity);
+        } else {
+          // Manual update
+          if (quantity === 0) {
+            cart.items.splice(itemIndex, 1);
+          } else {
+            cart.items[itemIndex].quantity = quantity;
+            cart.items[itemIndex].addedAt = new Date();
+          }
+          cart.updatedAt = new Date();
+        }
+        
+        if (cart.save && typeof cart.save === 'function') {
+          await cart.save();
+        } else {
+          // Use findByIdAndUpdate for lean objects
+          await Cart.findByIdAndUpdate(
+            cart._id,
+            { items: cart.items, updatedAt: cart.updatedAt },
+            { new: true }
+          );
+        }
+      } else {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'ITEM_NOT_FOUND',
+            message: 'Item not found in cart'
+          }
+        });
+      }
     }
 
     // Return updated cart
@@ -317,9 +436,12 @@ router.put('/update', authenticateToken, async (req, res) => {
     const itemCount = validCartItems.reduce((total, item) => total + item.quantity, 0);
     const subtotal = validCartItems.reduce((total, item) => total + item.subtotal, 0);
 
+    // Check if item was removed (quantity was 0)
+    const wasRemoved = quantity === 0;
+    
     res.json({
       success: true,
-      message: 'Cart updated successfully',
+      message: wasRemoved ? 'Item removed from cart' : 'Cart updated',
       data: {
         cart: {
           items: validCartItems,
@@ -327,7 +449,8 @@ router.put('/update', authenticateToken, async (req, res) => {
           subtotal: Math.round(subtotal * 100) / 100,
           total: Math.round(subtotal * 100) / 100
         }
-      }
+      },
+      cartItemCount: itemCount
     });
 
   } catch (error) {
@@ -343,15 +466,15 @@ router.put('/update', authenticateToken, async (req, res) => {
 });
 
 // Remove item from cart
-router.delete('/remove/:productId', authenticateToken, async (req, res) => {
+router.delete('/remove', authenticateToken, async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { productId } = req.body;
 
     if (!productId) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
+          code: 'MISSING_PRODUCT_ID',
           message: 'Product ID is required'
         }
       });
@@ -369,11 +492,49 @@ router.delete('/remove/:productId', authenticateToken, async (req, res) => {
         user.cart.items.splice(itemIndex, 1);
         user.cart.updatedAt = new Date();
         await user.save();
+      } else {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'ITEM_NOT_FOUND',
+            message: 'Item not found in cart'
+          }
+        });
       }
     } else {
       // Remove from guest cart
-      cart.removeItem(productId);
-      await cart.save();
+      const itemIndex = cart.items.findIndex(item => 
+        item.product.toString() === productId.toString()
+      );
+      
+      if (itemIndex >= 0) {
+        if (cart.removeItem && typeof cart.removeItem === 'function') {
+          cart.removeItem(productId);
+        } else {
+          // Manual removal
+          cart.items.splice(itemIndex, 1);
+          cart.updatedAt = new Date();
+        }
+        
+        if (cart.save && typeof cart.save === 'function') {
+          await cart.save();
+        } else {
+          // Use findByIdAndUpdate for lean objects
+          await Cart.findByIdAndUpdate(
+            cart._id,
+            { items: cart.items, updatedAt: cart.updatedAt },
+            { new: true }
+          );
+        }
+      } else {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'ITEM_NOT_FOUND',
+            message: 'Item not found in cart'
+          }
+        });
+      }
     }
 
     // Return updated cart
@@ -407,7 +568,8 @@ router.delete('/remove/:productId', authenticateToken, async (req, res) => {
           subtotal: Math.round(subtotal * 100) / 100,
           total: Math.round(subtotal * 100) / 100
         }
-      }
+      },
+      cartItemCount: itemCount
     });
 
   } catch (error) {
@@ -434,13 +596,29 @@ router.delete('/clear', authenticateToken, async (req, res) => {
       await user.save();
     } else {
       // Clear guest cart
-      cart.clearCart();
-      await cart.save();
+      if (cart.clearCart && typeof cart.clearCart === 'function') {
+        cart.clearCart();
+      } else {
+        // Manual clear
+        cart.items = [];
+        cart.updatedAt = new Date();
+      }
+      
+      if (cart.save && typeof cart.save === 'function') {
+        await cart.save();
+      } else {
+        // Use findByIdAndUpdate for lean objects
+        await Cart.findByIdAndUpdate(
+          cart._id,
+          { items: [], updatedAt: new Date() },
+          { new: true }
+        );
+      }
     }
 
     res.json({
       success: true,
-      message: 'Cart cleared successfully',
+      message: 'Cart cleared',
       data: {
         cart: {
           items: [],
@@ -449,7 +627,8 @@ router.delete('/clear', authenticateToken, async (req, res) => {
           total: 0,
           isEmpty: true
         }
-      }
+      },
+      cartItemCount: 0
     });
 
   } catch (error) {

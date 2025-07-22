@@ -201,7 +201,7 @@ class AuthService extends EventEmitter {
   async validateTokenSafely(token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.userId).lean();
+      const user = await User.findById(decoded.userId).select('-password');
       
       if (!user || !user.isActive) {
         return { valid: false, reason: 'user_not_found' };

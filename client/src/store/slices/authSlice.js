@@ -8,8 +8,8 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await api.post('/api/auth/login', { email, password })
       // Store token in localStorage for now (will move to HTTP-only cookies later)
-      localStorage.setItem('token', response.data.data.token)
-      return response.data.data
+      localStorage.setItem('token', response.data.token)
+      return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || 'Login failed')
     }
@@ -22,8 +22,8 @@ export const registerUser = createAsyncThunk(
     try {
       const response = await api.post('/api/auth/register', userData)
       // Store token in localStorage for now (will move to HTTP-only cookies later)
-      localStorage.setItem('token', response.data.data.token)
-      return response.data.data
+      localStorage.setItem('token', response.data.token)
+      return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || 'Registration failed')
     }
@@ -42,7 +42,7 @@ export const loadUser = createAsyncThunk(
       const response = await api.get('/api/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      return response.data.data
+      return response.data
     } catch (error) {
       // Only remove token if it's actually invalid (401), not for other errors
       if (error.response?.status === 401) {
@@ -62,7 +62,7 @@ export const updateProfile = createAsyncThunk(
         headers: { Authorization: `Bearer ${token}` }
       })
       // Return the updated user data without affecting authentication
-      return response.data.data
+      return response.data
     } catch (error) {
       // Don't remove token on profile update errors - this was causing the re-login loop
       return rejectWithValue(error.response?.data?.error?.message || 'Profile update failed')
@@ -103,6 +103,11 @@ const authSlice = createSlice({
         state.user = action.payload.user
         state.token = action.payload.token
         state.isAuthenticated = true
+        // Clear CSRF token to force refresh after login
+        import('../../services/csrf.js').then(module => {
+          module.default.clearToken()
+          module.default.fetchToken()
+        })
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false
@@ -129,7 +134,7 @@ const authSlice = createSlice({
       })
       .addCase(loadUser.fulfilled, (state, action) => {
         state.isLoading = false
-        state.user = action.payload.user
+        state.user = action.payload.user || action.payload
         state.isAuthenticated = true
       })
       .addCase(loadUser.rejected, (state, action) => {
@@ -144,7 +149,7 @@ const authSlice = createSlice({
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.isLoading = false
-        state.user = action.payload.user
+        state.user = action.payload.user || action.payload
         // Keep authentication state - don't force re-login
         state.isAuthenticated = true
       })

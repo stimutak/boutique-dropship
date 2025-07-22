@@ -209,7 +209,20 @@ MONGODB_URI=your-production-mongodb-uri
 JWT_SECRET=your-production-jwt-secret
 MOLLIE_API_KEY=your-production-mollie-key
 FRONTEND_URL=https://your-domain.com
+
+# Email Configuration (Optional)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
 ```
+
+**Note:** Email service is optional. When not configured, the application will:
+- Skip sending emails without errors
+- Log password reset URLs to the console (development mode)
+- Continue functioning normally
+
+See [Email Setup Guide](docs/EMAIL_SETUP.md) for detailed configuration instructions.
 
 ### Build Commands
 ```bash

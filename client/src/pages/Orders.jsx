@@ -47,7 +47,7 @@ const Orders = () => {
         <div className="container">
           <h1>My Orders</h1>
           
-          {(!orders || orders.length === 0) ? (
+          {(!orders || orders.length === 0 || orders.filter(order => order.items.some(item => item.product !== null)).length === 0) ? (
             <div className="no-orders">
               <p>You haven't placed any orders yet</p>
               <Link to="/products" className="btn btn-primary">
@@ -56,7 +56,10 @@ const Orders = () => {
             </div>
           ) : (
             <div className="orders-list">
-              {(orders || []).map(order => (
+              {(orders || []).filter(order => 
+                // Only show orders that have at least one valid product
+                order.items.some(item => item.product !== null)
+              ).map(order => (
                 <div key={order._id} className="order-card">
                   <div className="order-header">
                     <div>
@@ -69,12 +72,15 @@ const Orders = () => {
                   </div>
                   
                   <div className="order-items">
-                    {order.items.slice(0, 3).map(item => (
-                      <div key={item._id} className="order-item">
-                        <span>{item.product.name} x {item.quantity}</span>
-                        <span>${(item.price * item.quantity).toFixed(2)}</span>
-                      </div>
-                    ))}
+                    {order.items
+                      .filter(item => item.product !== null)
+                      .slice(0, 3)
+                      .map(item => (
+                        <div key={item._id} className="order-item">
+                          <span>{item.product.name} x {item.quantity}</span>
+                          <span>${(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                      ))}
                     {order.items.length > 3 && (
                       <p>... and {order.items.length - 3} more items</p>
                     )}

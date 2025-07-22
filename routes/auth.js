@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
@@ -31,8 +32,9 @@ const validateRegistration = [
     .withMessage('Last name is required and must be less than 50 characters'),
   body('phone')
     .optional()
-    .isMobilePhone()
-    .withMessage('Valid phone number is required')
+    .isString()
+    .isLength({ min: 7, max: 30 })
+    .withMessage('Phone number must be between 7 and 30 characters')
 ];
 
 // Validation middleware for login
@@ -44,6 +46,24 @@ const validateLogin = [
   body('password')
     .notEmpty()
     .withMessage('Password is required')
+];
+
+// Validation for forgot password
+const validateForgotPassword = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Valid email is required')
+];
+
+// Validation for reset password
+const validateResetPassword = [
+  body('token')
+    .notEmpty()
+    .withMessage('Reset token is required'),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long')
 ];
 
 // Register new user
@@ -114,10 +134,8 @@ router.post('/register', validateRegistration, async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      data: {
-        token,
-        user: user.toPublicJSON()
-      }
+      token,
+      user: user.toPublicJSON()
     });
 
   } catch (error) {
@@ -149,8 +167,8 @@ router.post('/login', validateLogin, async (req, res) => {
 
     const { email, password, guestCartItems } = req.body;
 
-    // Find user and include password for comparison
-    const user = await User.findOne({ email, isActive: true }).select('+password');
+    // Find user
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -162,8 +180,8 @@ router.post('/login', validateLogin, async (req, res) => {
     }
 
     // Check password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
       return res.status(401).json({
         success: false,
         error: {
@@ -173,8 +191,21 @@ router.post('/login', validateLogin, async (req, res) => {
       });
     }
 
-    // Generate token and update last login
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'ACCOUNT_DISABLED',
+          message: 'Your account has been disabled'
+        }
+      });
+    }
+
+    // Generate token
     const token = generateToken(user._id);
+
+    // Update last login
     user.lastLogin = new Date();
     await user.save();
 
@@ -214,11 +245,9 @@ router.post('/login', validateLogin, async (req, res) => {
     res.json({
       success: true,
       message: 'Login successful',
-      data: {
-        token,
-        user: user.toPublicJSON(),
-        cart: cartInfo
-      }
+      token,
+      user: user.toPublicJSON(),
+      cart: cartInfo
     });
 
   } catch (error) {
@@ -233,44 +262,184 @@ router.post('/login', validateLogin, async (req, res) => {
   }
 });
 
+// Forgot password
+router.post('/forgot-password', validateForgotPassword, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: errors.array()
+        }
+      });
+    }
+
+    const { email } = req.body;
+    
+    // Find user
+    const user = await User.findOne({ email });
+    
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return res.json({
+        success: true,
+        message: 'If an account exists with this email, a password reset link will be sent.'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    // Save reset token and expiry
+    user.passwordResetToken = resetTokenHash;
+    user.passwordResetExpiry = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Send reset email
+    try {
+      const { sendPasswordResetEmail } = require('../utils/emailService');
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+      
+      const emailResult = await sendPasswordResetEmail(user.email, {
+        firstName: user.firstName,
+        resetToken,
+        resetUrl
+      });
+      
+      if (!emailResult.success) {
+        console.error('Failed to send reset email:', emailResult.error);
+      }
+      
+      // Log reset URL for development when email is not configured
+      if (emailResult.message === 'Email skipped - not configured') {
+        console.log('\n========================================');
+        console.log('PASSWORD RESET URL (Email not configured)');
+        console.log('========================================');
+        console.log(`User: ${user.email}`);
+        console.log(`Reset URL: ${resetUrl}`);
+        console.log('========================================\n');
+      }
+    } catch (emailError) {
+      console.error('Error sending reset email:', emailError);
+    }
+
+    res.json({
+      success: true,
+      message: 'If an account exists with this email, a password reset link will be sent.'
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'FORGOT_PASSWORD_ERROR',
+        message: 'Failed to process password reset request'
+      }
+    });
+  }
+});
+
+// Reset password
+router.post('/reset-password', validateResetPassword, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: errors.array()
+        }
+      });
+    }
+
+    const { token, password } = req.body;
+    
+    // Hash the token to match stored version
+    const resetTokenHash = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    // Find user with valid reset token
+    const user = await User.findOne({
+      passwordResetToken: resetTokenHash,
+      passwordResetExpiry: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Password reset token is invalid or has expired'
+        }
+      });
+    }
+
+    // Update password
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpiry = undefined;
+    await user.save();
+
+    // Generate new auth token
+    const authToken = generateToken(user._id);
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully',
+      token: authToken,
+      user: user.toPublicJSON()
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'RESET_PASSWORD_ERROR',
+        message: 'Failed to reset password'
+      }
+    });
+  }
+});
+
 // Get user profile
 router.get('/profile', requireAuth, async (req, res) => {
   try {
     res.json({
       success: true,
-      data: {
-        user: req.user.toPublicJSON()
-      }
+      user: req.user.toPublicJSON()
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'PROFILE_ERROR',
-        message: 'Failed to fetch profile'
+        code: 'PROFILE_FETCH_ERROR',
+        message: 'Failed to fetch user profile'
       }
     });
   }
 });
 
-// Update user profile with optimistic updates and performance monitoring
+// Update user profile
 router.put('/profile', requireAuth, [
-  body('email')
-    .optional()
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Valid email is required'),
-  body('firstName')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 50 })
-    .withMessage('First name must be less than 50 characters'),
-  body('lastName')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 50 })
-    .withMessage('Last name must be less than 50 characters')
+  body('firstName').optional().trim().isLength({ min: 1, max: 50 }),
+  body('lastName').optional().trim().isLength({ min: 1, max: 50 }),
+  body('phone').optional().isString().isLength({ min: 7, max: 30 }),
+  body('preferences.notifications').optional().isBoolean(),
+  body('preferences.newsletter').optional().isBoolean()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -288,460 +457,33 @@ router.put('/profile', requireAuth, [
     const { email, firstName, lastName, phone, preferences, addresses } = req.body;
     
     const updateData = {};
-    if (email && email !== req.user.email) updateData.email = email;
-    if (firstName && firstName.trim() !== req.user.firstName) updateData.firstName = firstName.trim();
-    if (lastName && lastName.trim() !== req.user.lastName) updateData.lastName = lastName.trim();
-    if (phone && phone.trim() !== req.user.phone) updateData.phone = phone.trim();
-    if (preferences) updateData.preferences = { ...req.user.preferences, ...preferences };
-    
-    // Handle addresses update separately for better performance
-    if (addresses && Array.isArray(addresses) && addresses.length > 0) {
-      const addressResult = await authService.manageAddressOptimistically(
-        req.user._id,
-        'update',
-        addresses[0],
-        addresses[0]._id
-      );
-      
-      if (!addressResult.success) {
-        return res.status(400).json({
-          success: false,
-          error: {
-            code: 'ADDRESS_UPDATE_ERROR',
-            message: addressResult.error
-          }
-        });
-      }
-    }
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (phone !== undefined) updateData.phone = phone;
+    if (preferences !== undefined) updateData.preferences = { ...req.user.preferences, ...preferences };
+    if (addresses !== undefined) updateData.addresses = addresses;
 
-    // Use optimistic profile service
-    const auditContext = {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      sessionId: req.sessionID
-    };
+    // Don't allow email updates through this endpoint
+    delete updateData.email;
 
-    const result = await authService.updateProfileOptimistically(
+    const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
       updateData,
-      auditContext
+      { new: true, runValidators: true }
     );
-
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: result.error.includes('Rate limit') ? 'RATE_LIMIT_ERROR' : 'PROFILE_UPDATE_ERROR',
-          message: result.error
-        }
-      });
-    }
-
-    // Send email notification for sensitive changes
-    if (updateData.email || updateData.phone) {
-      await authService.notifyUserOfSensitiveChange(
-        req.user._id,
-        updateData.email ? 'email' : 'phone',
-        auditContext
-      );
-    }
-
-    // Synchronize user data across sessions
-    await authService.synchronizeUserData(req.user._id, 'profile_update');
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      data: {
-        user: {
-          ...result.user,
-          // Remove sensitive data before sending
-          password: undefined,
-          passwordResetToken: undefined,
-          passwordResetExpiry: undefined
-        },
-        performance: {
-          duration: result.duration,
-          status: result.performance
-        }
-      }
+      user: updatedUser.toPublicJSON()
     });
-
   } catch (error) {
     console.error('Profile update error:', error);
     res.status(500).json({
       success: false,
       error: {
         code: 'PROFILE_UPDATE_ERROR',
-        message: 'Failed to update profile',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      }
-    });
-  }
-});
-
-// Add address
-router.post('/addresses', requireAuth, async (req, res) => {
-  try {
-    const { type, firstName, lastName, street, city, state, zipCode, country, phone, isDefault } = req.body;
-
-    if (!['shipping', 'billing'].includes(type)) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_ADDRESS_TYPE',
-          message: 'Address type must be shipping or billing'
-        }
-      });
-    }
-
-    const addressData = {
-      type,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      street: street.trim(),
-      city: city.trim(),
-      state: state.trim(),
-      zipCode: zipCode.trim(),
-      country: country.trim(),
-      phone: phone ? phone.trim() : undefined,
-      isDefault: Boolean(isDefault)
-    };
-
-    await req.user.addAddress(addressData);
-
-    res.status(201).json({
-      success: true,
-      message: 'Address added successfully',
-      user: req.user.toPublicJSON()
-    });
-
-  } catch (error) {
-    console.error('Add address error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ADDRESS_ADD_ERROR',
-        message: 'Failed to add address'
-      }
-    });
-  }
-});
-
-// Update address
-router.put('/addresses/:addressId', requireAuth, async (req, res) => {
-  try {
-    const { addressId } = req.params;
-    const updateData = req.body;
-
-    const result = await req.user.updateAddress(addressId, updateData);
-    if (!result) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ADDRESS_NOT_FOUND',
-          message: 'Address not found'
-        }
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Address updated successfully',
-      user: req.user.toPublicJSON()
-    });
-
-  } catch (error) {
-    console.error('Update address error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ADDRESS_UPDATE_ERROR',
-        message: 'Failed to update address'
-      }
-    });
-  }
-});
-
-// Delete address
-router.delete('/addresses/:addressId', requireAuth, async (req, res) => {
-  try {
-    const { addressId } = req.params;
-
-    await req.user.removeAddress(addressId);
-
-    res.json({
-      success: true,
-      message: 'Address removed successfully',
-      user: req.user.toPublicJSON()
-    });
-
-  } catch (error) {
-    console.error('Remove address error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ADDRESS_REMOVE_ERROR',
-        message: 'Failed to remove address'
-      }
-    });
-  }
-});
-
-// Get checkout preferences (addresses and settings)
-router.get('/checkout-preferences', requireAuth, async (req, res) => {
-  try {
-    const user = req.user;
-    
-    const preferences = {
-      defaultShippingAddress: user.getDefaultShippingAddress(),
-      defaultBillingAddress: user.getDefaultBillingAddress(),
-      allAddresses: user.addresses,
-      preferences: user.preferences,
-      hasAddresses: user.addresses.length > 0,
-      hasDefaultShipping: Boolean(user.getDefaultShippingAddress()),
-      hasDefaultBilling: Boolean(user.getDefaultBillingAddress())
-    };
-
-    res.json({
-      success: true,
-      preferences
-    });
-
-  } catch (error) {
-    console.error('Checkout preferences error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CHECKOUT_PREFERENCES_ERROR',
-        message: 'Failed to fetch checkout preferences'
-      }
-    });
-  }
-});
-
-// Logout (client-side token removal, but we can track it)
-router.post('/logout', requireAuth, async (req, res) => {
-  try {
-    // In a more sophisticated setup, you might want to blacklist the token
-    // For now, we just acknowledge the logout
-    res.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
-  } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'LOGOUT_ERROR',
-        message: 'Failed to logout'
-      }
-    });
-  }
-});
-
-// Password reset request
-router.post('/forgot-password', async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'EMAIL_REQUIRED',
-          message: 'Email is required'
-        }
-      });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase(), isActive: true });
-    
-    // Always return success to prevent email enumeration
-    res.json({
-      success: true,
-      message: 'If an account with that email exists, a password reset link has been sent'
-    });
-
-    // Send password reset email if user exists
-    if (user && user.wantsEmail('welcomeEmails')) {
-      const crypto = require('crypto');
-      const { sendPasswordResetEmail } = require('../utils/emailService');
-      
-      // Generate reset token
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
-      
-      // Save reset token to user (we need to add these fields to User model)
-      user.passwordResetToken = resetToken;
-      user.passwordResetExpiry = resetTokenExpiry;
-      await user.save();
-      
-      // Create reset URL
-      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-      
-      // Send email
-      const emailResult = await sendPasswordResetEmail(user.email, {
-        firstName: user.firstName,
-        resetToken,
-        resetUrl
-      });
-      
-      if (!emailResult.success) {
-        console.error('Failed to send password reset email:', emailResult.error);
-      }
-    }
-
-  } catch (error) {
-    console.error('Password reset error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PASSWORD_RESET_ERROR',
-        message: 'Failed to process password reset request'
-      }
-    });
-  }
-});
-
-// Reset password with token
-router.post('/reset-password', async (req, res) => {
-  try {
-    const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MISSING_FIELDS',
-          message: 'Token and new password are required'
-        }
-      });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_PASSWORD',
-          message: 'Password must be at least 6 characters long'
-        }
-      });
-    }
-
-    // Find user with valid reset token
-    const user = await User.findOne({
-      passwordResetToken: token,
-      passwordResetExpiry: { $gt: new Date() },
-      isActive: true
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_TOKEN',
-          message: 'Invalid or expired reset token'
-        }
-      });
-    }
-
-    // Update password and clear reset token
-    user.password = newPassword;
-    user.passwordResetToken = undefined;
-    user.passwordResetExpiry = undefined;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Password reset successfully'
-    });
-
-  } catch (error) {
-    console.error('Password reset completion error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PASSWORD_RESET_COMPLETION_ERROR',
-        message: 'Failed to reset password'
-      }
-    });
-  }
-});
-
-// Get email preferences
-router.get('/email-preferences', requireAuth, async (req, res) => {
-  try {
-    res.json({
-      success: true,
-      preferences: req.user.preferences.emailPreferences
-    });
-  } catch (error) {
-    console.error('Email preferences fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'EMAIL_PREFERENCES_ERROR',
-        message: 'Failed to fetch email preferences'
-      }
-    });
-  }
-});
-
-// Update email preferences
-router.put('/email-preferences', requireAuth, async (req, res) => {
-  try {
-    const { emailPreferences } = req.body;
-    
-    if (!emailPreferences || typeof emailPreferences !== 'object') {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_PREFERENCES',
-          message: 'Valid email preferences object is required'
-        }
-      });
-    }
-
-    // Validate preference keys
-    const validPreferences = [
-      'orderConfirmations',
-      'paymentReceipts', 
-      'orderUpdates',
-      'promotionalEmails',
-      'welcomeEmails'
-    ];
-
-    const invalidKeys = Object.keys(emailPreferences).filter(
-      key => !validPreferences.includes(key)
-    );
-
-    if (invalidKeys.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_PREFERENCE_KEYS',
-          message: `Invalid preference keys: ${invalidKeys.join(', ')}`
-        }
-      });
-    }
-
-    await req.user.updateEmailPreferences(emailPreferences);
-
-    res.json({
-      success: true,
-      message: 'Email preferences updated successfully',
-      preferences: req.user.preferences.emailPreferences
-    });
-
-  } catch (error) {
-    console.error('Email preferences update error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'EMAIL_PREFERENCES_UPDATE_ERROR',
-        message: 'Failed to update email preferences'
+        message: 'Failed to update profile'
       }
     });
   }
@@ -749,12 +491,8 @@ router.put('/email-preferences', requireAuth, async (req, res) => {
 
 // Change password
 router.post('/change-password', requireAuth, [
-  body('currentPassword')
-    .notEmpty()
-    .withMessage('Current password is required'),
-  body('newPassword')
-    .isLength({ min: 6 })
-    .withMessage('New password must be at least 6 characters long')
+  body('currentPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -771,16 +509,16 @@ router.post('/change-password', requireAuth, [
 
     const { currentPassword, newPassword } = req.body;
 
-    // Get user with password for comparison
+    // Get user with password field
     const user = await User.findById(req.user._id).select('+password');
-    
+
     // Verify current password
-    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
-    if (!isCurrentPasswordValid) {
-      return res.status(400).json({
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({
         success: false,
         error: {
-          code: 'INVALID_CURRENT_PASSWORD',
+          code: 'INVALID_PASSWORD',
           message: 'Current password is incorrect'
         }
       });
@@ -792,11 +530,10 @@ router.post('/change-password', requireAuth, [
 
     res.json({
       success: true,
-      message: 'Password updated successfully'
+      message: 'Password changed successfully'
     });
-
   } catch (error) {
-    console.error('Change password error:', error);
+    console.error('Password change error:', error);
     res.status(500).json({
       success: false,
       error: {
@@ -807,9 +544,81 @@ router.post('/change-password', requireAuth, [
   }
 });
 
-// Test route to trigger hook
-router.get('/test', (req, res) => {
-  res.json({ message: 'Auth test endpoint' });
+// Logout (optional - mainly for server-side session cleanup)
+router.post('/logout', requireAuth, async (req, res) => {
+  try {
+    // Emit logout event
+    authService.emit('userLogout', {
+      userId: req.user._id,
+      timestamp: new Date()
+    });
+
+    // Clear any server-side sessions if needed
+    if (req.session) {
+      req.session.destroy();
+    }
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'LOGOUT_ERROR',
+        message: 'Failed to logout'
+      }
+    });
+  }
+});
+
+// Refresh token endpoint
+router.post('/refresh-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_TOKEN',
+          message: 'Token is required'
+        }
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid token'
+        }
+      });
+    }
+
+    const newToken = generateToken(user._id);
+    
+    res.json({
+      success: true,
+      token: newToken,
+      user: user.toPublicJSON()
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    res.status(401).json({
+      success: false,
+      error: {
+        code: 'TOKEN_REFRESH_ERROR',
+        message: 'Failed to refresh token'
+      }
+    });
+  }
 });
 
 module.exports = router;

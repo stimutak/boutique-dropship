@@ -21,8 +21,9 @@ const validateGuestCheckout = [
     .withMessage('Last name is required and must be less than 50 characters'),
   body('guestInfo.phone')
     .optional()
-    .isMobilePhone()
-    .withMessage('Valid phone number is required'),
+    .isString()
+    .isLength({ min: 7, max: 30 })
+    .withMessage('Phone number must be between 7 and 30 characters'),
   body('shippingAddress.firstName')
     .trim()
     .isLength({ min: 1, max: 50 })
@@ -517,8 +518,8 @@ router.post('/registered', requireAuth, async (req, res) => {
   }
 });
 
-// Get order by ID (requires authentication and ownership check)
-router.get('/:id', requireAuth, async (req, res) => {
+// Get order by ID (supports both authenticated and guest orders)
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('items.product', '-wholesaler')
@@ -534,16 +535,20 @@ router.get('/:id', requireAuth, async (req, res) => {
       });
     }
 
-    // Check if user owns this order (unless admin)
-    if (!req.user.isAdmin && order.customer && order.customer._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'ACCESS_DENIED',
-          message: 'You can only access your own orders'
-        }
-      });
+    // For guest orders, allow access without authentication
+    // For authenticated users, check ownership (unless admin)
+    if (req.user) {
+      if (!req.user.isAdmin && order.customer && order.customer._id.toString() !== req.user._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'ACCESS_DENIED',
+            message: 'You can only access your own orders'
+          }
+        });
+      }
     }
+    // Guest orders (no customer field) are accessible without auth
 
     // Return public order data (excludes sensitive wholesaler info)
     res.json({

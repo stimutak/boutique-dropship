@@ -2,6 +2,12 @@ const nodemailer = require('nodemailer');
 
 // Create transporter with environment configuration
 const createTransporter = () => {
+  // Return null if email is not configured
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER) {
+    console.log('Email service not configured - emails will be skipped');
+    return null;
+  }
+  
   return nodemailer.createTransporter({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
@@ -279,6 +285,9 @@ The Holistic Store Team
 // Send wholesaler notification email
 const sendWholesalerNotification = async (wholesalerEmail, orderData) => {
   const transporter = createTransporter();
+  if (!transporter) {
+    return { success: true, message: 'Email skipped - not configured' };
+  }
   
   const { orderNumber, orderDate, shippingAddress, items, notes } = orderData;
   
@@ -332,6 +341,10 @@ Holistic Store Team
 // Send order confirmation email
 const sendOrderConfirmation = async (customerEmail, orderData) => {
   const transporter = createTransporter();
+  if (!transporter) {
+    return { success: true, message: 'Email skipped - not configured' };
+  }
+  
   const template = emailTemplates.orderConfirmation(orderData);
   
   const mailOptions = {
@@ -353,6 +366,9 @@ const sendOrderConfirmation = async (customerEmail, orderData) => {
 // Send payment receipt email
 const sendPaymentReceipt = async (customerEmail, paymentData) => {
   const transporter = createTransporter();
+  if (!transporter) {
+    return { success: true, message: 'Email skipped - not configured' };
+  }
   const template = emailTemplates.paymentReceipt(paymentData);
   
   const mailOptions = {
@@ -374,6 +390,9 @@ const sendPaymentReceipt = async (customerEmail, paymentData) => {
 // Send order status update email
 const sendOrderStatusUpdate = async (customerEmail, statusData) => {
   const transporter = createTransporter();
+  if (!transporter) {
+    return { success: true, message: 'Email skipped - not configured' };
+  }
   const template = emailTemplates.orderStatusUpdate(statusData);
   
   const mailOptions = {
@@ -395,6 +414,9 @@ const sendOrderStatusUpdate = async (customerEmail, statusData) => {
 // Send welcome email
 const sendWelcomeEmail = async (customerEmail, userData) => {
   const transporter = createTransporter();
+  if (!transporter) {
+    return { success: true, message: 'Email skipped - not configured' };
+  }
   const template = emailTemplates.welcomeEmail(userData);
   
   const mailOptions = {
@@ -416,6 +438,9 @@ const sendWelcomeEmail = async (customerEmail, userData) => {
 // Send password reset email
 const sendPasswordResetEmail = async (customerEmail, resetData) => {
   const transporter = createTransporter();
+  if (!transporter) {
+    return { success: true, message: 'Email skipped - not configured' };
+  }
   const template = emailTemplates.passwordReset(resetData);
   
   const mailOptions = {
@@ -437,6 +462,9 @@ const sendPasswordResetEmail = async (customerEmail, resetData) => {
 // Generic email sender for custom templates
 const sendEmail = async (to, subject, textContent, htmlContent = null) => {
   const transporter = createTransporter();
+  if (!transporter) {
+    return { success: true, message: 'Email skipped - not configured' };
+  }
   
   const mailOptions = {
     from: process.env.EMAIL_USER,
