@@ -12,8 +12,6 @@ require('dotenv').config();
 const { logger } = require('./utils/logger');
 const { globalErrorHandler } = require('./middleware/errorHandler');
 const { 
-  generateCSRFToken, 
-  csrfProtection, 
   rateLimits, 
   speedLimiter, 
   sanitizeInput, 
@@ -42,7 +40,8 @@ app.use(speedLimiter);
 // Import unified session/CSRF management
 const { 
   createSessionConfig, 
-  generateCSRFToken: unifiedCSRFToken,
+  generateCSRFToken,
+  validateCSRFToken,
   enhanceGuestSession,
   cleanupGuestSession 
 } = require('./middleware/sessionCSRF');
@@ -52,7 +51,7 @@ const mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-
 app.use(session(createSessionConfig(mongoUrl)));
 
 // Session enhancement middleware
-app.use(unifiedCSRFToken);
+app.use(generateCSRFToken);
 app.use(enhanceGuestSession);
 app.use(cleanupGuestSession);
 
@@ -87,12 +86,12 @@ mongoose.connection.on('disconnected', () => {
 // Routes with specific rate limiting
 app.use('/api/auth', rateLimits.auth, require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
-app.use('/api/cart', csrfProtection, require('./routes/cart'));
-app.use('/api/orders', csrfProtection, require('./routes/orders'));
-app.use('/api/payments', rateLimits.payment, csrfProtection, require('./routes/payments'));
+app.use('/api/cart', require('./routes/cart'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/payments', rateLimits.payment, require('./routes/payments'));
 app.use('/api/wholesalers', require('./routes/wholesalers'));
 app.use('/api/integration', rateLimits.integration, require('./routes/integration'));
-app.use('/api/admin', rateLimits.admin, csrfProtection, require('./routes/admin'));
+app.use('/api/admin', rateLimits.admin, require('./routes/admin'));
 app.use('/api/monitoring', require('./routes/monitoring'));
 
 // Health check

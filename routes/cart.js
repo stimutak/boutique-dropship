@@ -4,6 +4,7 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const Cart = require('../models/Cart');
 const { authenticateToken } = require('../middleware/auth');
+const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const cartService = require('../services/cartService');
 
 // Helper function to get or create cart
@@ -110,7 +111,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Add item to cart with optimistic updates
-router.post('/add', authenticateToken, async (req, res) => {
+router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
 
@@ -328,7 +329,7 @@ router.post('/add', authenticateToken, async (req, res) => {
 });
 
 // Update cart item quantity
-router.put('/update', authenticateToken, async (req, res) => {
+router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => {
   try {
     const { productId, quantity } = req.body;
 
@@ -471,7 +472,7 @@ router.put('/update', authenticateToken, async (req, res) => {
 });
 
 // Remove item from cart
-router.delete('/remove', authenticateToken, async (req, res) => {
+router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) => {
   try {
     const { productId } = req.body;
 
@@ -590,7 +591,7 @@ router.delete('/remove', authenticateToken, async (req, res) => {
 });
 
 // Clear cart
-router.delete('/clear', authenticateToken, async (req, res) => {
+router.delete('/clear', authenticateToken, validateCSRFToken, async (req, res) => {
   try {
     const { type, cart, user } = await getOrCreateCart(req);
 

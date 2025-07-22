@@ -3,7 +3,9 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const User = require('../models/User');
 const { authenticateToken, requireAuth } = require('../middleware/auth');
+const { validateCSRFToken } = require('../middleware/sessionCSRF');
 
 // Validation middleware for guest checkout
 const validateGuestCheckout = [
@@ -97,7 +99,7 @@ const validateGuestCheckout = [
 ];
 
 // Create order (guest checkout)
-router.post('/', validateGuestCheckout, async (req, res) => {
+router.post('/', validateGuestCheckout, validateCSRFToken, async (req, res) => {
   try {
     // Check validation errors
     const errors = validationResult(req);
@@ -356,8 +358,19 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
 });
 
 // Create order for registered user
-router.post('/registered', requireAuth, async (req, res) => {
+router.post('/registered', authenticateToken, validateCSRFToken, async (req, res) => {
   try {
+    // Ensure user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'You must be logged in to place an order'
+        }
+      });
+    }
+
     const {
       shippingAddress,
       billingAddress,
@@ -401,11 +414,31 @@ router.post('/registered', requireAuth, async (req, res) => {
       });
     }
 
+    // Get items from user's cart if not provided
+    let itemsToProcess = requestItems;
+    if (!itemsToProcess || itemsToProcess.length === 0) {
+      // Fetch from user's cart
+      const user = await User.findById(req.user._id);
+      if (!user.cart || !user.cart.items || user.cart.items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'EMPTY_CART',
+            message: 'Your cart is empty'
+          }
+        });
+      }
+      itemsToProcess = user.cart.items.map(item => ({
+        productId: item.product,
+        quantity: item.quantity
+      }));
+    }
+
     // Validate and process cart items (same logic as guest checkout)
     const orderItems = [];
     let subtotal = 0;
 
-    for (const item of requestItems) {
+    for (const item of itemsToProcess) {
       const product = await Product.findById(item.productId);
       
       if (!product || !product.isActive) {
@@ -489,6 +522,11 @@ router.post('/registered', requireAuth, async (req, res) => {
       console.error('Error sending order confirmation email:', emailError);
     }
 
+    // Clear user's cart
+    const user = await User.findById(req.user._id);
+    user.cart = { items: [], updatedAt: new Date() };
+    await user.save();
+    
     // Clear cart session
     if (req.session && req.session.cart) {
       req.session.cart = [];
@@ -571,8 +609,21 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Get order history for registered user
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
+    console.log('Orders GET - req.user:', req.user ? req.user._id : 'null');
+    
+    // Ensure user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'You must be logged in to view orders'
+        }
+      });
+    }
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;

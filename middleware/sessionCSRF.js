@@ -17,11 +17,24 @@ const validateCSRFToken = (req, res, next) => {
 
   const token = req.headers['x-csrf-token'] || req.body._csrf;
   
+  // Debug only on mismatch
+  // console.log('CSRF Debug:', {
+  //   method: req.method,
+  //   path: req.path,
+  //   'x-csrf-token': req.headers['x-csrf-token'],
+  //   sessionCSRF: req.session?.csrfToken
+  // });
+  
   if (!token || token !== req.session.csrfToken) {
+    console.error('CSRF token mismatch:', {
+      provided: token ? 'yes' : 'no',
+      session: req.session.csrfToken ? 'yes' : 'no',
+      match: token === req.session.csrfToken
+    });
     return res.status(403).json({
       success: false,
       error: {
-        code: 'CSRF_ERROR',
+        code: 'CSRF_TOKEN_MISMATCH',
         message: 'Invalid CSRF token'
       }
     });
