@@ -4,6 +4,7 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const Cart = require('../models/Cart');
 const { authenticateToken } = require('../middleware/auth');
+const cartService = require('../services/cartService');
 
 // Helper function to get or create cart
 const getOrCreateCart = async (req) => {
@@ -30,10 +31,10 @@ const getOrCreateCart = async (req) => {
   }
 };
 
-// Get cart contents
+// Get cart contents with performance optimization
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { type, cart, user } = await getOrCreateCart(req);
+    const { type, cart, user } = await cartService.getCartWithPerformanceOptimization(req);
     
     // Populate product details for cart items
     const populatedCart = await Promise.all(
@@ -90,7 +91,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Add item to cart
+// Add item to cart with optimistic updates
 router.post('/add', authenticateToken, async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
@@ -116,48 +117,14 @@ router.post('/add', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if product exists and is active
-    const product = await Product.findById(productId);
-    if (!product || !product.isActive) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Product not found or inactive'
-        }
-      });
-    }
+    // Use optimistic cart service
+    const result = await cartService.updateCartOptimistically(req, 'add', {
+      productId,
+      quantity
+    });
 
-    const { type, cart, user } = await getOrCreateCart(req);
-
-    if (type === 'user') {
-      // Add to user's cart
-      const existingItemIndex = user.cart.items.findIndex(item => 
-        item.product.toString() === productId.toString()
-      );
-
-      if (existingItemIndex >= 0) {
-        user.cart.items[existingItemIndex].quantity += quantity;
-        user.cart.items[existingItemIndex].addedAt = new Date();
-      } else {
-        user.cart.items.push({
-          product: productId,
-          quantity,
-          price: product.price,
-          addedAt: new Date()
-        });
-      }
-      
-      user.cart.updatedAt = new Date();
-      await user.save();
-    } else {
-      // Add to guest cart
-      cart.addItem(productId, quantity, product.price);
-      await cart.save();
-    }
-
-    // Return updated cart
-    const updatedCartData = await getOrCreateCart(req);
+    // Return updated cart with performance metrics
+    const updatedCartData = await cartService.getCartWithPerformanceOptimization(req);
     const populatedCart = await Promise.all(
       updatedCartData.cart.items.map(async (item) => {
         const prod = await Product.findById(item.product).select('-wholesaler');
@@ -183,6 +150,10 @@ router.post('/add', authenticateToken, async (req, res) => {
           itemCount,
           subtotal: Math.round(subtotal * 100) / 100,
           total: Math.round(subtotal * 100) / 100
+        },
+        performance: {
+          duration: result.duration,
+          status: result.performance
         }
       }
     });
@@ -193,7 +164,8 @@ router.post('/add', authenticateToken, async (req, res) => {
       success: false,
       error: {
         code: 'CART_ADD_ERROR',
-        message: 'Failed to add item to cart'
+        message: 'Failed to add item to cart',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       }
     });
   }
@@ -417,7 +389,7 @@ router.delete('/clear', authenticateToken, async (req, res) => {
   }
 });
 
-// Merge guest cart with user cart (called after login)
+// Merge guest cart with user cart with conflict resolution
 router.post('/merge', authenticateToken, async (req, res) => {
   try {
     if (!req.user) {
@@ -432,92 +404,19 @@ router.post('/merge', authenticateToken, async (req, res) => {
 
     const { guestCartItems, sessionId } = req.body;
     
-    // Get user's current cart
-    const user = await User.findById(req.user._id);
-    if (!user.cart) {
-      user.cart = { items: [], updatedAt: new Date() };
-    }
+    // Use enhanced cart service for merging with conflict resolution
+    const mergeResult = await cartService.mergeCartsWithConflictResolution(
+      req.user._id,
+      guestCartItems,
+      sessionId
+    );
 
-    let mergedItems = 0;
-
-    // If we have guest cart items from localStorage, merge them
-    if (guestCartItems && Array.isArray(guestCartItems) && guestCartItems.length > 0) {
-      for (const guestItem of guestCartItems) {
-        // Validate the product exists and is active
-        const product = await Product.findById(guestItem.productId || guestItem.product);
-        if (!product || !product.isActive) {
-          continue; // Skip invalid products
-        }
-
-        const productId = guestItem.productId || guestItem.product;
-        const quantity = guestItem.quantity || 1;
-
-        // Check if item already exists in user's cart
-        const existingItemIndex = user.cart.items.findIndex(item => 
-          item.product.toString() === productId.toString()
-        );
-
-        if (existingItemIndex >= 0) {
-          // Update existing item quantity
-          user.cart.items[existingItemIndex].quantity += quantity;
-          user.cart.items[existingItemIndex].addedAt = new Date();
-        } else {
-          // Add new item to user's cart
-          user.cart.items.push({
-            product: productId,
-            quantity,
-            price: product.price,
-            addedAt: new Date()
-          });
-        }
-        mergedItems++;
-      }
-    }
-
-    // If we have a sessionId, try to merge from guest cart database
-    if (sessionId) {
-      const guestCart = await Cart.findOne({ sessionId });
-      if (guestCart && guestCart.items.length > 0) {
-        for (const guestItem of guestCart.items) {
-          // Validate the product exists and is active
-          const product = await Product.findById(guestItem.product);
-          if (!product || !product.isActive) {
-            continue; // Skip invalid products
-          }
-
-          // Check if item already exists in user's cart
-          const existingItemIndex = user.cart.items.findIndex(item => 
-            item.product.toString() === guestItem.product.toString()
-          );
-
-          if (existingItemIndex >= 0) {
-            // Update existing item quantity
-            user.cart.items[existingItemIndex].quantity += guestItem.quantity;
-            user.cart.items[existingItemIndex].addedAt = new Date();
-          } else {
-            // Add new item to user's cart
-            user.cart.items.push({
-              product: guestItem.product,
-              quantity: guestItem.quantity,
-              price: guestItem.price,
-              addedAt: new Date()
-            });
-          }
-          mergedItems++;
-        }
-
-        // Delete the guest cart after successful merge
-        await Cart.deleteOne({ sessionId });
-      }
-    }
-
-    // Update user cart timestamp and save
-    user.cart.updatedAt = new Date();
-    await user.save();
-
+    // Get updated cart data
+    const updatedCartData = await cartService.getCartWithPerformanceOptimization(req);
+    
     // Return updated user cart
     const populatedCart = await Promise.all(
-      user.cart.items.map(async (item) => {
+      updatedCartData.cart.items.map(async (item) => {
         try {
           const product = await Product.findById(item.product).select('-wholesaler');
           if (!product || !product.isActive) {
@@ -545,7 +444,7 @@ router.post('/merge', authenticateToken, async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully merged ${mergedItems} items into your cart`,
+      message: `Successfully merged ${mergeResult.mergedItems} items into your cart`,
       data: {
         cart: {
           items: validCartItems,
@@ -553,6 +452,11 @@ router.post('/merge', authenticateToken, async (req, res) => {
           subtotal: Math.round(subtotal * 100) / 100,
           total: Math.round(subtotal * 100) / 100,
           isEmpty: validCartItems.length === 0
+        },
+        merge: {
+          mergedItems: mergeResult.mergedItems,
+          conflicts: mergeResult.conflicts,
+          duration: mergeResult.duration
         }
       }
     });
@@ -563,7 +467,8 @@ router.post('/merge', authenticateToken, async (req, res) => {
       success: false,
       error: {
         code: 'CART_MERGE_ERROR',
-        message: 'Failed to merge guest cart'
+        message: 'Failed to merge guest cart',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       }
     });
   }

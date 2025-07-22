@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
+const authService = require('../services/authService');
+const cartService = require('../services/cartService');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -130,7 +132,7 @@ router.post('/register', validateRegistration, async (req, res) => {
   }
 });
 
-// Login user
+// Login user with enhanced cart merging
 router.post('/login', validateLogin, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -145,7 +147,7 @@ router.post('/login', validateLogin, async (req, res) => {
       });
     }
 
-    const { email, password } = req.body;
+    const { email, password, guestCartItems } = req.body;
 
     // Find user and include password for comparison
     const user = await User.findOne({ email, isActive: true }).select('+password');
@@ -176,16 +178,38 @@ router.post('/login', validateLogin, async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    // Preserve guest cart on login
-    let cartInfo = {};
-    if (req.session && req.session.cart && req.session.cart.length > 0) {
-      cartInfo = {
-        preservedCart: true,
-        itemCount: req.session.cart.length
-      };
-      // Keep the cart in session for the authenticated user
-      // The cart will be accessible via the cart API endpoints
+    // Enhanced cart preservation and merging
+    let cartInfo = { itemCount: 0, mergedItems: 0 };
+    
+    // Merge guest cart if provided
+    if (guestCartItems && Array.isArray(guestCartItems) && guestCartItems.length > 0) {
+      try {
+        const mergeResult = await cartService.mergeCartsWithConflictResolution(
+          user._id,
+          guestCartItems,
+          req.sessionID
+        );
+        
+        cartInfo = {
+          preservedCart: true,
+          mergedItems: mergeResult.mergedItems,
+          conflicts: mergeResult.conflicts,
+          duration: mergeResult.duration
+        };
+      } catch (mergeError) {
+        console.error('Cart merge error during login:', mergeError);
+        cartInfo.mergeError = 'Failed to merge guest cart';
+      }
     }
+
+    // Emit user login event
+    authService.emit('userLogin', {
+      userId: user._id,
+      email: user.email,
+      timestamp: new Date(),
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
 
     res.json({
       success: true,
@@ -230,7 +254,7 @@ router.get('/profile', requireAuth, async (req, res) => {
   }
 });
 
-// Update user profile
+// Update user profile with optimistic updates and performance monitoring
 router.put('/profile', requireAuth, [
   body('email')
     .optional()
@@ -264,57 +288,82 @@ router.put('/profile', requireAuth, [
     const { email, firstName, lastName, phone, preferences, addresses } = req.body;
     
     const updateData = {};
-    if (email) updateData.email = email;
-    if (firstName) updateData.firstName = firstName.trim();
-    if (lastName) updateData.lastName = lastName.trim();
-    if (phone) updateData.phone = phone.trim();
+    if (email && email !== req.user.email) updateData.email = email;
+    if (firstName && firstName.trim() !== req.user.firstName) updateData.firstName = firstName.trim();
+    if (lastName && lastName.trim() !== req.user.lastName) updateData.lastName = lastName.trim();
+    if (phone && phone.trim() !== req.user.phone) updateData.phone = phone.trim();
     if (preferences) updateData.preferences = { ...req.user.preferences, ...preferences };
     
-    // Handle addresses update
+    // Handle addresses update separately for better performance
     if (addresses && Array.isArray(addresses) && addresses.length > 0) {
-      const address = addresses[0]; // Take the first address from the profile form
+      const addressResult = await authService.manageAddressOptimistically(
+        req.user._id,
+        'update',
+        addresses[0],
+        addresses[0]._id
+      );
       
-      // Find existing address or create new one
-      const user = await User.findById(req.user._id);
-      let existingAddress = user.addresses.find(addr => addr.type === 'shipping');
-      
-      if (existingAddress) {
-        // Update existing address - only update if values are provided
-        if (address.street !== undefined) existingAddress.street = address.street;
-        if (address.city !== undefined) existingAddress.city = address.city;
-        if (address.state !== undefined) existingAddress.state = address.state;
-        if (address.zipCode !== undefined) existingAddress.zipCode = address.zipCode;
-        if (address.country !== undefined) existingAddress.country = address.country;
-      } else if (address.street && address.city && address.state && address.zipCode) {
-        // Add new address only if all required fields are provided
-        user.addresses.push({
-          type: 'shipping',
-          firstName: firstName || user.firstName,
-          lastName: lastName || user.lastName,
-          street: address.street,
-          city: address.city,
-          state: address.state,
-          zipCode: address.zipCode,
-          country: address.country || 'US',
-          isDefault: true
+      if (!addressResult.success) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'ADDRESS_UPDATE_ERROR',
+            message: addressResult.error
+          }
         });
       }
-      
-      await user.save();
-      updateData.addresses = user.addresses;
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
+    // Use optimistic profile service
+    const auditContext = {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      sessionId: req.sessionID
+    };
+
+    const result = await authService.updateProfileOptimistically(
       req.user._id,
       updateData,
-      { new: true, runValidators: true }
+      auditContext
     );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: result.error.includes('Rate limit') ? 'RATE_LIMIT_ERROR' : 'PROFILE_UPDATE_ERROR',
+          message: result.error
+        }
+      });
+    }
+
+    // Send email notification for sensitive changes
+    if (updateData.email || updateData.phone) {
+      await authService.notifyUserOfSensitiveChange(
+        req.user._id,
+        updateData.email ? 'email' : 'phone',
+        auditContext
+      );
+    }
+
+    // Synchronize user data across sessions
+    await authService.synchronizeUserData(req.user._id, 'profile_update');
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
-        user: updatedUser.toPublicJSON()
+        user: {
+          ...result.user,
+          // Remove sensitive data before sending
+          password: undefined,
+          passwordResetToken: undefined,
+          passwordResetExpiry: undefined
+        },
+        performance: {
+          duration: result.duration,
+          status: result.performance
+        }
       }
     });
 
@@ -324,7 +373,8 @@ router.put('/profile', requireAuth, [
       success: false,
       error: {
         code: 'PROFILE_UPDATE_ERROR',
-        message: 'Failed to update profile'
+        message: 'Failed to update profile',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       }
     });
   }
