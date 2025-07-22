@@ -289,7 +289,28 @@ class CartService extends EventEmitter {
       await user.save();
       return { cart: user.cart };
     } else {
-      cart.addItem(productId, quantity, product.price);
+      // Check if cart has addItem method, otherwise manually add
+      if (cart.addItem && typeof cart.addItem === 'function') {
+        cart.addItem(productId, quantity, product.price);
+      } else {
+        // Manually add to cart items
+        const existingItemIndex = cart.items.findIndex(item => 
+          item.product.toString() === productId.toString()
+        );
+
+        if (existingItemIndex >= 0) {
+          cart.items[existingItemIndex].quantity += quantity;
+          cart.items[existingItemIndex].addedAt = new Date();
+        } else {
+          cart.items.push({
+            product: productId,
+            quantity,
+            price: product.price,
+            addedAt: new Date()
+          });
+        }
+        cart.updatedAt = new Date();
+      }
       await cart.save();
       return { cart };
     }
@@ -314,7 +335,25 @@ class CartService extends EventEmitter {
       }
       return { cart: user.cart };
     } else {
-      cart.updateItem(productId, quantity);
+      // Check if cart has updateItem method, otherwise manually update
+      if (cart.updateItem && typeof cart.updateItem === 'function') {
+        cart.updateItem(productId, quantity);
+      } else {
+        // Manually update cart items
+        const itemIndex = cart.items.findIndex(item => 
+          item.product.toString() === productId.toString()
+        );
+
+        if (itemIndex >= 0) {
+          if (quantity === 0) {
+            cart.items.splice(itemIndex, 1);
+          } else {
+            cart.items[itemIndex].quantity = quantity;
+            cart.items[itemIndex].addedAt = new Date();
+          }
+          cart.updatedAt = new Date();
+        }
+      }
       await cart.save();
       return { cart };
     }
@@ -334,7 +373,20 @@ class CartService extends EventEmitter {
       }
       return { cart: user.cart };
     } else {
-      cart.removeItem(productId);
+      // Check if cart has removeItem method, otherwise manually remove
+      if (cart.removeItem && typeof cart.removeItem === 'function') {
+        cart.removeItem(productId);
+      } else {
+        // Manually remove from cart items
+        const itemIndex = cart.items.findIndex(item => 
+          item.product.toString() === productId.toString()
+        );
+
+        if (itemIndex >= 0) {
+          cart.items.splice(itemIndex, 1);
+          cart.updatedAt = new Date();
+        }
+      }
       await cart.save();
       return { cart };
     }

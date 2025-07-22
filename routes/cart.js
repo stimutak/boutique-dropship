@@ -34,7 +34,16 @@ const getOrCreateCart = async (req) => {
 // Get cart contents with performance optimization
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { type, cart, user } = await cartService.getCartWithPerformanceOptimization(req);
+    // Use fallback to original function if cart service fails
+    let cartData;
+    try {
+      cartData = await cartService.getCartWithPerformanceOptimization(req);
+    } catch (serviceError) {
+      console.warn('Cart service failed, using fallback:', serviceError.message);
+      cartData = await getOrCreateCart(req);
+    }
+    
+    const { type, cart, user } = cartData;
     
     // Populate product details for cart items
     const populatedCart = await Promise.all(
@@ -117,11 +126,77 @@ router.post('/add', authenticateToken, async (req, res) => {
       });
     }
 
-    // Use optimistic cart service
-    const result = await cartService.updateCartOptimistically(req, 'add', {
-      productId,
-      quantity
-    });
+    // Check if product exists and is active
+    const product = await Product.findById(productId);
+    if (!product || !product.isActive) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Product not found or inactive'
+        }
+      });
+    }
+
+    // Use optimistic cart service with fallback
+    let result;
+    try {
+      result = await cartService.updateCartOptimistically(req, 'add', {
+        productId,
+        quantity
+      });
+    } catch (serviceError) {
+      console.warn('Cart service failed, using fallback:', serviceError.message);
+      // Fallback to original logic
+      const { type, cart, user } = await getOrCreateCart(req);
+
+      if (type === 'user') {
+        // Add to user's cart
+        const existingItemIndex = user.cart.items.findIndex(item => 
+          item.product.toString() === productId.toString()
+        );
+
+        if (existingItemIndex >= 0) {
+          user.cart.items[existingItemIndex].quantity += quantity;
+          user.cart.items[existingItemIndex].addedAt = new Date();
+        } else {
+          user.cart.items.push({
+            product: productId,
+            quantity,
+            price: product.price,
+            addedAt: new Date()
+          });
+        }
+        
+        user.cart.updatedAt = new Date();
+        await user.save();
+      } else {
+        // Add to guest cart - use the Cart model method
+        if (cart.addItem && typeof cart.addItem === 'function') {
+          cart.addItem(productId, quantity, product.price);
+        } else {
+          // Fallback: manually add item
+          const existingItemIndex = cart.items.findIndex(item => 
+            item.product.toString() === productId.toString()
+          );
+
+          if (existingItemIndex >= 0) {
+            cart.items[existingItemIndex].quantity += quantity;
+            cart.items[existingItemIndex].addedAt = new Date();
+          } else {
+            cart.items.push({
+              product: productId,
+              quantity,
+              price: product.price,
+              addedAt: new Date()
+            });
+          }
+        }
+        await cart.save();
+      }
+      
+      result = { duration: 0, performance: 'fallback' };
+    }
 
     // Return updated cart with performance metrics
     const updatedCartData = await cartService.getCartWithPerformanceOptimization(req);
@@ -405,14 +480,103 @@ router.post('/merge', authenticateToken, async (req, res) => {
     const { guestCartItems, sessionId } = req.body;
     
     // Use enhanced cart service for merging with conflict resolution
-    const mergeResult = await cartService.mergeCartsWithConflictResolution(
-      req.user._id,
-      guestCartItems,
-      sessionId
-    );
+    let mergeResult;
+    try {
+      mergeResult = await cartService.mergeCartsWithConflictResolution(
+        req.user._id,
+        guestCartItems,
+        sessionId
+      );
+    } catch (serviceError) {
+      console.warn('Cart service merge failed, using fallback:', serviceError.message);
+      // Fallback to original merge logic
+      const user = await User.findById(req.user._id);
+      if (!user.cart) {
+        user.cart = { items: [], updatedAt: new Date() };
+      }
 
-    // Get updated cart data
-    const updatedCartData = await cartService.getCartWithPerformanceOptimization(req);
+      let mergedItems = 0;
+
+      // Process guest cart items
+      if (guestCartItems && Array.isArray(guestCartItems) && guestCartItems.length > 0) {
+        for (const guestItem of guestCartItems) {
+          const product = await Product.findById(guestItem.productId || guestItem.product);
+          if (!product || !product.isActive) {
+            continue;
+          }
+
+          const productId = guestItem.productId || guestItem.product;
+          const quantity = guestItem.quantity || 1;
+
+          const existingItemIndex = user.cart.items.findIndex(item => 
+            item.product.toString() === productId.toString()
+          );
+
+          if (existingItemIndex >= 0) {
+            user.cart.items[existingItemIndex].quantity += quantity;
+            user.cart.items[existingItemIndex].addedAt = new Date();
+          } else {
+            user.cart.items.push({
+              product: productId,
+              quantity,
+              price: product.price,
+              addedAt: new Date()
+            });
+          }
+          mergedItems++;
+        }
+      }
+
+      // Process session-based cart
+      if (sessionId) {
+        const guestCart = await Cart.findOne({ sessionId });
+        if (guestCart && guestCart.items.length > 0) {
+          for (const guestItem of guestCart.items) {
+            const product = await Product.findById(guestItem.product);
+            if (!product || !product.isActive) {
+              continue;
+            }
+
+            const existingItemIndex = user.cart.items.findIndex(item => 
+              item.product.toString() === guestItem.product.toString()
+            );
+
+            if (existingItemIndex >= 0) {
+              user.cart.items[existingItemIndex].quantity += guestItem.quantity;
+              user.cart.items[existingItemIndex].addedAt = new Date();
+            } else {
+              user.cart.items.push({
+                product: guestItem.product,
+                quantity: guestItem.quantity,
+                price: guestItem.price,
+                addedAt: new Date()
+              });
+            }
+            mergedItems++;
+          }
+          
+          await Cart.deleteOne({ sessionId });
+        }
+      }
+
+      user.cart.updatedAt = new Date();
+      await user.save();
+      
+      mergeResult = {
+        mergedItems,
+        conflicts: [],
+        duration: 0
+      };
+    }
+
+    // Get updated cart data with fallback
+    let updatedCartData;
+    try {
+      updatedCartData = await cartService.getCartWithPerformanceOptimization(req);
+    } catch (serviceError) {
+      console.warn('Cart service failed in merge, using fallback:', serviceError.message);
+      updatedCartData = await getOrCreateCart(req);
+    }
     
     // Return updated user cart
     const populatedCart = await Promise.all(
