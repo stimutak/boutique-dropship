@@ -107,7 +107,7 @@ app.get('/api/csrf-token', (req, res) => {
     csrfToken: req.session.csrfToken,
     sessionInfo: {
       isGuest: !req.user && !!req.session.guestId,
-      hasCart: !!req.session.cart && req.session.cart.items.length > 0
+      hasCart: !!req.session.cart && !!req.session.cart.items && req.session.cart.items.length > 0
     }
   });
 });

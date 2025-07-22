@@ -4,9 +4,20 @@ import api from '../../api/config'
 // Async thunks
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async ({ email, password }, { rejectWithValue }) => {
+  async ({ email, password }, { rejectWithValue, getState }) => {
     try {
-      const response = await api.post('/api/auth/login', { email, password })
+      // Get current cart items from Redux state
+      const state = getState()
+      const guestCartItems = state.cart.items
+      
+      const response = await api.post('/api/auth/login', { 
+        email, 
+        password,
+        guestCartItems: guestCartItems.map(item => ({
+          productId: item.product._id,
+          quantity: item.quantity
+        }))
+      })
       // Store token in localStorage for now (will move to HTTP-only cookies later)
       localStorage.setItem('token', response.data.token)
       return response.data

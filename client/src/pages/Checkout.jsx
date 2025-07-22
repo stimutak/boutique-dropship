@@ -49,6 +49,26 @@ const Checkout = () => {
     }
   }, [items, navigate])
 
+  // Update form data when user data becomes available
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: user.firstName || prev.firstName,
+        lastName: user.lastName || prev.lastName,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        shippingAddress: {
+          street: user.addresses?.[0]?.street || prev.shippingAddress.street,
+          city: user.addresses?.[0]?.city || prev.shippingAddress.city,
+          state: user.addresses?.[0]?.state || prev.shippingAddress.state,
+          zipCode: user.addresses?.[0]?.zipCode || prev.shippingAddress.zipCode,
+          country: user.addresses?.[0]?.country || prev.shippingAddress.country || 'US'
+        }
+      }))
+    }
+  }, [user])
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     

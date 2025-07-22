@@ -21,6 +21,18 @@ export const addToCart = createAsyncThunk(
       const response = await api.post('/api/cart/add', { productId, quantity })
       return response.data
     } catch (error) {
+      // If CSRF token error, try refreshing token and retry once
+      if (error.response?.data?.error?.code === 'CSRF_TOKEN_MISMATCH') {
+        try {
+          const { default: csrfService } = await import('../../services/csrf.js')
+          await csrfService.fetchToken()
+          // Retry the request
+          const retryResponse = await api.post('/api/cart/add', { productId, quantity })
+          return retryResponse.data
+        } catch (retryError) {
+          return rejectWithValue(retryError.response?.data?.error?.message || retryError.message || 'Failed to add item to cart')
+        }
+      }
       return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to add item to cart')
     }
   }
@@ -33,6 +45,18 @@ export const updateCartItem = createAsyncThunk(
       const response = await api.put('/api/cart/update', { productId, quantity })
       return response.data
     } catch (error) {
+      // If CSRF token error, try refreshing token and retry once
+      if (error.response?.data?.error?.code === 'CSRF_TOKEN_MISMATCH') {
+        try {
+          const { default: csrfService } = await import('../../services/csrf.js')
+          await csrfService.fetchToken()
+          // Retry the request
+          const retryResponse = await api.put('/api/cart/update', { productId, quantity })
+          return retryResponse.data
+        } catch (retryError) {
+          return rejectWithValue(retryError.response?.data?.error?.message || retryError.message || 'Failed to update cart item')
+        }
+      }
       return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to update cart item')
     }
   }
@@ -45,6 +69,18 @@ export const removeFromCart = createAsyncThunk(
       const response = await api.delete('/api/cart/remove', { data: { productId } })
       return response.data
     } catch (error) {
+      // If CSRF token error, try refreshing token and retry once
+      if (error.response?.data?.error?.code === 'CSRF_TOKEN_MISMATCH') {
+        try {
+          const { default: csrfService } = await import('../../services/csrf.js')
+          await csrfService.fetchToken()
+          // Retry the request
+          const retryResponse = await api.delete('/api/cart/remove', { data: { productId } })
+          return retryResponse.data
+        } catch (retryError) {
+          return rejectWithValue(retryError.response?.data?.error?.message || retryError.message || 'Failed to remove item from cart')
+        }
+      }
       return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to remove item from cart')
     }
   }

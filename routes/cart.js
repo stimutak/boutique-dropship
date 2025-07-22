@@ -279,6 +279,9 @@ router.post('/add', authenticateToken, async (req, res) => {
     const populatedCart = await Promise.all(
       updatedCartData.cart.items.map(async (item) => {
         const prod = await Product.findById(item.product).select('-wholesaler');
+        if (!prod) {
+          return null; // Filter out missing products
+        }
         return {
           _id: item.product,
           product: prod.toPublicJSON(),
@@ -287,7 +290,7 @@ router.post('/add', authenticateToken, async (req, res) => {
           subtotal: item.price * item.quantity
         };
       })
-    );
+    ).then(items => items.filter(item => item !== null));
 
     const itemCount = populatedCart.reduce((total, item) => total + item.quantity, 0);
     const subtotal = populatedCart.reduce((total, item) => total + item.subtotal, 0);
@@ -311,12 +314,14 @@ router.post('/add', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error adding to cart:', error);
+    console.error('Full stack:', error.stack);
     res.status(500).json({
       success: false,
       error: {
         code: 'CART_ADD_ERROR',
         message: 'Failed to add item to cart',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       }
     });
   }

@@ -18,8 +18,11 @@ const Login = () => {
     if (isAuthenticated) {
       // After login, fetch the user's cart (which includes any preserved guest cart items)
       // The backend already handles cart preservation during login
-      dispatch(fetchCart())
-      navigate('/')
+      // Add a small delay to ensure the server has completed the merge
+      setTimeout(() => {
+        dispatch(fetchCart())
+        navigate('/')
+      }, 500)
     }
     
     return () => {

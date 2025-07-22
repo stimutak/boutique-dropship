@@ -40,7 +40,12 @@ function App() {
     // Load user if token exists
     const token = localStorage.getItem('token')
     if (token) {
-      dispatch(loadUser())
+      dispatch(loadUser()).then(() => {
+        // Refresh CSRF token after loading user to ensure it's valid
+        csrfService.fetchToken().catch(err => {
+          console.warn('Failed to refresh CSRF token after user load:', err)
+        })
+      })
     }
   }, [dispatch])
 

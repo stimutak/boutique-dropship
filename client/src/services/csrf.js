@@ -4,12 +4,19 @@ import axios from 'axios'
 class CSRFService {
   constructor() {
     this.token = null
+    this.tokenTimestamp = null
+    this.TOKEN_CACHE_DURATION = 5000 // 5 seconds - short cache to avoid stale tokens
   }
 
   async getToken() {
-    if (!this.token) {
-      await this.fetchToken()
+    // Check if we have a recent token (within 5 seconds)
+    const now = Date.now()
+    if (this.token && this.tokenTimestamp && (now - this.tokenTimestamp) < this.TOKEN_CACHE_DURATION) {
+      return this.token
     }
+    
+    // Otherwise fetch a fresh token
+    await this.fetchToken()
     return this.token
   }
 
@@ -19,6 +26,7 @@ class CSRFService {
         withCredentials: true
       })
       this.token = response.data.csrfToken
+      this.tokenTimestamp = Date.now()
       return this.token
     } catch (error) {
       console.error('Failed to fetch CSRF token:', error)
@@ -28,6 +36,7 @@ class CSRFService {
 
   clearToken() {
     this.token = null
+    this.tokenTimestamp = null
   }
 }
 

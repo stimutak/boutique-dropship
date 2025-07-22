@@ -50,20 +50,12 @@ class CartService extends EventEmitter {
   async getOrCreateCart(req) {
     if (req.user) {
       // For authenticated users, use user's cart with optimistic loading
-      const user = await User.findById(req.user._id).lean();
+      const user = await User.findById(req.user._id);
       if (!user.cart) {
         // Create cart optimistically
-        const updatedUser = await User.findByIdAndUpdate(
-          req.user._id,
-          { 
-            $set: { 
-              'cart.items': [], 
-              'cart.updatedAt': new Date() 
-            }
-          },
-          { new: true, lean: true }
-        );
-        return { type: 'user', cart: updatedUser.cart, user: updatedUser };
+        user.cart = { items: [], updatedAt: new Date() };
+        await user.save();
+        return { type: 'user', cart: user.cart, user };
       }
       return { type: 'user', cart: user.cart, user };
     } else {
@@ -94,6 +86,9 @@ class CartService extends EventEmitter {
     
     try {
       const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
       if (!user.cart) {
         user.cart = { items: [], updatedAt: new Date() };
       }

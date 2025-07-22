@@ -11,6 +11,22 @@ export const createOrder = createAsyncThunk(
       return response.data
     } catch (error) {
       console.error('Order creation error:', error.response?.data)
+      
+      // If CSRF token error, try refreshing token and retry once
+      if (error.response?.data?.error?.code === 'CSRF_TOKEN_MISMATCH') {
+        try {
+          const { default: csrfService } = await import('../../services/csrf.js')
+          await csrfService.fetchToken()
+          console.log('Retrying order creation after CSRF refresh...')
+          // Retry the request
+          const retryResponse = await api.post('/api/orders', orderData)
+          return retryResponse.data
+        } catch (retryError) {
+          console.error('Order creation retry failed:', retryError.response?.data)
+          return rejectWithValue(retryError.response?.data?.error?.message || retryError.message)
+        }
+      }
+      
       return rejectWithValue(error.response?.data?.error?.message || error.message)
     }
   }
