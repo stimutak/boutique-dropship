@@ -1,3 +1,10 @@
+// Clear the global mock for emailService to test the actual implementation
+jest.unmock('../../utils/emailService');
+
+// Mock nodemailer for this test
+jest.mock('nodemailer');
+const nodemailer = require('nodemailer');
+
 const {
   sendOrderConfirmation,
   sendWelcomeEmail,
@@ -49,6 +56,12 @@ describe('Email Service Unit Tests', () => {
       process.env.EMAIL_HOST = 'smtp.test.com';
       process.env.EMAIL_USER = 'test@test.com';
       process.env.EMAIL_PASS = 'testpass';
+
+      // Mock nodemailer to simulate SMTP failure
+      const mockTransporter = {
+        sendMail: jest.fn().mockRejectedValue(new Error('SMTP connection failed'))
+      };
+      nodemailer.createTransport = jest.fn().mockReturnValue(mockTransporter);
 
       // Email will fail because the SMTP server doesn't exist
       const result = await sendWelcomeEmail('test@example.com', {

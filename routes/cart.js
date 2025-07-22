@@ -19,16 +19,18 @@ const getOrCreateCart = async (req) => {
     return { type: 'user', cart: user.cart, user };
   } else {
     // For guests, use session-based cart with database storage
-    // Store cart ID in session to maintain persistence
+    // Prioritize frontend session ID from headers, fallback to server session
+    let sessionId = req.headers['x-guest-session-id'] || req.session?.cartId || req.sessionID;
+    
+    if (!sessionId || !sessionId.startsWith('guest_')) {
+      sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    
+    // Store in server session for consistency
     if (!req.session) {
       req.session = {};
     }
-    
-    let sessionId = req.session.cartId || req.sessionID;
-    if (!sessionId) {
-      sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      req.session.cartId = sessionId;
-    }
+    req.session.cartId = sessionId;
     
     let cart = await Cart.findOne({ sessionId });
     
@@ -600,26 +602,19 @@ router.delete('/clear', authenticateToken, validateCSRFToken, async (req, res) =
       user.cart.items = [];
       user.cart.updatedAt = new Date();
       await user.save();
+      console.log('Cleared user cart for user:', user._id);
     } else {
-      // Clear guest cart
-      if (cart.clearCart && typeof cart.clearCart === 'function') {
-        cart.clearCart();
-      } else {
-        // Manual clear
-        cart.items = [];
-        cart.updatedAt = new Date();
-      }
+      // Clear guest cart - be more aggressive
+      console.log('Clearing guest cart for session:', cart.sessionId);
       
-      if (cart.save && typeof cart.save === 'function') {
-        await cart.save();
-      } else {
-        // Use findByIdAndUpdate for lean objects
-        await Cart.findByIdAndUpdate(
-          cart._id,
-          { items: [], updatedAt: new Date() },
-          { new: true }
-        );
-      }
+      // Delete the entire cart record and create a new one
+      await Cart.deleteOne({ sessionId: cart.sessionId });
+      
+      // Create a fresh cart
+      const newCart = new Cart({ sessionId: cart.sessionId, items: [] });
+      await newCart.save();
+      
+      console.log('Created fresh guest cart for session:', cart.sessionId);
     }
 
     res.json({
@@ -663,6 +658,12 @@ router.post('/merge', authenticateToken, async (req, res) => {
     }
 
     const { guestCartItems, sessionId } = req.body;
+    
+    console.log('Cart merge request:', { 
+      userId: req.user._id, 
+      sessionId, 
+      guestItemCount: guestCartItems?.length || 0 
+    });
     
     // Use enhanced cart service for merging with conflict resolution
     let mergeResult;
@@ -716,6 +717,8 @@ router.post('/merge', authenticateToken, async (req, res) => {
       if (sessionId) {
         const guestCart = await Cart.findOne({ sessionId });
         if (guestCart && guestCart.items.length > 0) {
+          console.log('Found guest cart with', guestCart.items.length, 'items for session:', sessionId);
+          
           for (const guestItem of guestCart.items) {
             const product = await Product.findById(guestItem.product);
             if (!product || !product.isActive) {
@@ -740,7 +743,11 @@ router.post('/merge', authenticateToken, async (req, res) => {
             mergedItems++;
           }
           
+          // Clean up the guest cart after merge
           await Cart.deleteOne({ sessionId });
+          console.log('Deleted guest cart for session:', sessionId);
+        } else {
+          console.log('No guest cart found for session:', sessionId);
         }
       }
 
@@ -822,5 +829,41 @@ router.post('/merge', authenticateToken, async (req, res) => {
     });
   }
 });
+
+// Debug endpoint to see all guest carts (development only)
+if (process.env.NODE_ENV === 'development') {
+  router.get('/debug', async (req, res) => {
+    try {
+      const guestCarts = await Cart.find({}).select('sessionId items createdAt updatedAt');
+      const userCarts = await User.find({ 'cart.items.0': { $exists: true } })
+        .select('email cart.items cart.updatedAt');
+      
+      res.json({
+        success: true,
+        data: {
+          guestCarts: guestCarts.map(cart => ({
+            sessionId: cart.sessionId,
+            itemCount: cart.items.length,
+            items: cart.items,
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt
+          })),
+          userCarts: userCarts.map(user => ({
+            email: user.email,
+            itemCount: user.cart?.items?.length || 0,
+            items: user.cart?.items || [],
+            updatedAt: user.cart?.updatedAt
+          })),
+          currentSession: {
+            guestSessionId: req.headers['x-guest-session-id'],
+            serverSessionId: req.sessionID
+          }
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+}
 
 module.exports = router;

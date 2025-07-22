@@ -10,13 +10,21 @@ const api = axios.create({
   withCredentials: true, // Important for CSRF tokens and sessions
 })
 
-// Request interceptor to add auth token and CSRF token
+// Request interceptor to add auth token, CSRF token, and guest session ID
 api.interceptors.request.use(
   async (config) => {
     // Add auth token
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    
+    // Add guest session ID for cart operations (when not authenticated)
+    if (!token) {
+      const guestSessionId = window.sessionStorage?.getItem('guestSessionId')
+      if (guestSessionId) {
+        config.headers['x-guest-session-id'] = guestSessionId
+      }
     }
     
     // Add CSRF token for state-changing requests

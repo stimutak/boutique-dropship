@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { logout } from '../../store/slices/authSlice'
+import { clearAfterMerge } from '../../store/slices/cartSlice'
 import { searchProducts } from '../../store/slices/productsSlice'
 
 const Header = () => {
@@ -24,7 +25,21 @@ const Header = () => {
   }
 
   const handleLogout = () => {
+    // Set flag to prevent immediate cart merge on next login
+    window.sessionStorage.setItem('justLoggedOut', 'true')
+    
+    // Clear the flag after 5 seconds to allow normal operation
+    setTimeout(() => {
+      window.sessionStorage.removeItem('justLoggedOut')
+    }, 5000)
+    
+    // Clear auth state
     dispatch(logout())
+    
+    // Clear cart state and reset to fresh guest session
+    dispatch(clearAfterMerge())
+    
+    // Navigate to home
     navigate('/')
   }
 

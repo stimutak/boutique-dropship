@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { createOrder } from '../store/slices/ordersSlice'
-import { clearCart, clearCartLocally } from '../store/slices/cartSlice'
+import { clearCart } from '../store/slices/cartSlice'
 
 const Checkout = () => {
   const dispatch = useDispatch()

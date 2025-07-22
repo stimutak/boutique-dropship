@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { registerUser, clearError } from '../store/slices/authSlice'
+import { useAuthCartSync } from '../hooks/useCartSync'
 
 const Register = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { isLoading, error, isAuthenticated } = useSelector(state => state.auth)
+  const { syncAfterAuth, syncMessage, hasGuestItems } = useAuthCartSync()
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -26,13 +28,22 @@ const Register = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/')
+      handleCartMergeAfterRegistration()
     }
     
     return () => {
       dispatch(clearError())
     }
   }, [isAuthenticated, navigate, dispatch])
+
+  const handleCartMergeAfterRegistration = async () => {
+    await syncAfterAuth()
+    
+    // Navigate after a brief delay to show sync message
+    setTimeout(() => {
+      navigate('/')
+    }, 1000)
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -187,6 +198,7 @@ const Register = () => {
             </div>
             
             {error && <div className="error">{error}</div>}
+            {syncMessage && <div className="info">{syncMessage}</div>}
             
             <button 
               type="submit" 

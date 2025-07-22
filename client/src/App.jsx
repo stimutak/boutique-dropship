@@ -7,6 +7,7 @@ import csrfService from './services/csrf'
 // Components
 import Header from './components/Layout/Header'
 import Footer from './components/Layout/Footer'
+import CartDebug from './components/CartDebug'
 
 // Pages
 import Home from './pages/Home'
@@ -52,6 +53,7 @@ function App() {
   return (
     <div className="App">
       <Header />
+      {process.env.NODE_ENV === 'development' && <CartDebug />}
       <main>
         <Routes>
           <Route path="/" element={<Home />} />

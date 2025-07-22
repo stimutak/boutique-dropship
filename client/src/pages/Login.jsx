@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { loginUser, clearError } from '../store/slices/authSlice'
-import { fetchCart } from '../store/slices/cartSlice'
+import { useAuthCartSync } from '../hooks/useCartSync'
 
 const Login = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { isLoading, error, isAuthenticated } = useSelector(state => state.auth)
+  const { syncAfterAuth, syncMessage, hasGuestItems } = useAuthCartSync()
   
   const [formData, setFormData] = useState({
     email: '',
@@ -16,19 +17,22 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // After login, fetch the user's cart (which includes any preserved guest cart items)
-      // The backend already handles cart preservation during login
-      // Add a small delay to ensure the server has completed the merge
-      setTimeout(() => {
-        dispatch(fetchCart())
-        navigate('/')
-      }, 500)
+      handleCartMergeAfterLogin()
     }
     
     return () => {
       dispatch(clearError())
     }
   }, [isAuthenticated, navigate, dispatch])
+
+  const handleCartMergeAfterLogin = async () => {
+    await syncAfterAuth()
+    
+    // Navigate after a brief delay to show sync message
+    setTimeout(() => {
+      navigate('/')
+    }, 1000)
+  }
 
   const handleChange = (e) => {
     setFormData({
@@ -72,6 +76,7 @@ const Login = () => {
             </div>
             
             {error && <div className="error">{error}</div>}
+            {syncMessage && <div className="info">{syncMessage}</div>}
             
             <button 
               type="submit" 

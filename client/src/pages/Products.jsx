@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useSearchParams, Link } from 'react-router-dom'
 import { fetchProducts, setFilters } from '../store/slices/productsSlice'
-import { addToCart, addItemLocally } from '../store/slices/cartSlice'
+import { addToCart } from '../store/slices/cartSlice'
 
 const Products = () => {
   const dispatch = useDispatch()
@@ -40,11 +40,8 @@ const Products = () => {
   }
 
   const handleAddToCart = (product) => {
-    if (isAuthenticated) {
-      dispatch(addToCart({ productId: product._id, quantity: 1 }))
-    } else {
-      dispatch(addItemLocally({ product, quantity: 1 }))
-    }
+    // Always use API endpoints - backend handles both authenticated and guest carts
+    dispatch(addToCart({ productId: product._id, quantity: 1 }))
   }
 
   const handlePageChange = (page) => {

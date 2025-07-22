@@ -1,3 +1,12 @@
+// Clear the global mock for emailService to test the actual implementation
+jest.unmock('../../utils/emailService');
+
+// Mock nodemailer BEFORE importing emailService
+jest.mock('nodemailer');
+
+const nodemailer = require('nodemailer');
+
+// Now require the email service after the mock is set up
 const {
   sendOrderConfirmation,
   sendPaymentReceipt,
@@ -9,15 +18,6 @@ const {
   emailTemplates
 } = require('../../utils/emailService');
 
-// Mock nodemailer
-jest.mock('nodemailer', () => ({
-  createTransporter: jest.fn(() => ({
-    sendMail: jest.fn()
-  }))
-}));
-
-const nodemailer = require('nodemailer');
-
 describe('Email Service', () => {
   let mockTransporter;
 
@@ -25,7 +25,7 @@ describe('Email Service', () => {
     mockTransporter = {
       sendMail: jest.fn()
     };
-    nodemailer.createTransporter.mockReturnValue(mockTransporter);
+    nodemailer.createTransport = jest.fn().mockReturnValue(mockTransporter);
     
     // Set up environment variables for tests
     process.env.EMAIL_HOST = 'smtp.test.com';

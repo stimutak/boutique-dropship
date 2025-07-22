@@ -5,10 +5,7 @@ import {
   fetchCart, 
   updateCartItem, 
   removeFromCart, 
-  clearCart,
-  updateItemLocally,
-  removeItemLocally,
-  clearCartLocally
+  clearCart
 } from '../store/slices/cartSlice'
 
 const Cart = () => {
@@ -26,28 +23,19 @@ const Cart = () => {
   const handleUpdateQuantity = (productId, quantity) => {
     if (quantity < 1) return
     
-    if (isAuthenticated) {
-      dispatch(updateCartItem({ productId, quantity }))
-    } else {
-      dispatch(updateItemLocally({ productId, quantity }))
-    }
+    // Always use API endpoints - backend handles both authenticated and guest carts
+    dispatch(updateCartItem({ productId, quantity }))
   }
 
   const handleRemoveItem = (productId) => {
-    if (isAuthenticated) {
-      dispatch(removeFromCart(productId))
-    } else {
-      dispatch(removeItemLocally(productId))
-    }
+    // Always use API endpoints - backend handles both authenticated and guest carts
+    dispatch(removeFromCart(productId))
   }
 
   const handleClearCart = () => {
     if (window.confirm('Are you sure you want to clear your cart?')) {
-      if (isAuthenticated) {
-        dispatch(clearCart())
-      } else {
-        dispatch(clearCartLocally())
-      }
+      // Always use API endpoints - backend handles both authenticated and guest carts
+      dispatch(clearCart())
     }
   }
 
