@@ -550,20 +550,32 @@ router.post('/change-password', requireAuth, [
 // Logout (optional - mainly for server-side session cleanup)
 router.post('/logout', requireAuth, async (req, res) => {
   try {
+    const userId = req.user._id;
+    
     // Emit logout event
     authService.emit('userLogout', {
-      userId: req.user._id,
+      userId: userId,
       timestamp: new Date()
     });
 
-    // Clear any server-side sessions if needed
+    // Clear any server-side sessions and cleanup cart state
     if (req.session) {
-      req.session.destroy();
+      // Clear any cart session IDs to prevent ghost carts
+      delete req.session.cartId;
+      delete req.session.guestId;
+      
+      // Clear the session
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destruction error:', err);
+        }
+      });
     }
 
     res.json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Logged out successfully',
+      cartCleared: true // Signal to frontend to clear cart state
     });
   } catch (error) {
     console.error('Logout error:', error);

@@ -7,7 +7,7 @@ const { authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const cartService = require('../services/cartService');
 
-// Helper function to get or create cart
+// Helper function to get or create cart - Fixed cart persistence bug
 const getOrCreateCart = async (req) => {
   if (req.user) {
     // For authenticated users, use user's cart
@@ -19,18 +19,33 @@ const getOrCreateCart = async (req) => {
     return { type: 'user', cart: user.cart, user };
   } else {
     // For guests, use session-based cart with database storage
-    // Prioritize frontend session ID from headers, fallback to server session
-    let sessionId = req.headers['x-guest-session-id'] || req.session?.cartId || req.sessionID;
+    // Create a consistent session ID strategy to prevent ghost carts
+    let sessionId = req.headers['x-guest-session-id'] || req.session?.cartId;
     
+    // If no valid session ID exists, create a new one
     if (!sessionId || !sessionId.startsWith('guest_')) {
       sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Ensure session exists before setting properties
+      if (!req.session) {
+        // This shouldn't happen with proper session middleware, but handle gracefully
+        console.warn('No session found when creating cart session ID');
+        req.session = {};
+      }
+      req.session.cartId = sessionId;
     }
     
-    // Store in server session for consistency
-    if (!req.session) {
-      req.session = {};
+    // Clean up any orphaned carts for this session first
+    const existingCarts = await Cart.find({ sessionId });
+    if (existingCarts.length > 1) {
+      console.warn(`Found ${existingCarts.length} carts for session ${sessionId}, cleaning up duplicates`);
+      // Keep the most recently updated cart and delete the rest
+      const sortedCarts = existingCarts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      const cartsToDelete = sortedCarts.slice(1);
+      for (const cartToDelete of cartsToDelete) {
+        await Cart.deleteOne({ _id: cartToDelete._id });
+      }
     }
-    req.session.cartId = sessionId;
     
     let cart = await Cart.findOne({ sessionId });
     
@@ -843,6 +858,73 @@ router.post('/merge', authenticateToken, async (req, res) => {
         code: 'CART_MERGE_ERROR',
         message: 'Failed to merge guest cart',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      }
+    });
+  }
+});
+
+// Reset guest cart session - helps fix cart persistence issues
+router.post('/reset-guest-session', async (req, res) => {
+  try {
+    // Only allow this for non-authenticated users (guests)
+    if (req.user) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'NOT_GUEST_USER',
+          message: 'This endpoint is only for guest users'
+        }
+      });
+    }
+
+    // Clear current session cart data
+    if (req.session) {
+      const oldSessionId = req.session.cartId;
+      
+      // Delete old guest cart if it exists
+      if (oldSessionId && oldSessionId.startsWith('guest_')) {
+        const deleteResult = await Cart.deleteMany({ sessionId: oldSessionId });
+        console.log(`Deleted ${deleteResult.deletedCount} guest cart(s) for old session ${oldSessionId}`);
+      }
+      
+      // Clear session cart data
+      delete req.session.cartId;
+      delete req.session.guestId;
+    }
+
+    // Create a fresh guest session ID
+    const newSessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    if (req.session) {
+      req.session.cartId = newSessionId;
+    }
+
+    // Create a fresh empty cart
+    const newCart = new Cart({ sessionId: newSessionId, items: [] });
+    await newCart.save();
+
+    res.json({
+      success: true,
+      message: 'Guest cart session reset successfully',
+      data: {
+        sessionId: newSessionId,
+        cart: {
+          items: [],
+          itemCount: 0,
+          subtotal: 0,
+          total: 0,
+          isEmpty: true
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error resetting guest cart session:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'RESET_SESSION_ERROR',
+        message: 'Failed to reset guest cart session'
       }
     });
   }

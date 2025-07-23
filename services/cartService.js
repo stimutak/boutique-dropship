@@ -104,17 +104,57 @@ class CartService extends EventEmitter {
         }
       }
 
-      // Process session-based cart
+      // Process session-based cart and clean up more thoroughly
       if (sessionId) {
-        const guestCart = await Cart.findOne({ sessionId });
-        if (guestCart && guestCart.items.length > 0) {
-          for (const guestItem of guestCart.items) {
-            const result = await this.mergeCartItem(user, guestItem, conflicts);
-            if (result.merged) mergedItems++;
+        // Find and process all guest carts with this session ID (in case of duplicates)
+        const guestCarts = await Cart.find({ sessionId });
+        
+        for (const guestCart of guestCarts) {
+          if (guestCart && guestCart.items.length > 0) {
+            for (const guestItem of guestCart.items) {
+              const result = await this.mergeCartItem(user, guestItem, conflicts);
+              if (result.merged) mergedItems++;
+            }
           }
-          
-          // Clean up guest cart
-          await Cart.deleteOne({ sessionId });
+        }
+        
+        // Clean up ALL guest carts with this session ID (not just one)
+        const deleteResult = await Cart.deleteMany({ sessionId });
+        console.log(`Cleaned up ${deleteResult.deletedCount} guest cart(s) for session ${sessionId} during merge`);
+      }
+
+      // Also clean up any guest carts that might have the same session pattern
+      // This helps with the edge case where session IDs might get corrupted
+      if (sessionId && sessionId.startsWith('guest_')) {
+        // Extract timestamp from session ID and clean up other carts from similar timeframe
+        const sessionParts = sessionId.split('_');
+        if (sessionParts.length >= 2) {
+          const timestamp = parseInt(sessionParts[1]);
+          if (!isNaN(timestamp)) {
+            // Clean up carts within 1 hour of this session timestamp that might be orphaned
+            const timeWindow = 60 * 60 * 1000; // 1 hour in milliseconds
+            const startTime = timestamp - timeWindow;
+            const endTime = timestamp + timeWindow;
+            
+            const orphanedCarts = await Cart.find({
+              sessionId: { 
+                $regex: `^guest_`, 
+                $ne: sessionId 
+              },
+              createdAt: {
+                $gte: new Date(startTime),
+                $lte: new Date(endTime)
+              },
+              items: { $size: 0 } // Only delete empty orphaned carts
+            });
+            
+            if (orphanedCarts.length > 0) {
+              await Cart.deleteMany({
+                _id: { $in: orphanedCarts.map(c => c._id) }
+              });
+              console.log(`Cleaned up ${orphanedCarts.length} empty orphaned guest carts during merge`);
+            }
+          }
         }
       }
 
@@ -131,7 +171,8 @@ class CartService extends EventEmitter {
         mergedItems,
         conflicts,
         duration,
-        success: true
+        success: true,
+        cleanupPerformed: true
       };
 
     } catch (error) {
