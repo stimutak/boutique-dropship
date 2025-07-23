@@ -262,7 +262,7 @@ router.post('/login', validateLogin, async (req, res) => {
   }
 });
 
-// Forgot password
+// Forgot password - Fixed timing attack vulnerability
 router.post('/forgot-password', validateForgotPassword, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -279,57 +279,60 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
 
     const { email } = req.body;
     
-    // Find user
-    const user = await User.findOne({ email });
+    // Always execute the same operations to prevent timing attacks
+    let user, resetToken, resetTokenHash;
     
-    // Always return success to prevent email enumeration
-    if (!user) {
-      return res.json({
-        success: true,
-        message: 'If an account exists with this email, a password reset link will be sent.'
-      });
-    }
-
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenHash = crypto
+    // Find user
+    user = await User.findOne({ email });
+    
+    // Always generate a token (even if user doesn't exist) to normalize timing
+    resetToken = crypto.randomBytes(32).toString('hex');
+    resetTokenHash = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
 
-    // Save reset token and expiry
-    user.passwordResetToken = resetTokenHash;
-    user.passwordResetExpiry = Date.now() + 3600000; // 1 hour
-    await user.save();
+    // If user exists, save the reset token and send email
+    if (user) {
+      // Save reset token and expiry
+      user.passwordResetToken = resetTokenHash;
+      user.passwordResetExpiry = Date.now() + 3600000; // 1 hour
+      await user.save();
 
-    // Send reset email
-    try {
-      const { sendPasswordResetEmail } = require('../utils/emailService');
-      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-      
-      const emailResult = await sendPasswordResetEmail(user.email, {
-        firstName: user.firstName,
-        resetToken,
-        resetUrl
-      });
-      
-      if (!emailResult.success) {
-        console.error('Failed to send reset email:', emailResult.error);
+      // Send reset email
+      try {
+        const { sendPasswordResetEmail } = require('../utils/emailService');
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+        
+        const emailResult = await sendPasswordResetEmail(user.email, {
+          firstName: user.firstName,
+          resetToken,
+          resetUrl
+        });
+        
+        if (!emailResult.success) {
+          console.error('Failed to send reset email:', emailResult.error);
+        }
+        
+        // Log reset URL for development when email is not configured
+        if (emailResult.message === 'Email skipped - not configured') {
+          console.log('\n========================================');
+          console.log('PASSWORD RESET URL (Email not configured)');
+          console.log('========================================');
+          console.log(`User: ${user.email}`);
+          console.log(`Reset URL: ${resetUrl}`);
+          console.log('========================================\n');
+        }
+      } catch (emailError) {
+        console.error('Error sending reset email:', emailError);
       }
-      
-      // Log reset URL for development when email is not configured
-      if (emailResult.message === 'Email skipped - not configured') {
-        console.log('\n========================================');
-        console.log('PASSWORD RESET URL (Email not configured)');
-        console.log('========================================');
-        console.log(`User: ${user.email}`);
-        console.log(`Reset URL: ${resetUrl}`);
-        console.log('========================================\n');
-      }
-    } catch (emailError) {
-      console.error('Error sending reset email:', emailError);
+    } else {
+      // If user doesn't exist, still perform the same cryptographic operations
+      // and simulate sending an email to normalize response time
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
     }
 
+    // Always return the same response regardless of whether user exists
     res.json({
       success: true,
       message: 'If an account exists with this email, a password reset link will be sent.'

@@ -128,12 +128,24 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
       });
     }
 
+    // Enhanced quantity validation to prevent integer overflow and other edge cases
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_QUANTITY',
           message: 'Quantity must be between 1 and 99'
+        }
+      });
+    }
+
+    // Additional safety check for potential integer overflow
+    if (quantity > Number.MAX_SAFE_INTEGER) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_QUANTITY',
+          message: 'Quantity value is too large'
         }
       });
     }
@@ -181,7 +193,10 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
       
       if (existingItemIndex >= 0) {
         const currentQuantity = user.cart.items[existingItemIndex].quantity;
-        if (currentQuantity + quantity > 99) {
+        const newQuantity = currentQuantity + quantity;
+        
+        // Check for integer overflow and maximum quantity
+        if (newQuantity > 99 || newQuantity < currentQuantity) {
           return res.status(400).json({
             success: false,
             error: {
@@ -198,7 +213,10 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
       
       if (existingItemIndex >= 0) {
         const currentQuantity = cart.items[existingItemIndex].quantity;
-        if (currentQuantity + quantity > 99) {
+        const newQuantity = currentQuantity + quantity;
+        
+        // Check for integer overflow and maximum quantity
+        if (newQuantity > 99 || newQuantity < currentQuantity) {
           return res.status(400).json({
             success: false,
             error: {

@@ -8,6 +8,19 @@ const MongoStore = require('connect-mongo');
 const path = require('path');
 require('dotenv').config();
 
+// Validate critical environment variables at startup
+if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'test') {
+  console.error('FATAL ERROR: JWT_SECRET environment variable is not set. This is required for secure token generation.');
+  process.exit(1);
+}
+
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  if (process.env.NODE_ENV !== 'test') {
+    console.error('FATAL ERROR: JWT_SECRET must be at least 32 characters long for security.');
+    process.exit(1);
+  }
+}
+
 // Import logging and error handling
 const { logger } = require('./utils/logger');
 const { globalErrorHandler } = require('./middleware/errorHandler');
