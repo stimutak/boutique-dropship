@@ -11,7 +11,7 @@ export const createOrder = createAsyncThunk(
       // Check if user is authenticated
       const state = getState()
       const isAuthenticated = state.auth.isAuthenticated
-      const endpoint = isAuthenticated ? '/api/orders/registered' : '/api/orders'
+      const endpoint = isAuthenticated ? '/api/orders/registered' : '/api/orders/guest'
       
       const response = await api.post(endpoint, orderData)
       return response.data
@@ -27,7 +27,7 @@ export const createOrder = createAsyncThunk(
           // Retry the request
           const state = getState()
           const isAuthenticated = state.auth.isAuthenticated
-          const endpoint = isAuthenticated ? '/api/orders/registered' : '/api/orders'
+          const endpoint = isAuthenticated ? '/api/orders/registered' : '/api/orders/guest'
           const retryResponse = await api.post(endpoint, orderData)
           return retryResponse.data
         } catch (retryError) {
