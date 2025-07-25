@@ -5,7 +5,6 @@ const User = require('../models/User');
 const Cart = require('../models/Cart');
 const { authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
-const cartService = require('../services/cartService');
 
 // Helper function to get or create cart - Fixed cart persistence bug
 const getOrCreateCart = async (req) => {
@@ -19,23 +18,16 @@ const getOrCreateCart = async (req) => {
     return { type: 'user', cart: user.cart, user };
   } else {
     // For guests, use session-based cart with database storage
-    // Create a consistent session ID strategy to prevent ghost carts
-    let sessionId = req.headers['x-guest-session-id'] || req.session?.cartId;
+    // Get session ID from header (frontend managed) or create new one
+    let sessionId = req.headers['x-guest-session-id'];
     
-    // If no valid session ID exists, create a new one
+    // If no session ID from frontend, this is a new session
     if (!sessionId || !sessionId.startsWith('guest_')) {
       sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Ensure session exists before setting properties
-      if (!req.session) {
-        // This shouldn't happen with proper session middleware, but handle gracefully
-        console.warn('No session found when creating cart session ID');
-        req.session = {};
-      }
-      req.session.cartId = sessionId;
+      console.log('Created new guest session:', sessionId);
     }
     
-    // Clean up any orphaned carts for this session first
+    // Clean up any duplicate carts for this session BEFORE creating/fetching
     const existingCarts = await Cart.find({ sessionId });
     if (existingCarts.length > 1) {
       console.warn(`Found ${existingCarts.length} carts for session ${sessionId}, cleaning up duplicates`);
@@ -47,11 +39,33 @@ const getOrCreateCart = async (req) => {
       }
     }
     
-    let cart = await Cart.findOne({ sessionId });
+    // Get or create the cart - use findOneAndUpdate for atomic operation with fallback
+    let cart;
+    try {
+      cart = await Cart.findOneAndUpdate(
+        { sessionId },
+        { 
+          $setOnInsert: { sessionId, items: [] },
+          $set: { lastAccessed: new Date() }
+        },
+        { 
+          new: true, 
+          upsert: true
+        }
+      );
+    } catch (error) {
+      console.warn('findOneAndUpdate failed, using fallback:', error.message);
+      cart = null;
+    }
     
     if (!cart) {
-      cart = new Cart({ sessionId, items: [] });
-      await cart.save();
+      // Fallback: try to find existing cart or create new one
+      cart = await Cart.findOne({ sessionId });
+      if (!cart) {
+        cart = new Cart({ sessionId, items: [] });
+        await cart.save();
+        console.log('Created new guest cart for session (fallback):', sessionId);
+      }
     }
     
     return { type: 'guest', cart, sessionId };
@@ -61,14 +75,8 @@ const getOrCreateCart = async (req) => {
 // Get cart contents with performance optimization
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    // Use fallback to original function if cart service fails
-    let cartData;
-    try {
-      cartData = await cartService.getCartWithPerformanceOptimization(req);
-    } catch (serviceError) {
-      console.warn('Cart service failed, using fallback:', serviceError.message);
-      cartData = await getOrCreateCart(req);
-    }
+    // Get cart data directly
+    const cartData = await getOrCreateCart(req);
     
     const { type, cart, user } = cartData;
     
@@ -243,74 +251,51 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
       }
     }
 
-    // Use optimistic cart service with fallback
-    let result;
-    try {
-      result = await cartService.updateCartOptimistically(req, 'add', {
-        productId,
-        quantity
-      });
-    } catch (serviceError) {
-      console.warn('Cart service failed, using fallback:', serviceError.message);
-      // Fallback to original logic - need to re-fetch cart since service failed
-      const fallbackCart = await getOrCreateCart(req);
-      
-      if (fallbackCart.type === 'user') {
-        // Add to user's cart
-        const existingItemIndex = fallbackCart.user.cart.items.findIndex(item => 
-          item.product.toString() === productId.toString()
-        );
+    // Add item to cart directly
+    const cartData = await getOrCreateCart(req);
+    
+    if (cartData.type === 'user') {
+      // Add to user's cart
+      const existingItemIndex = cartData.user.cart.items.findIndex(item => 
+        item.product.toString() === productId.toString()
+      );
 
-        if (existingItemIndex >= 0) {
-          fallbackCart.user.cart.items[existingItemIndex].quantity += quantity;
-          fallbackCart.user.cart.items[existingItemIndex].addedAt = new Date();
-        } else {
-          fallbackCart.user.cart.items.push({
-            product: productId,
-            quantity,
-            price: product.price,
-            addedAt: new Date()
-          });
-        }
-        
-        fallbackCart.user.cart.updatedAt = new Date();
-        await fallbackCart.user.save();
+      if (existingItemIndex >= 0) {
+        cartData.user.cart.items[existingItemIndex].quantity += quantity;
+        cartData.user.cart.items[existingItemIndex].addedAt = new Date();
       } else {
-        // Add to guest cart - use the Cart model method
-        if (fallbackCart.cart.addItem && typeof fallbackCart.cart.addItem === 'function') {
-          fallbackCart.cart.addItem(productId, quantity, product.price);
-        } else {
-          // Fallback: manually add item
-          const existingItemIndex = fallbackCart.cart.items.findIndex(item => 
-            item.product.toString() === productId.toString()
-          );
-
-          if (existingItemIndex >= 0) {
-            fallbackCart.cart.items[existingItemIndex].quantity += quantity;
-            fallbackCart.cart.items[existingItemIndex].addedAt = new Date();
-          } else {
-            fallbackCart.cart.items.push({
-              product: productId,
-              quantity,
-              price: product.price,
-              addedAt: new Date()
-            });
-          }
-        }
-        await fallbackCart.cart.save();
+        cartData.user.cart.items.push({
+          product: productId,
+          quantity,
+          price: product.price,
+          addedAt: new Date()
+        });
       }
       
-      result = { duration: 0, performance: 'fallback' };
+      cartData.user.cart.updatedAt = new Date();
+      await cartData.user.save();
+    } else {
+      // Add to guest cart
+      const existingItemIndex = cartData.cart.items.findIndex(item => 
+        item.product.toString() === productId.toString()
+      );
+
+      if (existingItemIndex >= 0) {
+        cartData.cart.items[existingItemIndex].quantity += quantity;
+        cartData.cart.items[existingItemIndex].addedAt = new Date();
+      } else {
+        cartData.cart.items.push({
+          product: productId,
+          quantity,
+          price: product.price,
+          addedAt: new Date()
+        });
+      }
+      await cartData.cart.save();
     }
 
-    // Return updated cart with performance metrics
-    let updatedCartData;
-    try {
-      updatedCartData = await cartService.getCartWithPerformanceOptimization(req);
-    } catch (serviceError) {
-      console.warn('Cart service failed after add, using fallback:', serviceError.message);
-      updatedCartData = await getOrCreateCart(req);
-    }
+    // Return updated cart
+    const updatedCartData = await getOrCreateCart(req);
     
     const populatedCart = await Promise.all(
       updatedCartData.cart.items.map(async (item) => {
@@ -340,10 +325,6 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
           itemCount,
           subtotal: Math.round(subtotal * 100) / 100,
           total: Math.round(subtotal * 100) / 100
-        },
-        performance: {
-          duration: result.duration,
-          status: result.performance
         }
       }
     });
@@ -422,29 +403,29 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
       );
       
       if (itemIndex >= 0) {
-        if (cart.updateItem && typeof cart.updateItem === 'function') {
-          cart.updateItem(productId, quantity);
+        // Always use direct database update for consistency
+        let updatedItems = [...cart.items];
+        
+        if (quantity === 0) {
+          updatedItems.splice(itemIndex, 1);
         } else {
-          // Manual update
-          if (quantity === 0) {
-            cart.items.splice(itemIndex, 1);
-          } else {
-            cart.items[itemIndex].quantity = quantity;
-            cart.items[itemIndex].addedAt = new Date();
-          }
-          cart.updatedAt = new Date();
+          updatedItems[itemIndex] = {
+            ...updatedItems[itemIndex],
+            quantity,
+            addedAt: new Date()
+          };
         }
         
-        if (cart.save && typeof cart.save === 'function') {
-          await cart.save();
-        } else {
-          // Use findByIdAndUpdate for lean objects
-          await Cart.findByIdAndUpdate(
-            cart._id,
-            { items: cart.items, updatedAt: cart.updatedAt },
-            { new: true }
-          );
-        }
+        // Use atomic update to prevent race conditions
+        const updatedCart = await Cart.findByIdAndUpdate(
+          cart._id,
+          { 
+            items: updatedItems, 
+            updatedAt: new Date() 
+          },
+          { new: true }
+        );
+        cart.items = updatedCart.items;
       } else {
         return res.status(404).json({
           success: false,
@@ -456,10 +437,10 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
       }
     }
 
-    // Return updated cart
-    const updatedCartData = await getOrCreateCart(req);
+    // Return updated cart - use the already modified data instead of refetching
+    const cartItems = type === 'user' ? user.cart.items : cart.items;
     const populatedCart = await Promise.all(
-      updatedCartData.cart.items.map(async (item) => {
+      cartItems.map(async (item) => {
         const product = await Product.findById(item.product).select('-wholesaler');
         if (!product || !product.isActive) return null;
         
@@ -549,24 +530,20 @@ router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) 
       );
       
       if (itemIndex >= 0) {
-        if (cart.removeItem && typeof cart.removeItem === 'function') {
-          cart.removeItem(productId);
-        } else {
-          // Manual removal
-          cart.items.splice(itemIndex, 1);
-          cart.updatedAt = new Date();
-        }
+        // Always use direct database update for consistency
+        let updatedItems = [...cart.items];
+        updatedItems.splice(itemIndex, 1);
         
-        if (cart.save && typeof cart.save === 'function') {
-          await cart.save();
-        } else {
-          // Use findByIdAndUpdate for lean objects
-          await Cart.findByIdAndUpdate(
-            cart._id,
-            { items: cart.items, updatedAt: cart.updatedAt },
-            { new: true }
-          );
-        }
+        // Use atomic update to prevent race conditions
+        const updatedCart = await Cart.findByIdAndUpdate(
+          cart._id,
+          { 
+            items: updatedItems, 
+            updatedAt: new Date() 
+          },
+          { new: true }
+        );
+        cart.items = updatedCart.items;
       } else {
         return res.status(404).json({
           success: false,
@@ -578,10 +555,10 @@ router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) 
       }
     }
 
-    // Return updated cart
-    const updatedCartData = await getOrCreateCart(req);
+    // Return updated cart - use the already modified data instead of refetching
+    const cartItems = type === 'user' ? user.cart.items : cart.items;
     const populatedCart = await Promise.all(
-      updatedCartData.cart.items.map(async (item) => {
+      cartItems.map(async (item) => {
         const product = await Product.findById(item.product).select('-wholesaler');
         if (!product || !product.isActive) return null;
         
@@ -637,13 +614,14 @@ router.delete('/clear', authenticateToken, validateCSRFToken, async (req, res) =
       await user.save();
       console.log('Cleared user cart for user:', user._id);
     } else {
-      // Clear guest cart - be more aggressive
+      // Clear guest cart - use atomic update instead of delete/recreate
       console.log('Clearing guest cart for session:', cart.sessionId);
       
-      // Delete the entire cart record and create a new one
-      await Cart.deleteOne({ sessionId: cart.sessionId });
+      // First, delete ALL carts with this session ID to handle duplicates
+      const deleteResult = await Cart.deleteMany({ sessionId: cart.sessionId });
+      console.log(`Deleted ${deleteResult?.deletedCount || 0} cart(s) for session ${cart.sessionId}`);
       
-      // Create a fresh cart
+      // Create a single fresh cart
       const newCart = new Cart({ sessionId: cart.sessionId, items: [] });
       await newCart.save();
       
@@ -698,110 +676,93 @@ router.post('/merge', authenticateToken, async (req, res) => {
       guestItemCount: guestCartItems?.length || 0 
     });
     
-    // Use enhanced cart service for merging with conflict resolution
-    let mergeResult;
-    try {
-      mergeResult = await cartService.mergeCartsWithConflictResolution(
-        req.user._id,
-        guestCartItems,
-        sessionId
-      );
-    } catch (serviceError) {
-      console.warn('Cart service merge failed, using fallback:', serviceError.message);
-      // Fallback to original merge logic
-      const user = await User.findById(req.user._id);
-      if (!user.cart) {
-        user.cart = { items: [], updatedAt: new Date() };
+    // Merge cart logic directly
+    const user = await User.findById(req.user._id);
+    if (!user.cart) {
+      user.cart = { items: [], updatedAt: new Date() };
+    }
+
+    let mergedItems = 0;
+
+    // Process guest cart items
+    if (guestCartItems && Array.isArray(guestCartItems) && guestCartItems.length > 0) {
+      for (const guestItem of guestCartItems) {
+        const product = await Product.findById(guestItem.productId || guestItem.product);
+        if (!product || !product.isActive) {
+          continue;
+        }
+
+        const productId = guestItem.productId || guestItem.product;
+        const quantity = guestItem.quantity || 1;
+
+        const existingItemIndex = user.cart.items.findIndex(item => 
+          item.product.toString() === productId.toString()
+        );
+
+        if (existingItemIndex >= 0) {
+          user.cart.items[existingItemIndex].quantity += quantity;
+          user.cart.items[existingItemIndex].addedAt = new Date();
+        } else {
+          user.cart.items.push({
+            product: productId,
+            quantity,
+            price: product.price,
+            addedAt: new Date()
+          });
+        }
+        mergedItems++;
       }
+    }
 
-      let mergedItems = 0;
-
-      // Process guest cart items
-      if (guestCartItems && Array.isArray(guestCartItems) && guestCartItems.length > 0) {
-        for (const guestItem of guestCartItems) {
-          const product = await Product.findById(guestItem.productId || guestItem.product);
+    // Process session-based cart
+    if (sessionId) {
+      const guestCart = await Cart.findOne({ sessionId });
+      if (guestCart && guestCart.items.length > 0) {
+        console.log('Found guest cart with', guestCart.items.length, 'items for session:', sessionId);
+        
+        for (const guestItem of guestCart.items) {
+          const product = await Product.findById(guestItem.product);
           if (!product || !product.isActive) {
             continue;
           }
 
-          const productId = guestItem.productId || guestItem.product;
-          const quantity = guestItem.quantity || 1;
-
           const existingItemIndex = user.cart.items.findIndex(item => 
-            item.product.toString() === productId.toString()
+            item.product.toString() === guestItem.product.toString()
           );
 
           if (existingItemIndex >= 0) {
-            user.cart.items[existingItemIndex].quantity += quantity;
+            user.cart.items[existingItemIndex].quantity += guestItem.quantity;
             user.cart.items[existingItemIndex].addedAt = new Date();
           } else {
             user.cart.items.push({
-              product: productId,
-              quantity,
-              price: product.price,
+              product: guestItem.product,
+              quantity: guestItem.quantity,
+              price: guestItem.price,
               addedAt: new Date()
             });
           }
           mergedItems++;
         }
+        
+        // Clean up the guest cart after merge
+        await Cart.deleteOne({ sessionId });
+        console.log('Deleted guest cart for session:', sessionId);
+      } else {
+        console.log('No guest cart found for session:', sessionId);
       }
-
-      // Process session-based cart
-      if (sessionId) {
-        const guestCart = await Cart.findOne({ sessionId });
-        if (guestCart && guestCart.items.length > 0) {
-          console.log('Found guest cart with', guestCart.items.length, 'items for session:', sessionId);
-          
-          for (const guestItem of guestCart.items) {
-            const product = await Product.findById(guestItem.product);
-            if (!product || !product.isActive) {
-              continue;
-            }
-
-            const existingItemIndex = user.cart.items.findIndex(item => 
-              item.product.toString() === guestItem.product.toString()
-            );
-
-            if (existingItemIndex >= 0) {
-              user.cart.items[existingItemIndex].quantity += guestItem.quantity;
-              user.cart.items[existingItemIndex].addedAt = new Date();
-            } else {
-              user.cart.items.push({
-                product: guestItem.product,
-                quantity: guestItem.quantity,
-                price: guestItem.price,
-                addedAt: new Date()
-              });
-            }
-            mergedItems++;
-          }
-          
-          // Clean up the guest cart after merge
-          await Cart.deleteOne({ sessionId });
-          console.log('Deleted guest cart for session:', sessionId);
-        } else {
-          console.log('No guest cart found for session:', sessionId);
-        }
-      }
-
-      user.cart.updatedAt = new Date();
-      await user.save();
-      
-      mergeResult = {
-        mergedItems,
-        conflicts: [],
-        duration: 0
-      };
     }
 
-    // Get updated cart data with fallback
-    let updatedCartData;
-    try {
-      updatedCartData = await cartService.getCartWithPerformanceOptimization(req);
-    } catch (serviceError) {
-      console.warn('Cart service failed in merge, using fallback:', serviceError.message);
-      updatedCartData = await getOrCreateCart(req);
-    }
+    user.cart.updatedAt = new Date();
+    await user.save();
+    
+    const mergeResult = {
+      mergedItems,
+      conflicts: [],
+      duration: 0
+    };
+
+    // Get updated cart data
+    const updatedCartData = await getOrCreateCart(req);
     
     // Return updated user cart
     const populatedCart = await Promise.all(
@@ -877,27 +838,17 @@ router.post('/reset-guest-session', async (req, res) => {
       });
     }
 
-    // Clear current session cart data
-    if (req.session) {
-      const oldSessionId = req.session.cartId;
-      
-      // Delete old guest cart if it exists
-      if (oldSessionId && oldSessionId.startsWith('guest_')) {
-        const deleteResult = await Cart.deleteMany({ sessionId: oldSessionId });
-        console.log(`Deleted ${deleteResult.deletedCount} guest cart(s) for old session ${oldSessionId}`);
-      }
-      
-      // Clear session cart data
-      delete req.session.cartId;
-      delete req.session.guestId;
+    // Get the old session ID from header
+    const oldSessionId = req.headers['x-guest-session-id'];
+    
+    // Delete old guest cart if it exists
+    if (oldSessionId && oldSessionId.startsWith('guest_')) {
+      const deleteResult = await Cart.deleteMany({ sessionId: oldSessionId });
+      console.log(`Deleted ${deleteResult?.deletedCount || 0} guest cart(s) for old session ${oldSessionId}`);
     }
 
     // Create a fresh guest session ID
     const newSessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    if (req.session) {
-      req.session.cartId = newSessionId;
-    }
 
     // Create a fresh empty cart
     const newCart = new Cart({ sessionId: newSessionId, items: [] });
