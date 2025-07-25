@@ -123,12 +123,17 @@ router.post('/', validateGuestCheckout, validateCSRFToken, async (req, res) => {
       referralSource
     } = req.body;
 
-    // Validate and process cart items
+    // Validate and process cart items - FIXED N+1 QUERY
     const orderItems = [];
     let subtotal = 0;
 
+    // Batch fetch all products at once to avoid N+1 queries
+    const productIds = requestItems.map(item => item.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
+
     for (const item of requestItems) {
-      const product = await Product.findById(item.productId);
+      const product = productMap.get(item.productId);
       
       if (!product || !product.isActive) {
         return res.status(400).json({
@@ -264,12 +269,17 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
       referralSource
     } = req.body;
 
-    // Validate and process cart items
+    // Validate and process cart items - FIXED N+1 QUERY
     const orderItems = [];
     let subtotal = 0;
 
+    // Batch fetch all products at once to avoid N+1 queries
+    const productIds = requestItems.map(item => item.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
+
     for (const item of requestItems) {
-      const product = await Product.findById(item.productId);
+      const product = productMap.get(item.productId);
       
       if (!product || !product.isActive) {
         return res.status(400).json({

@@ -113,21 +113,10 @@ jest.mock('../../middleware/sessionCSRF', () => ({
   }
 }));
 
-// Mock cart service
-jest.mock('../../services/cartService', () => {
-  return {
-    getCartWithPerformanceOptimization: jest.fn(),
-    updateCartOptimistically: jest.fn(),
-    mergeCartsWithConflictResolution: jest.fn()
-  };
-});
+// Mock auth service (removed cartService mock as it no longer exists)
+// The services were deleted during cleanup
 
-// Mock auth service
-jest.mock('../../services/authService', () => ({
-  validateTokenSafely: jest.fn()
-}));
-
-const cartService = require('../../services/cartService');
+// Removed cartService require as the services directory was deleted
 
 // Create test app
 const createTestApp = () => {
@@ -229,7 +218,9 @@ describe('Cart Routes', () => {
     Cart.find = jest.fn().mockResolvedValue([testCart]); // Return array for cleanup logic
     Cart.prototype.save = jest.fn().mockResolvedValue(true);
     Cart.deleteOne = jest.fn().mockResolvedValue(true);
+    Cart.deleteMany = jest.fn().mockResolvedValue({ deletedCount: 1 });
     Cart.findByIdAndUpdate = jest.fn().mockResolvedValue(testCart);
+    Cart.findOneAndUpdate = jest.fn().mockResolvedValue(testCart);
     
     // Mock Cart constructor more completely
     Cart.mockImplementation = jest.fn().mockImplementation((data) => ({
@@ -249,7 +240,9 @@ describe('Cart Routes', () => {
     global.Cart.findOne = Cart.findOne;
     global.Cart.find = Cart.find;
     global.Cart.deleteOne = Cart.deleteOne;
+    global.Cart.deleteMany = Cart.deleteMany;
     global.Cart.findByIdAndUpdate = Cart.findByIdAndUpdate;
+    global.Cart.findOneAndUpdate = Cart.findOneAndUpdate;
     
     // Setup cart service mocks
     cartService.getCartWithPerformanceOptimization.mockImplementation(async (req) => ({

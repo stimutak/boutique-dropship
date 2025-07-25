@@ -5,8 +5,6 @@ const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
-const authService = require('../services/authService');
-const cartService = require('../services/cartService');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -134,8 +132,10 @@ router.post('/register', validateRegistration, async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      token,
-      user: user.toPublicJSON()
+      data: {
+        token,
+        user: user.toPublicJSON()
+      }
     });
 
   } catch (error) {
@@ -209,45 +209,19 @@ router.post('/login', validateLogin, async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    // Enhanced cart preservation and merging
+    // Cart info (simplified after removing cartService)
     let cartInfo = { itemCount: 0, mergedItems: 0 };
     
-    // Merge guest cart if provided
-    if (guestCartItems && Array.isArray(guestCartItems) && guestCartItems.length > 0) {
-      try {
-        const mergeResult = await cartService.mergeCartsWithConflictResolution(
-          user._id,
-          guestCartItems,
-          req.sessionID
-        );
-        
-        cartInfo = {
-          preservedCart: true,
-          mergedItems: mergeResult.mergedItems,
-          conflicts: mergeResult.conflicts,
-          duration: mergeResult.duration
-        };
-      } catch (mergeError) {
-        console.error('Cart merge error during login:', mergeError);
-        cartInfo.mergeError = 'Failed to merge guest cart';
-      }
-    }
-
-    // Emit user login event
-    authService.emit('userLogin', {
-      userId: user._id,
-      email: user.email,
-      timestamp: new Date(),
-      ip: req.ip,
-      userAgent: req.get('User-Agent')
-    });
+    // Guest cart merging would happen on the frontend after login
 
     res.json({
       success: true,
       message: 'Login successful',
-      token,
-      user: user.toPublicJSON(),
-      cart: cartInfo
+      data: {
+        token,
+        user: user.toPublicJSON(),
+        cart: cartInfo
+      }
     });
 
   } catch (error) {
@@ -422,7 +396,9 @@ router.get('/profile', requireAuth, async (req, res) => {
   try {
     res.json({
       success: true,
-      user: req.user.toPublicJSON()
+      data: {
+        user: req.user.toPublicJSON()
+      }
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
@@ -436,14 +412,18 @@ router.get('/profile', requireAuth, async (req, res) => {
   }
 });
 
-// Update user profile
+// Update user profile with optimistic updates and performance optimization
 router.put('/profile', requireAuth, [
-  body('firstName').optional().trim().isLength({ min: 1, max: 50 }),
-  body('lastName').optional().trim().isLength({ min: 1, max: 50 }),
-  body('phone').optional().isString().isLength({ min: 7, max: 30 }),
-  body('preferences.notifications').optional().isBoolean(),
-  body('preferences.newsletter').optional().isBoolean()
+  body('firstName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('First name must be 1-50 characters'),
+  body('lastName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('Last name must be 1-50 characters'),
+  body('phone').optional().isString().isLength({ min: 7, max: 30 }).withMessage('Phone must be 7-30 characters'),
+  body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('preferences.notifications').optional().isBoolean().withMessage('Notifications must be boolean'),
+  body('preferences.newsletter').optional().isBoolean().withMessage('Newsletter must be boolean'),
+  body('preferences.emailPreferences').optional().isObject().withMessage('Email preferences must be an object')
 ], async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -457,31 +437,125 @@ router.put('/profile', requireAuth, [
       });
     }
 
-    const { email, firstName, lastName, phone, preferences, addresses } = req.body;
+    const { firstName, lastName, phone, email, preferences } = req.body;
     
+    // Build update data object
     const updateData = {};
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
     if (phone !== undefined) updateData.phone = phone;
-    if (preferences !== undefined) updateData.preferences = { ...req.user.preferences, ...preferences };
-    if (addresses !== undefined) updateData.addresses = addresses;
+    if (email !== undefined) updateData.email = email;
+    
+    // Handle nested preferences updates
+    if (preferences !== undefined) {
+      updateData.preferences = { 
+        ...req.user.preferences?.toObject?.() || req.user.preferences || {},
+        ...preferences
+      };
+      
+      // Handle nested emailPreferences
+      if (preferences.emailPreferences) {
+        updateData.preferences.emailPreferences = {
+          ...req.user.preferences?.emailPreferences || {},
+          ...preferences.emailPreferences
+        };
+      }
+    }
 
-    // Don't allow email updates through this endpoint
-    delete updateData.email;
+    // Use optimistic update service with performance monitoring
+    const auditContext = {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      sessionId: req.sessionID
+    };
 
-    const updatedUser = await User.findByIdAndUpdate(
+    const updateResult = await authService.updateProfileOptimistically(
       req.user._id,
       updateData,
-      { new: true, runValidators: true }
+      auditContext
     );
 
+    if (!updateResult.success) {
+      // Handle specific error cases
+      if (updateResult.error.includes('Rate limit exceeded')) {
+        return res.status(429).json({
+          success: false,
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: updateResult.error
+          }
+        });
+      }
+      
+      if (updateResult.error.includes('Email already in use')) {
+        return res.status(409).json({
+          success: false,
+          error: {
+            code: 'EMAIL_EXISTS',
+            message: 'Email address is already in use'
+          }
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'PROFILE_UPDATE_ERROR',
+          message: updateResult.error
+        }
+      });
+    }
+
+    const totalDuration = Date.now() - startTime;
+
+    // Send success response with performance metrics
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: updatedUser.toPublicJSON()
+      data: {
+        user: {
+          ...updateResult.user,
+          // Convert to public format if needed
+          _id: updateResult.user._id,
+          email: updateResult.user.email,
+          firstName: updateResult.user.firstName,
+          lastName: updateResult.user.lastName,
+          phone: updateResult.user.phone,
+          addresses: updateResult.user.addresses,
+          preferences: updateResult.user.preferences,
+          createdAt: updateResult.user.createdAt,
+          updatedAt: updateResult.user.updatedAt
+        }
+      },
+      performance: {
+        duration: totalDuration,
+        target: '200ms',
+        status: totalDuration <= 200 ? 'optimal' : 'needs_optimization'
+      }
     });
+
+    // Send email notification for sensitive changes if configured
+    if (email && email !== req.user.email) {
+      authService.notifyUserOfSensitiveChange(req.user._id, 'email', auditContext);
+    }
+    if (phone && phone !== req.user.phone) {
+      authService.notifyUserOfSensitiveChange(req.user._id, 'phone', auditContext);
+    }
+
   } catch (error) {
     console.error('Profile update error:', error);
+    
+    // Handle specific MongoDB errors
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'DUPLICATE_EMAIL',
+          message: 'Email address is already in use'
+        }
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: {
@@ -584,6 +658,279 @@ router.post('/logout', requireAuth, async (req, res) => {
       error: {
         code: 'LOGOUT_ERROR',
         message: 'Failed to logout'
+      }
+    });
+  }
+});
+
+// Address management endpoints without authentication loss
+
+// Add new address
+router.post('/addresses', requireAuth, [
+  body('type').isIn(['shipping', 'billing']).withMessage('Address type must be shipping or billing'),
+  body('firstName').trim().isLength({ min: 1, max: 50 }).withMessage('First name is required'),
+  body('lastName').trim().isLength({ min: 1, max: 50 }).withMessage('Last name is required'),
+  body('street').trim().isLength({ min: 1, max: 100 }).withMessage('Street address is required'),
+  body('city').trim().isLength({ min: 1, max: 50 }).withMessage('City is required'),
+  body('state').trim().isLength({ min: 1, max: 50 }).withMessage('State is required'),
+  body('zipCode').trim().isLength({ min: 3, max: 20 }).withMessage('ZIP code is required'),
+  body('country').optional().trim().isLength({ min: 2, max: 3 }).withMessage('Country code must be 2-3 characters'),
+  body('phone').optional().isString().isLength({ min: 7, max: 30 }).withMessage('Phone must be 7-30 characters'),
+  body('isDefault').optional().isBoolean().withMessage('isDefault must be boolean')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid address data',
+          details: errors.array()
+        }
+      });
+    }
+
+    const addressData = {
+      type: req.body.type,
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      street: req.body.street,
+      city: req.body.city,
+      state: req.body.state,
+      zipCode: req.body.zipCode,
+      country: req.body.country || 'US',
+      phone: req.body.phone,
+      isDefault: req.body.isDefault || false
+    };
+
+    const result = await authService.manageAddressOptimistically(
+      req.user._id,
+      'add',
+      addressData
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'ADDRESS_ADD_ERROR',
+          message: result.error
+        }
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Address added successfully',
+      user: result.user.toPublicJSON(),
+      performance: {
+        duration: result.duration,
+        status: result.performance
+      }
+    });
+
+  } catch (error) {
+    console.error('Add address error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'ADDRESS_ADD_ERROR',
+        message: 'Failed to add address'
+      }
+    });
+  }
+});
+
+// Update existing address
+router.put('/addresses/:addressId', requireAuth, [
+  body('type').optional().isIn(['shipping', 'billing']).withMessage('Address type must be shipping or billing'),
+  body('firstName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('First name must be 1-50 characters'),
+  body('lastName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('Last name must be 1-50 characters'),
+  body('street').optional().trim().isLength({ min: 1, max: 100 }).withMessage('Street must be 1-100 characters'),
+  body('city').optional().trim().isLength({ min: 1, max: 50 }).withMessage('City must be 1-50 characters'),
+  body('state').optional().trim().isLength({ min: 1, max: 50 }).withMessage('State must be 1-50 characters'),
+  body('zipCode').optional().trim().isLength({ min: 3, max: 20 }).withMessage('ZIP code must be 3-20 characters'),
+  body('country').optional().trim().isLength({ min: 2, max: 3 }).withMessage('Country code must be 2-3 characters'),
+  body('phone').optional().isString().isLength({ min: 7, max: 30 }).withMessage('Phone must be 7-30 characters'),
+  body('isDefault').optional().isBoolean().withMessage('isDefault must be boolean')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid address data',
+          details: errors.array()
+        }
+      });
+    }
+
+    const { addressId } = req.params;
+    const updateData = {};
+    
+    // Only include fields that are provided
+    ['type', 'firstName', 'lastName', 'street', 'city', 'state', 'zipCode', 'country', 'phone', 'isDefault']
+      .forEach(field => {
+        if (req.body[field] !== undefined) {
+          updateData[field] = req.body[field];
+        }
+      });
+
+    const result = await authService.manageAddressOptimistically(
+      req.user._id,
+      'update',
+      updateData,
+      addressId
+    );
+
+    if (!result.success) {
+      if (result.error.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'ADDRESS_NOT_FOUND',
+            message: 'Address not found'
+          }
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'ADDRESS_UPDATE_ERROR',
+          message: result.error
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Address updated successfully',
+      user: result.user.toPublicJSON(),
+      performance: {
+        duration: result.duration,
+        status: result.performance
+      }
+    });
+
+  } catch (error) {
+    console.error('Update address error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'ADDRESS_UPDATE_ERROR',
+        message: 'Failed to update address'
+      }
+    });
+  }
+});
+
+// Delete address
+router.delete('/profile/addresses/:addressId', requireAuth, async (req, res) => {
+  try {
+    const { addressId } = req.params;
+
+    const result = await authService.manageAddressOptimistically(
+      req.user._id,
+      'delete',
+      {},
+      addressId
+    );
+
+    if (!result.success) {
+      if (result.error.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'ADDRESS_NOT_FOUND',
+            message: 'Address not found'
+          }
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'ADDRESS_DELETE_ERROR',
+          message: result.error
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Address deleted successfully',
+      user: result.user.toPublicJSON(),
+      performance: {
+        duration: result.duration,
+        status: result.performance
+      }
+    });
+
+  } catch (error) {
+    console.error('Delete address error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'ADDRESS_DELETE_ERROR',
+        message: 'Failed to delete address'
+      }
+    });
+  }
+});
+
+// Set default address
+router.patch('/profile/addresses/:addressId/default', requireAuth, async (req, res) => {
+  try {
+    const { addressId } = req.params;
+
+    const result = await authService.manageAddressOptimistically(
+      req.user._id,
+      'setDefault',
+      {},
+      addressId
+    );
+
+    if (!result.success) {
+      if (result.error.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'ADDRESS_NOT_FOUND',
+            message: 'Address not found'
+          }
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'ADDRESS_DEFAULT_ERROR',
+          message: result.error
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Default address updated successfully',
+      user: result.user.toPublicJSON(),
+      performance: {
+        duration: result.duration,
+        status: result.performance
+      }
+    });
+
+  } catch (error) {
+    console.error('Set default address error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'ADDRESS_DEFAULT_ERROR',
+        message: 'Failed to set default address'
       }
     });
   }

@@ -4,11 +4,19 @@
  * Get current guest session ID
  */
 export const getGuestSessionId = () => {
-  if (!window.sessionStorage.getItem('guestSessionId')) {
+  // Check if we just logged out - if so, create a new session
+  const justLoggedOut = window.sessionStorage.getItem('justLoggedOut') === 'true'
+  const existingSessionId = window.sessionStorage.getItem('guestSessionId')
+  
+  if (justLoggedOut || !existingSessionId || !existingSessionId.startsWith('guest_')) {
     const sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     window.sessionStorage.setItem('guestSessionId', sessionId)
+    window.sessionStorage.removeItem('justLoggedOut') // Clear the flag
+    console.log('Created new guest session:', sessionId)
+    return sessionId
   }
-  return window.sessionStorage.getItem('guestSessionId')
+  
+  return existingSessionId
 }
 
 /**
@@ -16,6 +24,7 @@ export const getGuestSessionId = () => {
  */
 export const clearGuestSession = () => {
   window.sessionStorage.removeItem('guestSessionId')
+  console.log('Cleared guest session')
 }
 
 /**
@@ -76,12 +85,20 @@ export const syncCartAfterAuth = async (dispatch, cartActions, authActions, cart
  * Handle cart state on logout
  */
 export const handleCartOnLogout = (dispatch, cartActions) => {
+  // Set flag to indicate we just logged out
+  window.sessionStorage.setItem('justLoggedOut', 'true')
+  
   // Clear any user cart data and reset to guest state
   dispatch(cartActions.clearAfterMerge())
   
-  // Generate new guest session
+  // Clear current guest session and create a new one
   clearGuestSession()
-  getGuestSessionId()
+  
+  // Force create a new guest session immediately
+  const newSessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  window.sessionStorage.setItem('guestSessionId', newSessionId)
+  
+  console.log('Cart state reset for logout, new session:', newSessionId)
 }
 
 /**

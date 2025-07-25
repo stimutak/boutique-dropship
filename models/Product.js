@@ -87,6 +87,9 @@ productSchema.index({ slug: 1 });
 productSchema.index({ 'crossSiteIntegration.referenceKey': 1 });
 productSchema.index({ tags: 1 });
 productSchema.index({ isFeatured: 1, isActive: 1 });
+productSchema.index({ price: 1, isActive: 1 });
+productSchema.index({ 'properties.chakra': 1, isActive: 1 });
+productSchema.index({ createdAt: -1, isActive: 1 });
 
 // Method to get public product data (excludes wholesaler info)
 productSchema.methods.toPublicJSON = function() {

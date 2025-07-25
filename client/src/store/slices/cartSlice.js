@@ -7,8 +7,12 @@ export const fetchCart = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       // Ensure guest session exists for non-authenticated users
-      ensureGuestSession()
-      const response = await api.get('/api/cart')
+      const sessionId = ensureGuestSession()
+      const response = await api.get('/api/cart', {
+        headers: {
+          'x-guest-session-id': sessionId
+        }
+      })
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to fetch cart')
@@ -21,8 +25,12 @@ export const addToCart = createAsyncThunk(
   async ({ productId, quantity = 1 }, { rejectWithValue }) => {
     try {
       // Ensure guest session exists for non-authenticated users
-      ensureGuestSession()
-      const response = await api.post('/api/cart/add', { productId, quantity })
+      const sessionId = ensureGuestSession()
+      const response = await api.post('/api/cart/add', { productId, quantity }, {
+        headers: {
+          'x-guest-session-id': sessionId
+        }
+      })
       return response.data
     } catch (error) {
       // If CSRF token error, try refreshing token and retry once
@@ -31,7 +39,12 @@ export const addToCart = createAsyncThunk(
           const { default: csrfService } = await import('../../services/csrf.js')
           await csrfService.fetchToken()
           // Retry the request
-          const retryResponse = await api.post('/api/cart/add', { productId, quantity })
+          const sessionId = ensureGuestSession()
+          const retryResponse = await api.post('/api/cart/add', { productId, quantity }, {
+            headers: {
+              'x-guest-session-id': sessionId
+            }
+          })
           return retryResponse.data
         } catch (retryError) {
           return rejectWithValue(retryError.response?.data?.error?.message || retryError.message || 'Failed to add item to cart')
@@ -47,8 +60,12 @@ export const updateCartItem = createAsyncThunk(
   async ({ productId, quantity }, { rejectWithValue }) => {
     try {
       // Ensure guest session exists for non-authenticated users
-      ensureGuestSession()
-      const response = await api.put('/api/cart/update', { productId, quantity })
+      const sessionId = ensureGuestSession()
+      const response = await api.put('/api/cart/update', { productId, quantity }, {
+        headers: {
+          'x-guest-session-id': sessionId
+        }
+      })
       return response.data
     } catch (error) {
       // If CSRF token error, try refreshing token and retry once
@@ -57,7 +74,12 @@ export const updateCartItem = createAsyncThunk(
           const { default: csrfService } = await import('../../services/csrf.js')
           await csrfService.fetchToken()
           // Retry the request
-          const retryResponse = await api.put('/api/cart/update', { productId, quantity })
+          const sessionId = ensureGuestSession()
+          const retryResponse = await api.put('/api/cart/update', { productId, quantity }, {
+            headers: {
+              'x-guest-session-id': sessionId
+            }
+          })
           return retryResponse.data
         } catch (retryError) {
           return rejectWithValue(retryError.response?.data?.error?.message || retryError.message || 'Failed to update cart item')
@@ -73,8 +95,13 @@ export const removeFromCart = createAsyncThunk(
   async (productId, { rejectWithValue }) => {
     try {
       // Ensure guest session exists for non-authenticated users
-      ensureGuestSession()
-      const response = await api.delete('/api/cart/remove', { data: { productId } })
+      const sessionId = ensureGuestSession()
+      const response = await api.delete('/api/cart/remove', { 
+        data: { productId },
+        headers: {
+          'x-guest-session-id': sessionId
+        }
+      })
       return response.data
     } catch (error) {
       // If CSRF token error, try refreshing token and retry once
@@ -83,7 +110,13 @@ export const removeFromCart = createAsyncThunk(
           const { default: csrfService } = await import('../../services/csrf.js')
           await csrfService.fetchToken()
           // Retry the request
-          const retryResponse = await api.delete('/api/cart/remove', { data: { productId } })
+          const sessionId = ensureGuestSession()
+          const retryResponse = await api.delete('/api/cart/remove', { 
+            data: { productId },
+            headers: {
+              'x-guest-session-id': sessionId
+            }
+          })
           return retryResponse.data
         } catch (retryError) {
           return rejectWithValue(retryError.response?.data?.error?.message || retryError.message || 'Failed to remove item from cart')
@@ -99,8 +132,12 @@ export const clearCart = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       // Ensure guest session exists for non-authenticated users
-      ensureGuestSession()
-      const response = await api.delete('/api/cart/clear')
+      const sessionId = ensureGuestSession()
+      const response = await api.delete('/api/cart/clear', {
+        headers: {
+          'x-guest-session-id': sessionId
+        }
+      })
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to clear cart')
@@ -113,15 +150,31 @@ export const hardResetCart = createAsyncThunk(
   'cart/hardResetCart',
   async (_, { rejectWithValue, dispatch }) => {
     try {
+      // Get old session ID before clearing
+      const oldSessionId = window.sessionStorage.getItem('guestSessionId')
+      
       // Clear session storage
       window.sessionStorage.removeItem('guestSessionId')
       window.sessionStorage.removeItem('justLoggedOut')
       
-      // Create new session
-      ensureGuestSession()
+      // Reset guest session on server
+      if (oldSessionId) {
+        await api.post('/api/cart/reset-guest-session', {}, {
+          headers: {
+            'x-guest-session-id': oldSessionId
+          }
+        })
+      }
       
-      // Clear cart on server
-      const response = await api.delete('/api/cart/clear')
+      // Create new session
+      const newSessionId = ensureGuestSession()
+      
+      // Clear cart on server with new session
+      const response = await api.delete('/api/cart/clear', {
+        headers: {
+          'x-guest-session-id': newSessionId
+        }
+      })
       
       // Also dispatch local clear
       dispatch(clearAfterMerge())
@@ -150,18 +203,33 @@ export const mergeGuestCart = createAsyncThunk(
 
 // Get session ID for guest cart tracking
 const getSessionId = () => {
-  // Use a combination of timestamp and random string for session ID
-  // This will be managed by the backend session system
-  if (!window.sessionStorage.getItem('guestSessionId')) {
+  // Check if we just logged out - if so, create a new session
+  const justLoggedOut = window.sessionStorage.getItem('justLoggedOut') === 'true'
+  const existingSessionId = window.sessionStorage.getItem('guestSessionId')
+  
+  if (justLoggedOut || !existingSessionId || !existingSessionId.startsWith('guest_')) {
     const sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     window.sessionStorage.setItem('guestSessionId', sessionId)
+    window.sessionStorage.removeItem('justLoggedOut') // Clear the flag
+    console.log('Created new guest session:', sessionId)
+    return sessionId
   }
-  return window.sessionStorage.getItem('guestSessionId')
+  
+  return existingSessionId
 }
 
 // Ensure guest session ID exists before cart operations
 const ensureGuestSession = () => {
-  return getSessionId()
+  const sessionId = getSessionId()
+  return sessionId
+}
+
+// Force create new guest session (for logout/reset scenarios)
+const createNewGuestSession = () => {
+  const sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  window.sessionStorage.setItem('guestSessionId', sessionId)
+  console.log('Force created new guest session:', sessionId)
+  return sessionId
 }
 
 // Get current guest cart items for merging
@@ -202,8 +270,8 @@ const cartSlice = createSlice({
       state.pendingMerge = null
       state.syncStatus = 'idle'
       state.error = null
-      // Clear session storage to prevent duplicate merges
-      window.sessionStorage.removeItem('guestSessionId')
+      // Create new guest session instead of just clearing
+      createNewGuestSession()
     },
     // Set cart synchronization status
     setSyncStatus: (state, action) => {

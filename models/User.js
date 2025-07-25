@@ -55,6 +55,10 @@ const userSchema = new mongoose.Schema({
   lastLogin: Date,
   passwordResetToken: String,
   passwordResetExpiry: Date,
+  version: {
+    type: Number,
+    default: 0
+  },
   preferences: {
     newsletter: { type: Boolean, default: false },
     notifications: { type: Boolean, default: true },
@@ -98,7 +102,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-userSchema.index({ email: 1 });
+userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ isActive: 1 });
 userSchema.index({ lastLogin: -1 });
 
@@ -163,6 +167,23 @@ userSchema.methods.updateAddress = function(addressId, updateData) {
 // Method to remove address
 userSchema.methods.removeAddress = function(addressId) {
   this.addresses.pull(addressId);
+  return this.save();
+};
+
+// Method to set default address
+userSchema.methods.setDefaultAddress = function(addressId) {
+  const address = this.addresses.id(addressId);
+  if (!address) return null;
+  
+  // Unset other defaults of the same type
+  this.addresses.forEach(addr => {
+    if (addr.type === address.type && addr._id.toString() !== addressId) {
+      addr.isDefault = false;
+    }
+  });
+  
+  // Set this address as default
+  address.isDefault = true;
   return this.save();
 };
 

@@ -89,6 +89,8 @@ const authSlice = createSlice({
       state.token = null
       state.isAuthenticated = false
       state.error = null
+      // Set logout flag to prevent cart merge on next login
+      window.sessionStorage.setItem('justLoggedOut', 'true')
     },
     clearError: (state) => {
       state.error = null

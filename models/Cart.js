@@ -5,7 +5,8 @@ const cartSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    index: true
+    index: true,
+    sparse: true // Allow for better handling of duplicates during cleanup
   },
   items: [{
     product: {
@@ -38,8 +39,9 @@ const cartSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-cartSchema.index({ sessionId: 1 });
+cartSchema.index({ sessionId: 1 }, { unique: true });
 cartSchema.index({ expiresAt: 1 });
+cartSchema.index({ updatedAt: 1 }); // For cleanup queries
 
 // Method to calculate cart totals
 cartSchema.methods.calculateTotals = function() {

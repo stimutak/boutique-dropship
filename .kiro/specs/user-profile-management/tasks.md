@@ -42,7 +42,7 @@
   - ✅ Separated authentication from authorization logic
   - _Requirements: 2.1, 2.2, 2.3, 6.1, 6.2_
 
-- [ ] 3. Fix Profile Management Without Re-authentication
+- [-] 3. Fix Profile Management Without Re-authentication
 
   - [ ] 3.1 Update profile update endpoints
 

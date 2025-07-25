@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { loadUser } from './store/slices/authSlice'
+import { fetchCart } from './store/slices/cartSlice'
 import csrfService from './services/csrf'
 
 // Components
@@ -46,6 +47,11 @@ function App() {
         csrfService.fetchToken().catch(err => {
           console.warn('Failed to refresh CSRF token after user load:', err)
         })
+      })
+    } else {
+      // For guest users, fetch cart to ensure it's loaded before potential login
+      dispatch(fetchCart()).catch(err => {
+        console.warn('Failed to initialize guest cart:', err)
       })
     }
   }, [dispatch])

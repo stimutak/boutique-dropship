@@ -8,6 +8,13 @@ const MongoStore = require('connect-mongo');
 const path = require('path');
 require('dotenv').config();
 
+// Debug: Log environment variables
+console.log('Environment variables loaded:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+console.log('JWT_SECRET length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
+
 // Validate critical environment variables at startup
 if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'test') {
   console.error('FATAL ERROR: JWT_SECRET environment variable is not set. This is required for secure token generation.');
@@ -17,6 +24,7 @@ if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'test') {
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   if (process.env.NODE_ENV !== 'test') {
     console.error('FATAL ERROR: JWT_SECRET must be at least 32 characters long for security.');
+    console.error('Current JWT_SECRET length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
     process.exit(1);
   }
 }
@@ -151,7 +159,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Only start server if not in test mode
 if (process.env.NODE_ENV !== 'test') {

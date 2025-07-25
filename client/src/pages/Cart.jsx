@@ -15,9 +15,8 @@ const Cart = () => {
   const { isAuthenticated } = useSelector(state => state.auth)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(fetchCart())
-    }
+    // Always fetch cart - backend handles both authenticated and guest carts
+    dispatch(fetchCart())
   }, [dispatch, isAuthenticated])
 
   const handleUpdateQuantity = (productId, quantity) => {
