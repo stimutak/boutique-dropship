@@ -418,6 +418,12 @@ router.put('/profile', requireAuth, [
   body('lastName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('Last name must be 1-50 characters'),
   body('phone').optional().isString().isLength({ min: 7, max: 30 }).withMessage('Phone must be 7-30 characters'),
   body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('addresses').optional().isArray().withMessage('Addresses must be an array'),
+  body('addresses.*.street').optional().trim().isLength({ min: 1, max: 100 }).withMessage('Street must be 1-100 characters'),
+  body('addresses.*.city').optional().trim().isLength({ min: 1, max: 50 }).withMessage('City must be 1-50 characters'),
+  body('addresses.*.state').optional().trim().isLength({ min: 2, max: 50 }).withMessage('State must be 2-50 characters'),
+  body('addresses.*.zipCode').optional().trim().isLength({ min: 5, max: 10 }).withMessage('ZIP code must be 5-10 characters'),
+  body('addresses.*.country').optional().trim().isLength({ min: 2, max: 2 }).withMessage('Country must be 2-letter code'),
   body('preferences.notifications').optional().isBoolean().withMessage('Notifications must be boolean'),
   body('preferences.newsletter').optional().isBoolean().withMessage('Newsletter must be boolean'),
   body('preferences.emailPreferences').optional().isObject().withMessage('Email preferences must be an object')
@@ -437,7 +443,7 @@ router.put('/profile', requireAuth, [
       });
     }
 
-    const { firstName, lastName, phone, email, preferences } = req.body;
+    const { firstName, lastName, phone, email, addresses, preferences } = req.body;
     
     // Build update data object
     const updateData = {};
@@ -445,6 +451,7 @@ router.put('/profile', requireAuth, [
     if (lastName !== undefined) updateData.lastName = lastName;
     if (phone !== undefined) updateData.phone = phone;
     if (email !== undefined) updateData.email = email;
+    if (addresses !== undefined) updateData.addresses = addresses;
     
     // Handle nested preferences updates
     if (preferences !== undefined) {

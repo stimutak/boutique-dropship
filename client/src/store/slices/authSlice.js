@@ -154,7 +154,9 @@ const authSlice = createSlice({
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.isLoading = false
-        state.user = action.payload.user || action.payload
+        // Handle nested response structure
+        const userData = action.payload.data?.user || action.payload.user || action.payload
+        state.user = userData
         // Keep authentication state - don't force re-login
         state.isAuthenticated = true
       })
