@@ -33,23 +33,7 @@ export const addToCart = createAsyncThunk(
       })
       return response.data
     } catch (error) {
-      // If CSRF token error, try refreshing token and retry once
-      if (error.response?.data?.error?.code === 'CSRF_TOKEN_MISMATCH') {
-        try {
-          const { default: csrfService } = await import('../../services/csrf.js')
-          await csrfService.fetchToken()
-          // Retry the request
-          const sessionId = ensureGuestSession()
-          const retryResponse = await api.post('/api/cart/add', { productId, quantity }, {
-            headers: {
-              'x-guest-session-id': sessionId
-            }
-          })
-          return retryResponse.data
-        } catch (retryError) {
-          return rejectWithValue(retryError.response?.data?.error?.message || retryError.message || 'Failed to add item to cart')
-        }
-      }
+      // Don't retry on CSRF errors - let the user retry
       return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to add item to cart')
     }
   }
@@ -68,23 +52,7 @@ export const updateCartItem = createAsyncThunk(
       })
       return response.data
     } catch (error) {
-      // If CSRF token error, try refreshing token and retry once
-      if (error.response?.data?.error?.code === 'CSRF_TOKEN_MISMATCH') {
-        try {
-          const { default: csrfService } = await import('../../services/csrf.js')
-          await csrfService.fetchToken()
-          // Retry the request
-          const sessionId = ensureGuestSession()
-          const retryResponse = await api.put('/api/cart/update', { productId, quantity }, {
-            headers: {
-              'x-guest-session-id': sessionId
-            }
-          })
-          return retryResponse.data
-        } catch (retryError) {
-          return rejectWithValue(retryError.response?.data?.error?.message || retryError.message || 'Failed to update cart item')
-        }
-      }
+      // Don't retry on CSRF errors - let the user retry
       return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to update cart item')
     }
   }
@@ -104,24 +72,7 @@ export const removeFromCart = createAsyncThunk(
       })
       return response.data
     } catch (error) {
-      // If CSRF token error, try refreshing token and retry once
-      if (error.response?.data?.error?.code === 'CSRF_TOKEN_MISMATCH') {
-        try {
-          const { default: csrfService } = await import('../../services/csrf.js')
-          await csrfService.fetchToken()
-          // Retry the request
-          const sessionId = ensureGuestSession()
-          const retryResponse = await api.delete('/api/cart/remove', { 
-            data: { productId },
-            headers: {
-              'x-guest-session-id': sessionId
-            }
-          })
-          return retryResponse.data
-        } catch (retryError) {
-          return rejectWithValue(retryError.response?.data?.error?.message || retryError.message || 'Failed to remove item from cart')
-        }
-      }
+      // Don't retry on CSRF errors - let the user retry
       return rejectWithValue(error.response?.data?.error?.message || error.message || 'Failed to remove item from cart')
     }
   }

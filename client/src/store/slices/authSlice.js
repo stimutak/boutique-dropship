@@ -108,11 +108,6 @@ const authSlice = createSlice({
         state.user = action.payload.user
         state.token = action.payload.token
         state.isAuthenticated = true
-        // Clear CSRF token to force refresh after login
-        import('../../services/csrf.js').then(module => {
-          module.default.clearToken()
-          module.default.fetchToken()
-        })
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false

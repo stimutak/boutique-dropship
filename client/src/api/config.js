@@ -30,7 +30,6 @@ api.interceptors.request.use(
     // Add CSRF token for state-changing requests
     if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
       try {
-        // Import here to avoid circular dependency
         const { default: csrfService } = await import('../services/csrf.js')
         const csrfToken = await csrfService.getToken()
         if (csrfToken) {

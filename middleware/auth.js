@@ -23,6 +23,8 @@ const authenticateToken = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    // Log the error for debugging but don't expose details to client
+    console.error('JWT verification error:', error.message);
     req.user = null;
     next(); // Continue without authentication for optional auth routes
   }
