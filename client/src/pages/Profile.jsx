@@ -12,6 +12,9 @@ const Profile = () => {
     email: '',
     phone: '',
     addresses: [{
+      type: 'shipping',
+      firstName: '',
+      lastName: '',
       street: '',
       city: '',
       state: '',
@@ -30,6 +33,9 @@ const Profile = () => {
         addresses: user.addresses && user.addresses.length > 0 
           ? user.addresses 
           : [{
+              type: 'shipping',
+              firstName: user.firstName || '',
+              lastName: user.lastName || '',
               street: '',
               city: '',
               state: '',
@@ -66,7 +72,18 @@ const Profile = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    dispatch(updateProfile(formData))
+    // Ensure address has firstName and lastName from the main form if not set
+    // Don't send email since it can't be changed
+    const { email, ...dataWithoutEmail } = formData
+    const dataToSubmit = {
+      ...dataWithoutEmail,
+      addresses: formData.addresses.map(addr => ({
+        ...addr,
+        firstName: addr.firstName || formData.firstName,
+        lastName: addr.lastName || formData.lastName
+      }))
+    }
+    dispatch(updateProfile(dataToSubmit))
   }
 
   return (
@@ -110,7 +127,10 @@ const Profile = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                autoComplete="off"
+                disabled
               />
+              <small className="text-muted">Email cannot be changed</small>
             </div>
             
             <div className="form-group">

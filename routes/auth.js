@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
+const { validateCSRFToken } = require('../middleware/sessionCSRF');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -394,10 +395,23 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
 // Get user profile
 router.get('/profile', requireAuth, async (req, res) => {
   try {
+    // Fetch fresh user data to ensure all fields are populated correctly
+    const user = await User.findById(req.user._id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
+        }
+      });
+    }
+    
     res.json({
       success: true,
       data: {
-        user: req.user.toPublicJSON()
+        user: user.toPublicJSON()
       }
     });
   } catch (error) {
@@ -413,15 +427,15 @@ router.get('/profile', requireAuth, async (req, res) => {
 });
 
 // Update user profile with optimistic updates and performance optimization
-router.put('/profile', requireAuth, [
+router.put('/profile', requireAuth, validateCSRFToken, [
   body('firstName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('First name must be 1-50 characters'),
   body('lastName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('Last name must be 1-50 characters'),
   body('phone').optional().isString().isLength({ min: 7, max: 30 }).withMessage('Phone must be 7-30 characters'),
-  body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('email').optional().isEmail().withMessage('Valid email is required'),
   body('addresses').optional().isArray().withMessage('Addresses must be an array'),
   body('addresses.*.street').optional().trim().isLength({ min: 1, max: 100 }).withMessage('Street must be 1-100 characters'),
   body('addresses.*.city').optional().trim().isLength({ min: 1, max: 50 }).withMessage('City must be 1-50 characters'),
-  body('addresses.*.state').optional().trim().isLength({ min: 2, max: 50 }).withMessage('State must be 2-50 characters'),
+  body('addresses.*.state').optional().trim().isLength({ min: 1, max: 50 }).withMessage('State must be 1-50 characters'),
   body('addresses.*.zipCode').optional().trim().isLength({ min: 5, max: 10 }).withMessage('ZIP code must be 5-10 characters'),
   body('addresses.*.country').optional().trim().isLength({ min: 2, max: 2 }).withMessage('Country must be 2-letter code'),
   body('preferences.notifications').optional().isBoolean().withMessage('Notifications must be boolean'),
@@ -433,6 +447,7 @@ router.put('/profile', requireAuth, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('Profile update validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         error: {
@@ -455,102 +470,91 @@ router.put('/profile', requireAuth, [
     
     // Handle nested preferences updates
     if (preferences !== undefined) {
+      // Get current preferences safely
+      let currentPreferences = {};
+      if (req.user.preferences) {
+        currentPreferences = typeof req.user.preferences.toObject === 'function' 
+          ? req.user.preferences.toObject() 
+          : req.user.preferences;
+      }
+      
       updateData.preferences = { 
-        ...req.user.preferences?.toObject?.() || req.user.preferences || {},
+        ...currentPreferences,
         ...preferences
       };
       
       // Handle nested emailPreferences
       if (preferences.emailPreferences) {
         updateData.preferences.emailPreferences = {
-          ...req.user.preferences?.emailPreferences || {},
+          ...currentPreferences.emailPreferences || {},
           ...preferences.emailPreferences
         };
       }
     }
 
-    // Use optimistic update service with performance monitoring
-    const auditContext = {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      sessionId: req.sessionID
-    };
+    // Update user directly
+    try {
+      // Check if email is being changed and already exists
+      if (email && email !== req.user.email) {
+        const existingUser = await User.findOne({ email, _id: { $ne: req.user._id } });
+        if (existingUser) {
+          return res.status(409).json({
+            success: false,
+            error: {
+              code: 'EMAIL_EXISTS',
+              message: 'Email address is already in use'
+            }
+          });
+        }
+      }
 
-    const updateResult = await authService.updateProfileOptimistically(
-      req.user._id,
-      updateData,
-      auditContext
-    );
+      // Update the user
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        updateData,
+        { new: true, runValidators: true }
+      ).select('-password');
 
-    if (!updateResult.success) {
-      // Handle specific error cases
-      if (updateResult.error.includes('Rate limit exceeded')) {
-        return res.status(429).json({
+      if (!user) {
+        return res.status(404).json({
           success: false,
           error: {
-            code: 'RATE_LIMIT_EXCEEDED',
-            message: updateResult.error
+            code: 'USER_NOT_FOUND',
+            message: 'User not found'
           }
         });
       }
-      
-      if (updateResult.error.includes('Email already in use')) {
-        return res.status(409).json({
-          success: false,
-          error: {
-            code: 'EMAIL_EXISTS',
-            message: 'Email address is already in use'
-          }
-        });
-      }
 
-      return res.status(400).json({
+      const totalDuration = Date.now() - startTime;
+
+      // Send success response
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: {
+          user: user.toPublicJSON()
+        },
+        performance: {
+          duration: totalDuration,
+          target: '200ms',
+          status: totalDuration <= 200 ? 'optimal' : 'needs_optimization'
+        }
+      });
+    } catch (updateError) {
+      console.error('Profile update error:', updateError);
+      return res.status(500).json({
         success: false,
         error: {
           code: 'PROFILE_UPDATE_ERROR',
-          message: updateResult.error
+          message: updateError.message || 'Failed to update profile'
         }
       });
     }
 
-    const totalDuration = Date.now() - startTime;
-
-    // Send success response with performance metrics
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: {
-        user: {
-          ...updateResult.user,
-          // Convert to public format if needed
-          _id: updateResult.user._id,
-          email: updateResult.user.email,
-          firstName: updateResult.user.firstName,
-          lastName: updateResult.user.lastName,
-          phone: updateResult.user.phone,
-          addresses: updateResult.user.addresses,
-          preferences: updateResult.user.preferences,
-          createdAt: updateResult.user.createdAt,
-          updatedAt: updateResult.user.updatedAt
-        }
-      },
-      performance: {
-        duration: totalDuration,
-        target: '200ms',
-        status: totalDuration <= 200 ? 'optimal' : 'needs_optimization'
-      }
-    });
-
-    // Send email notification for sensitive changes if configured
-    if (email && email !== req.user.email) {
-      authService.notifyUserOfSensitiveChange(req.user._id, 'email', auditContext);
-    }
-    if (phone && phone !== req.user.phone) {
-      authService.notifyUserOfSensitiveChange(req.user._id, 'phone', auditContext);
-    }
-
   } catch (error) {
     console.error('Profile update error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Request body:', req.body);
     
     // Handle specific MongoDB errors
     if (error.code === 11000) {
@@ -567,7 +571,8 @@ router.put('/profile', requireAuth, [
       success: false,
       error: {
         code: 'PROFILE_UPDATE_ERROR',
-        message: 'Failed to update profile'
+        message: 'Failed to update profile',
+        details: error.message
       }
     });
   }
@@ -633,8 +638,8 @@ router.post('/logout', requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
     
-    // Emit logout event
-    authService.emit('userLogout', {
+    // Log logout event
+    console.log('User logout:', {
       userId: userId,
       timestamp: new Date()
     });
@@ -673,7 +678,7 @@ router.post('/logout', requireAuth, async (req, res) => {
 // Address management endpoints without authentication loss
 
 // Add new address
-router.post('/addresses', requireAuth, [
+router.post('/profile/addresses', requireAuth, validateCSRFToken, [
   body('type').isIn(['shipping', 'billing']).withMessage('Address type must be shipping or billing'),
   body('firstName').trim().isLength({ min: 1, max: 50 }).withMessage('First name is required'),
   body('lastName').trim().isLength({ min: 1, max: 50 }).withMessage('Last name is required'),
@@ -711,30 +716,32 @@ router.post('/addresses', requireAuth, [
       isDefault: req.body.isDefault || false
     };
 
-    const result = await authService.manageAddressOptimistically(
-      req.user._id,
-      'add',
-      addressData
-    );
-
-    if (!result.success) {
-      return res.status(400).json({
+    // Add address to user
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
         success: false,
         error: {
-          code: 'ADDRESS_ADD_ERROR',
-          message: result.error
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
         }
       });
     }
 
+    // If this is the default address, unset other defaults
+    if (addressData.isDefault) {
+      user.addresses.forEach(addr => {
+        addr.isDefault = false;
+      });
+    }
+
+    user.addresses.push(addressData);
+    await user.save();
+
     res.status(201).json({
       success: true,
       message: 'Address added successfully',
-      user: result.user.toPublicJSON(),
-      performance: {
-        duration: result.duration,
-        status: result.performance
-      }
+      user: user.toPublicJSON()
     });
 
   } catch (error) {
@@ -750,7 +757,7 @@ router.post('/addresses', requireAuth, [
 });
 
 // Update existing address
-router.put('/addresses/:addressId', requireAuth, [
+router.put('/profile/addresses/:addressId', requireAuth, validateCSRFToken, [
   body('type').optional().isIn(['shipping', 'billing']).withMessage('Address type must be shipping or billing'),
   body('firstName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('First name must be 1-50 characters'),
   body('lastName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('Last name must be 1-50 characters'),
@@ -786,41 +793,46 @@ router.put('/addresses/:addressId', requireAuth, [
         }
       });
 
-    const result = await authService.manageAddressOptimistically(
-      req.user._id,
-      'update',
-      updateData,
-      addressId
-    );
-
-    if (!result.success) {
-      if (result.error.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'ADDRESS_NOT_FOUND',
-            message: 'Address not found'
-          }
-        });
-      }
-
-      return res.status(400).json({
+    // Update address on user
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
         success: false,
         error: {
-          code: 'ADDRESS_UPDATE_ERROR',
-          message: result.error
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
         }
       });
     }
 
+    const address = user.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'ADDRESS_NOT_FOUND',
+          message: 'Address not found'
+        }
+      });
+    }
+
+    // If setting as default, unset other defaults
+    if (updateData.isDefault) {
+      user.addresses.forEach(addr => {
+        if (addr._id.toString() !== addressId) {
+          addr.isDefault = false;
+        }
+      });
+    }
+
+    // Update the address
+    Object.assign(address, updateData);
+    await user.save();
+
     res.json({
       success: true,
       message: 'Address updated successfully',
-      user: result.user.toPublicJSON(),
-      performance: {
-        duration: result.duration,
-        status: result.performance
-      }
+      user: user.toPublicJSON()
     });
 
   } catch (error) {
@@ -836,45 +848,41 @@ router.put('/addresses/:addressId', requireAuth, [
 });
 
 // Delete address
-router.delete('/profile/addresses/:addressId', requireAuth, async (req, res) => {
+router.delete('/profile/addresses/:addressId', requireAuth, validateCSRFToken, async (req, res) => {
   try {
     const { addressId } = req.params;
 
-    const result = await authService.manageAddressOptimistically(
-      req.user._id,
-      'delete',
-      {},
-      addressId
-    );
-
-    if (!result.success) {
-      if (result.error.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'ADDRESS_NOT_FOUND',
-            message: 'Address not found'
-          }
-        });
-      }
-
-      return res.status(400).json({
+    // Delete address from user
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
         success: false,
         error: {
-          code: 'ADDRESS_DELETE_ERROR',
-          message: result.error
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
         }
       });
     }
 
+    const address = user.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'ADDRESS_NOT_FOUND',
+          message: 'Address not found'
+        }
+      });
+    }
+
+    // Remove the address
+    address.remove();
+    await user.save();
+
     res.json({
       success: true,
       message: 'Address deleted successfully',
-      user: result.user.toPublicJSON(),
-      performance: {
-        duration: result.duration,
-        status: result.performance
-      }
+      user: user.toPublicJSON()
     });
 
   } catch (error) {
@@ -890,45 +898,44 @@ router.delete('/profile/addresses/:addressId', requireAuth, async (req, res) => 
 });
 
 // Set default address
-router.patch('/profile/addresses/:addressId/default', requireAuth, async (req, res) => {
+router.patch('/profile/addresses/:addressId/default', requireAuth, validateCSRFToken, async (req, res) => {
   try {
     const { addressId } = req.params;
 
-    const result = await authService.manageAddressOptimistically(
-      req.user._id,
-      'setDefault',
-      {},
-      addressId
-    );
-
-    if (!result.success) {
-      if (result.error.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'ADDRESS_NOT_FOUND',
-            message: 'Address not found'
-          }
-        });
-      }
-
-      return res.status(400).json({
+    // Set default address
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
         success: false,
         error: {
-          code: 'ADDRESS_DEFAULT_ERROR',
-          message: result.error
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
         }
       });
     }
 
+    const address = user.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'ADDRESS_NOT_FOUND',
+          message: 'Address not found'
+        }
+      });
+    }
+
+    // Unset all other defaults and set this one
+    user.addresses.forEach(addr => {
+      addr.isDefault = addr._id.toString() === addressId;
+    });
+    
+    await user.save();
+
     res.json({
       success: true,
       message: 'Default address updated successfully',
-      user: result.user.toPublicJSON(),
-      performance: {
-        duration: result.duration,
-        status: result.performance
-      }
+      user: user.toPublicJSON()
     });
 
   } catch (error) {
