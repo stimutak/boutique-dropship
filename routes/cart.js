@@ -684,8 +684,9 @@ router.post('/merge', authenticateToken, async (req, res) => {
 
     let mergedItems = 0;
 
-    // Process guest cart items
+    // Process guest cart items - use either guestCartItems OR session-based cart, not both
     if (guestCartItems && Array.isArray(guestCartItems) && guestCartItems.length > 0) {
+      // Frontend sent cart items directly, use those
       for (const guestItem of guestCartItems) {
         const product = await Product.findById(guestItem.productId || guestItem.product);
         if (!product || !product.isActive) {
@@ -712,10 +713,14 @@ router.post('/merge', authenticateToken, async (req, res) => {
         }
         mergedItems++;
       }
-    }
-
-    // Process session-based cart
-    if (sessionId) {
+      
+      // Clean up the guest cart from database if sessionId provided
+      if (sessionId) {
+        await Cart.deleteOne({ sessionId });
+        console.log('Deleted guest cart for session:', sessionId);
+      }
+    } else if (sessionId) {
+      // No items sent from frontend, try to load from database
       const guestCart = await Cart.findOne({ sessionId });
       if (guestCart && guestCart.items.length > 0) {
         console.log('Found guest cart with', guestCart.items.length, 'items for session:', sessionId);
