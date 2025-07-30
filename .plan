@@ -1,0 +1,404 @@
+# Boutique E-Commerce - Development Plan
+
+## Current Status: 68-72% Complete
+*Last Updated: 2025-07-29*
+
+### 🎯 Immediate Focus (This Week)
+1. **JWT Security Migration** - Move from localStorage to httpOnly cookies
+2. **Fix React Version Mismatch** - Align frontend/backend versions
+3. **Generate Secure Secrets** - Replace weak JWT secret
+4. **✅ Cart Persistence Bug** - RESOLVED (atomic updates, duplicate cleanup)
+5. **🌍 Internationalization Foundation** - Setup i18n framework and multi-currency support
+
+## Project Overview
+**Name:** Boutique Dropship Store  
+**Type:** E-commerce Platform  
+**Stack:** MERN (MongoDB, Express, React, Node.js)  
+**Purpose:** Full-featured e-commerce platform with dropshipping capabilities
+
+## Current State (As of July 2025)
+
+### Completed Features
+- ✅ User authentication (JWT-based)
+- ✅ Guest checkout functionality
+- ✅ Cart persistence (both guest and authenticated users)
+- ✅ Product catalog with search and filtering
+- ✅ Order management system
+- ✅ Payment integration (Mollie)
+- ✅ Address management
+- ✅ Admin functionality
+- ✅ Email notifications (configurable)
+- ✅ CSRF protection
+- ✅ Basic security measures
+
+### Recent Fixes
+- Fixed authentication state sync error messages
+- Fixed profile update functionality (removed authService dependency)
+- Added CSRF validation to guest checkout
+- Fixed address management endpoints
+- Resolved cart persistence issues (atomic operations, duplicate cart cleanup, race condition fixes)
+
+### 📊 Progress Overview
+
+#### ✅ Completed
+- [x] Basic e-commerce functionality
+- [x] User authentication (needs security fix)
+- [x] Product catalog
+- [x] Shopping cart (persistence fixed)
+- [x] Guest checkout
+- [x] Order creation
+- [x] Database models with indexes
+- [x] Frontend Redux store
+- [x] Test infrastructure
+
+#### 🚧 In Progress
+- [ ] Security vulnerabilities
+- [ ] Payment integration
+- [ ] Performance optimization
+- [ ] Error standardization
+
+#### ❌ Not Started
+- [ ] Production deployment setup
+- [ ] Real payment processing
+- [ ] Admin dashboard
+- [ ] Email notifications
+- [ ] Order fulfillment
+- [ ] Monitoring/alerting
+
+### 🐛 Critical Bugs to Fix
+
+1. **Security: JWT in localStorage**
+   - 196 references need updating
+   - Major XSS vulnerability
+
+2. **✅ Cart Persistence Issues** - RESOLVED
+   - Fixed with atomic database operations
+   - Duplicate cart cleanup implemented
+   - Session handling improved with fallback logic
+
+3. **Performance Problems**
+   - N+1 queries in orders
+   - Missing critical indexes
+   - 3MB+ frontend bundle
+
+4. **Configuration Issues**
+   - React version mismatch
+   - Weak production secrets
+   - Port configuration bugs
+
+## Architecture Overview
+
+### Backend Structure
+```
+/
+├── server.js           # Main server file (PORT: 5001)
+├── models/            # Mongoose models
+├── routes/            # Express routes
+├── middleware/        # Auth, CSRF, error handling
+├── utils/             # Email, error recovery, logging
+└── scripts/           # Database population, maintenance
+```
+
+### Frontend Structure
+```
+client/
+├── src/
+│   ├── components/    # Reusable UI components
+│   ├── pages/        # Route-level components
+│   ├── store/        # Redux store and slices
+│   ├── api/          # API configuration
+│   ├── hooks/        # Custom React hooks
+│   └── services/     # CSRF, error handling
+```
+
+### Key Models
+- **User**: Authentication, profile, addresses, cart
+- **Product**: Catalog items with wholesaler info
+- **Order**: Purchase records with status tracking
+- **Cart**: Guest cart storage
+- **WholesalerNotification**: Dropship notifications
+
+## Development Guidelines
+
+### Code Standards
+1. **No Over-Engineering**: Keep solutions simple and direct
+2. **Avoid Duplication**: Check for existing implementations before creating new ones
+3. **Use Existing Patterns**: Follow established patterns in the codebase
+4. **Minimal Dependencies**: Don't add packages unless absolutely necessary
+
+### Common Pitfalls to Avoid
+- Creating "enhanced" versions of existing code
+- Adding unnecessary abstraction layers
+- Implementing complex patterns for simple problems
+- Creating duplicate test files with suffixes like "-fixed"
+- Adding performance monitoring for trivial operations
+
+### 🗓️ Weekly Milestones
+
+**Week 1**: Security & Stability
+- JWT to cookies migration
+- Fix cart bugs
+- Secure secrets
+- React version fix
+
+**Week 2**: Payment & Currency Integration  
+- Configure Mollie for international payments
+- Enable Mollie's multi-currency support
+- Add cryptocurrency payment option
+- Currency conversion service
+- Multi-language invoices
+
+**Week 3**: Performance
+- Add indexes
+- Redis caching
+- Code splitting
+- Query optimization
+
+**Week 4**: Production Setup
+- Docker configuration
+- CI/CD pipeline
+- Nginx setup
+- SSL/monitoring
+
+**Week 5-6**: Core Features
+- Admin dashboard
+- Email system
+- Order fulfillment
+
+**Week 7**: Cleanup
+- Remove dead code
+- Consolidate scripts
+- Improve tests
+
+### Testing Approach
+- Run `npm test` for backend tests
+- Run `npm test` in client/ for frontend tests
+- Ensure all tests pass before committing
+- Use TDD principles when fixing bugs
+
+## 🎯 Definition of "Production Ready"
+
+**Must Have:**
+- [ ] Secure authentication (JWT in cookies)
+- [ ] Real payment processing
+- [ ] Reliable cart/checkout
+- [ ] Order management
+- [ ] Email notifications
+- [ ] Error monitoring
+- [ ] Automated deployment
+- [ ] SSL certificate
+- [ ] Backup strategy
+
+**Nice to Have:**
+- [ ] Wishlist
+- [ ] Reviews/ratings  
+- [ ] Advanced search
+- [ ] Marketing tools
+- [ ] Analytics
+
+## 📝 Technical Debt to Address
+
+1. **Dead Code** (1,200+ lines)
+   - enhancedAuthSlice.js
+   - enhancedCartSlice.js
+   - Duplicate test files
+
+2. **Over-Engineering**
+   - EventEmitter in cartService
+   - Complex session handling
+   - 27 overlapping scripts
+
+3. **Inconsistencies**
+   - Error response formats
+   - API response structures
+   - Test file organization
+
+## 🚀 Quick Wins (< 1 day each)
+
+1. Delete enhanced Redux slices
+2. Add missing DB indexes
+3. Generate secure secrets
+4. Remove duplicate tests
+5. Fix port configuration
+
+## Security Considerations
+
+### Current Issues
+- JWT stored in localStorage (should be httpOnly cookies)
+- 196 localStorage references need systematic fix
+- CSRF protection implemented but needs consistent application
+
+### Best Practices
+- Never expose secrets in code
+- Always validate and sanitize user input
+- Use parameterized queries
+- Implement rate limiting
+- Keep dependencies updated
+
+## API Endpoints
+
+### Authentication
+- POST /api/auth/register
+- POST /api/auth/login
+- GET /api/auth/profile
+- PUT /api/auth/profile
+- POST /api/auth/logout
+
+### Products
+- GET /api/products
+- GET /api/products/:slug
+- POST /api/products (admin)
+- PUT /api/products/:id (admin)
+
+### Cart
+- GET /api/cart
+- POST /api/cart/add
+- PUT /api/cart/update
+- DELETE /api/cart/remove
+- DELETE /api/cart/clear
+- POST /api/cart/merge
+
+### Orders
+- POST /api/orders/guest
+- POST /api/orders/registered
+- GET /api/orders (auth required)
+- GET /api/orders/:id (auth required)
+
+### Payment
+- POST /api/payments/create
+- POST /api/payments/webhook
+- GET /api/payments/verify/:orderId
+
+## Environment Variables
+```env
+NODE_ENV=development
+PORT=5001
+MONGODB_URI=mongodb://localhost:27017/holistic-store
+JWT_SECRET=[32+ characters required]
+SESSION_SECRET=[long random string]
+MOLLIE_API_KEY=[your mollie key]
+FRONTEND_URL=http://localhost:3001
+
+# Internationalization
+DEFAULT_LANGUAGE=en
+DEFAULT_CURRENCY=USD
+SUPPORTED_LANGUAGES=en,es,fr,de,it,pt,zh,ja,ar,he
+SUPPORTED_CURRENCIES=USD,EUR,GBP,JPY,CNY,CAD,AUD,CHF,SEK,NOK
+CURRENCY_API_KEY=[OpenExchangeRates or similar]
+GEOIP_API_KEY=[MaxMind or similar]
+
+# Optional Email Configuration
+EMAIL_ENABLED=false
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@example.com
+EMAIL_PASS=your-password
+EMAIL_FROM="Store Name <noreply@example.com>"
+```
+
+## Development Commands
+
+### Backend
+```bash
+npm run dev        # Start with nodemon
+npm start         # Production server
+npm test          # Run tests
+npm run lint      # Check code style
+```
+
+### Frontend (in /client)
+```bash
+npm run dev       # Vite dev server
+npm run build     # Production build
+npm test          # Run tests
+npm run lint      # Check code style
+```
+
+### Database
+```bash
+node populate-simple.js    # Populate with sample data
+```
+
+### Test Credentials
+- Admin: john@example.com / Password123!
+- User: jane@example.com / Password123!
+
+## Debugging Tips
+
+### Common Issues
+1. **Port conflicts**: Ensure backend runs on 5001, frontend on 3001
+2. **CSRF errors**: Clear cookies and refresh CSRF token
+3. **Cart sync issues**: Check sessionStorage for guestSessionId
+4. **Auth loops**: Verify token validity and user.isActive status
+
+### Useful Debug Tools
+- Redux DevTools for state inspection
+- Network tab for API calls
+- Console logs in development mode
+- MongoDB Compass for database inspection
+
+## 📋 Today's Priority
+
+1. Review JWT migration approach
+2. Plan cart persistence fix
+3. Check React version dependencies
+4. Identify payment integration requirements
+
+## 🤔 Open Questions
+
+1. Which payment providers besides Mollie for international coverage?
+2. Target countries/regions for initial launch?
+3. Priority languages for translation?
+4. Currency conversion service preference?
+5. Translation service/agency?
+6. CDN provider for global performance?
+7. International shipping partners?
+8. Tax calculation service for different regions?
+
+## 💡 Improvement Ideas
+
+1. Simplify cart to database-only storage
+2. Use consistent error middleware everywhere
+3. Implement proper logging strategy
+4. Add health check endpoints
+5. Create staging environment
+
+## Project Maintenance
+
+### Regular Tasks
+1. Update dependencies monthly
+2. Review and fix security vulnerabilities
+3. Clean up old guest carts (30+ days)
+4. Archive old orders
+5. Monitor error logs
+6. Backup database regularly
+
+### Code Quality Checklist
+- [ ] No console.logs in production code
+- [ ] All API errors handled gracefully
+- [ ] Loading states for all async operations
+- [ ] Proper form validation
+- [ ] Responsive design tested
+- [ ] Cross-browser compatibility verified
+
+## Contact & Resources
+
+### Documentation
+- React: https://react.dev/
+- Express: https://expressjs.com/
+- MongoDB: https://docs.mongodb.com/
+- Redux Toolkit: https://redux-toolkit.js.org/
+
+### Support
+- GitHub Issues: https://github.com/stimutak/boutique-dropship/issues
+- Claude Code Docs: https://docs.anthropic.com/en/docs/claude-code
+
+---
+
+---
+
+*Use the TodoWrite tool to see current task list*
+*Check PRODUCTION_ROADMAP.md for detailed timeline*
+
+**Last Updated:** July 2025  
+**Maintained By:** Claude Code Assistant

@@ -98,8 +98,8 @@ const validateGuestCheckout = [
     .withMessage('Referral source must be less than 100 characters')
 ];
 
-// Create order (guest checkout)
-router.post('/', validateGuestCheckout, validateCSRFToken, async (req, res) => {
+// Create order (both guest and authenticated)
+router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, async (req, res) => {
   try {
     // Check validation errors
     const errors = validationResult(req);
@@ -168,7 +168,6 @@ router.post('/', validateGuestCheckout, validateCSRFToken, async (req, res) => {
 
     // Create order
     const orderData = {
-      guestInfo,
       items: orderItems,
       shippingAddress,
       billingAddress,
@@ -185,21 +184,33 @@ router.post('/', validateGuestCheckout, validateCSRFToken, async (req, res) => {
       referralSource
     };
 
-    // Note: Orders are created as guest orders by default
-    // They can be associated with users later via the /associate endpoint
+    // Add customer ID if user is authenticated
+    if (req.user) {
+      orderData.customer = req.user._id;
+      // For registered users, populate guest info from their profile
+      orderData.guestInfo = {
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        email: req.user.email,
+        phone: req.user.phone || guestInfo?.phone
+      };
+    } else {
+      // For guest checkout, use provided guest info
+      orderData.guestInfo = guestInfo;
+    }
 
     const order = await Order.create(orderData);
     
     // Populate product details for email
     await order.populate('items.product', 'name slug images');
 
-    // Send order confirmation email for guest checkout
+    // Send order confirmation email
     try {
       const { sendOrderConfirmation } = require('../utils/emailService');
       
       const emailData = {
         orderNumber: order.orderNumber,
-        customerName: `${guestInfo.firstName} ${guestInfo.lastName}`,
+        customerName: `${order.guestInfo.firstName} ${order.guestInfo.lastName}`,
         items: order.items.map(item => ({
           productName: item.product.name,
           quantity: item.quantity,
@@ -209,7 +220,7 @@ router.post('/', validateGuestCheckout, validateCSRFToken, async (req, res) => {
         shippingAddress: order.shippingAddress
       };
 
-      const emailResult = await sendOrderConfirmation(guestInfo.email, emailData);
+      const emailResult = await sendOrderConfirmation(order.guestInfo.email, emailData);
       if (!emailResult.success) {
         console.error('Failed to send order confirmation email:', emailResult.error);
       }
@@ -621,8 +632,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Get order history for registered user
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    console.log('Orders GET - req.user:', req.user ? req.user._id : 'null');
-    
     // Ensure user is authenticated
     if (!req.user) {
       return res.status(401).json({

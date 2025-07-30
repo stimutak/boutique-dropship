@@ -19,6 +19,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     
+    
     // Add guest session ID for cart operations (when not authenticated)
     if (!token) {
       const guestSessionId = window.sessionStorage?.getItem('guestSessionId')
@@ -56,7 +57,7 @@ api.interceptors.response.use(
       
       // Only redirect to login for specific authentication errors
       // Don't redirect for optional authentication routes
-      if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'INVALID_TOKEN') {
+      if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'INVALID_TOKEN' || errorCode === 'NO_TOKEN') {
         // Clear token and redirect to login only if user was previously authenticated
         const wasAuthenticated = localStorage.getItem('token')
         if (wasAuthenticated) {

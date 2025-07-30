@@ -1,6 +1,10 @@
 # CLAUDE.md
 
-This file provides critical guidance to Claude Code (claude.ai/code) when working with this repository. READ THIS ENTIRE FILE BEFORE MAKING ANY CHANGES.
+⚠️ **MANDATORY: This file contains CRITICAL project constraints that MUST be followed.**
+
+This file provides critical guidance to Claude Code (claude.ai/code) when working with this repository. **YOU MUST READ THIS ENTIRE FILE BEFORE MAKING ANY CHANGES.**
+
+**FAILURE TO FOLLOW THESE INSTRUCTIONS WILL RESULT IN REJECTED CODE.**
 
 ## ⚠️ CRITICAL: STOP AND THINK BEFORE CODING
 
@@ -9,6 +13,20 @@ This file provides critical guidance to Claude Code (claude.ai/code) when workin
 2. **DON'T CREATE "ENHANCED" VERSIONS** - We already have unused enhancedAuthSlice.js and enhancedCartSlice.js
 3. **DON'T ADD UNNECESSARY COMPLEXITY** - No event emitters, connection pools, or performance monitoring unless explicitly requested
 4. **USE EXISTING PATTERNS** - Follow the patterns already established in the codebase
+
+## 🌍 INTERNATIONALIZATION REQUIREMENTS
+
+### This is an INTERNATIONAL e-commerce platform that MUST support:
+- **Multiple Languages**: 10+ languages including RTL (Arabic, Hebrew)
+- **Multiple Currencies**: 20+ currencies with real-time conversion
+- **Global Payment Methods**: Mollie handles international payments
+- **Localization**: Date/time formats, number formats, address formats per region
+
+### When implementing ANY feature:
+1. **Always consider multi-language support** - Use i18n keys, not hardcoded strings
+2. **Always handle multiple currencies** - Store amounts with currency codes
+3. **Always use locale-aware formatting** - Dates, numbers, addresses
+4. **Test with RTL languages** - UI must work in both LTR and RTL
 
 ## 🚨 Known Issues and What NOT to Do
 
@@ -28,6 +46,7 @@ This file provides critical guidance to Claude Code (claude.ai/code) when workin
 - **JWT Storage**: Currently in localStorage (BAD) - should be httpOnly cookies
 - **196 localStorage references**: Need systematic fix, not band-aids
 - **CSRF Protection**: Already implemented in `sessionCSRF.js` - use it, don't recreate
+- **Cart Persistence**: ✅ ALREADY FIXED - Uses atomic operations, don't change
 
 ### 4. **Performance Problems - Address Root Causes**
 - **N+1 Queries**: In `/routes/orders.js` - use batch queries, not individual loops
@@ -89,6 +108,21 @@ npm test          # Run Vitest tests
 2. **Cart Logic**: Complex session handling - guest carts use sessionId headers
 3. **React Version Mismatch**: Backend has React 19, frontend has React 18
 4. **Unused Dependencies**: webpack, nyc, multiple eslint configs with no .eslintrc
+
+## 📊 Current Project Status: 68-72% Complete
+
+### ✅ What's Already Fixed:
+- Cart persistence issues (atomic operations, duplicate cleanup)
+- Basic authentication (needs security upgrade)
+- Guest checkout flow
+- Order creation
+
+### 🚨 Critical Issues Remaining:
+1. JWT in localStorage (security vulnerability)
+2. React version mismatch (v19 backend, v18 frontend)
+3. Weak JWT secret in production
+4. No real payment processing configured
+5. No i18n framework implemented
 
 ## ✅ Best Practices for This Codebase
 
@@ -154,3 +188,30 @@ FRONTEND_URL=http://localhost:3001
 5. **Test thoroughly** - Many interdependencies exist
 
 Remember: The best code is often the code you don't write. Always consider if the existing code can be fixed or reused before creating something new.
+
+## 🔒 How to Ensure AI Agents Follow This Guide
+
+1. **Always reference CLAUDE.md** in your prompts:
+   ```
+   "Following the constraints in CLAUDE.md, implement..."
+   "As specified in CLAUDE.md, avoid creating enhanced versions..."
+   ```
+
+2. **Explicitly state constraints**:
+   ```
+   "DO NOT create new files, modify existing ones"
+   "This is an international platform - include i18n support"
+   "Keep it simple - no event emitters or complex patterns"
+   ```
+
+3. **Review AI output against this checklist**:
+   - [ ] No new "enhanced" versions created?
+   - [ ] No duplicate files with -fixed, -new suffixes?
+   - [ ] Uses existing middleware and patterns?
+   - [ ] Includes i18n considerations?
+   - [ ] Follows security best practices?
+
+4. **Reject non-compliant code**:
+   - If AI creates duplicate files, reject and re-prompt
+   - If AI adds unnecessary complexity, reject and request simpler solution
+   - If AI ignores i18n requirements, reject and request international support

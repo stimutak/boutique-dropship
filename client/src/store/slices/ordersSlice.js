@@ -8,12 +8,8 @@ export const createOrder = createAsyncThunk(
     try {
       console.log('Sending order data:', JSON.stringify(orderData, null, 2))
       
-      // Check if user is authenticated
-      const state = getState()
-      const isAuthenticated = state.auth.isAuthenticated
-      const endpoint = isAuthenticated ? '/api/orders/registered' : '/api/orders/guest'
-      
-      const response = await api.post(endpoint, orderData)
+      // Both guests and registered users use the same endpoint
+      const response = await api.post('/api/orders', orderData)
       return response.data
     } catch (error) {
       console.error('Order creation error:', error.response?.data)
@@ -25,10 +21,7 @@ export const createOrder = createAsyncThunk(
           await csrfService.fetchToken()
           console.log('Retrying order creation after CSRF refresh...')
           // Retry the request
-          const state = getState()
-          const isAuthenticated = state.auth.isAuthenticated
-          const endpoint = isAuthenticated ? '/api/orders/registered' : '/api/orders/guest'
-          const retryResponse = await api.post(endpoint, orderData)
+          const retryResponse = await api.post('/api/orders', orderData)
           return retryResponse.data
         } catch (retryError) {
           console.error('Order creation retry failed:', retryError.response?.data)

@@ -11,7 +11,10 @@ export const loginUser = createAsyncThunk(
         password
       })
       // Store token in localStorage for now (will move to HTTP-only cookies later)
-      localStorage.setItem('token', response.data.token)
+      const token = response.data.data?.token || response.data.token
+      if (token) {
+        localStorage.setItem('token', token)
+      }
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || 'Login failed')
@@ -25,7 +28,10 @@ export const registerUser = createAsyncThunk(
     try {
       const response = await api.post('/api/auth/register', userData)
       // Store token in localStorage for now (will move to HTTP-only cookies later)
-      localStorage.setItem('token', response.data.token)
+      const token = response.data.data?.token || response.data.token
+      if (token) {
+        localStorage.setItem('token', token)
+      }
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || 'Registration failed')
@@ -42,9 +48,7 @@ export const loadUser = createAsyncThunk(
         return rejectWithValue('No token found')
       }
       
-      const response = await api.get('/api/auth/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.get('/api/auth/profile')
       return response.data
     } catch (error) {
       // Only remove token if it's actually invalid (401), not for other errors
@@ -60,10 +64,7 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (userData, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await api.put('/api/auth/profile', userData, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.put('/api/auth/profile', userData)
       // Return the updated user data without affecting authentication
       return response.data
     } catch (error) {
@@ -105,8 +106,8 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false
-        state.user = action.payload.user
-        state.token = action.payload.token
+        state.user = action.payload.data?.user || action.payload.user
+        state.token = action.payload.data?.token || action.payload.token
         state.isAuthenticated = true
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -120,8 +121,8 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false
-        state.user = action.payload.user
-        state.token = action.payload.token
+        state.user = action.payload.data?.user || action.payload.user
+        state.token = action.payload.data?.token || action.payload.token
         state.isAuthenticated = true
       })
       .addCase(registerUser.rejected, (state, action) => {
@@ -134,7 +135,8 @@ const authSlice = createSlice({
       })
       .addCase(loadUser.fulfilled, (state, action) => {
         state.isLoading = false
-        state.user = action.payload.user || action.payload
+        // Extract user from the response structure
+        state.user = action.payload.data?.user || action.payload.user || action.payload
         state.isAuthenticated = true
       })
       .addCase(loadUser.rejected, (state, action) => {
