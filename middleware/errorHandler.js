@@ -1,4 +1,5 @@
 const { logger } = require('../utils/logger');
+const { getErrorMessage } = require('../utils/i18n');
 
 // Custom error class for application errors
 class AppError extends Error {
@@ -8,6 +9,7 @@ class AppError extends Error {
     this.code = code;
     this.isOperational = isOperational;
     this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
+    this.defaultMessage = message; // Store original message
 
     Error.captureStackTrace(this, this.constructor);
   }
@@ -49,11 +51,22 @@ const sendErrorDev = (err, req, res) => {
     userAgent: req.get('User-Agent')
   });
 
+  // Get locale from request
+  const locale = req.locale || req.headers['x-locale'] || 'en';
+  
+  // Get translated message if code is provided
+  let translatedMessage = err.message;
+  if (err.code) {
+    translatedMessage = getErrorMessage(err.code, locale, err.defaultMessage || err.message);
+  }
+
   return res.status(err.statusCode).json({
     success: false,
     error: {
       code: err.code,
-      message: err.message,
+      message: translatedMessage,
+      originalMessage: err.message, // Show original message in dev
+      locale: locale, // Show which locale was used
       stack: err.stack,
       details: err
     }
@@ -72,13 +85,22 @@ const sendErrorProd = (err, req, res) => {
     statusCode: err.statusCode
   });
 
+  // Get locale from request
+  const locale = req.locale || req.headers['x-locale'] || 'en';
+
   // Operational, trusted error: send message to client
   if (err.isOperational) {
+    // Try to get translated message if code is provided
+    let message = err.message;
+    if (err.code) {
+      message = getErrorMessage(err.code, locale, err.defaultMessage || err.message);
+    }
+
     return res.status(err.statusCode).json({
       success: false,
       error: {
         code: err.code,
-        message: err.message
+        message: message
       }
     });
   }
@@ -89,11 +111,14 @@ const sendErrorProd = (err, req, res) => {
     stack: err.stack
   });
 
+  // Get translated message for internal error
+  const internalErrorMessage = getErrorMessage('INTERNAL_ERROR', locale, 'Something went wrong!');
+
   return res.status(500).json({
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
-      message: 'Something went wrong!'
+      message: internalErrorMessage
     }
   });
 };

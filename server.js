@@ -33,6 +33,8 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 // Import logging and error handling
 const { logger } = require('./utils/logger');
 const { globalErrorHandler } = require('./middleware/errorHandler');
+const { i18nMiddleware } = require('./utils/i18n');
+const { errorResponse } = require('./utils/errorHandler');
 const { 
   rateLimits, 
   speedLimiter, 
@@ -107,6 +109,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Cookie parser middleware
 app.use(cookieParser());
+
+// i18n middleware for error messages
+app.use(i18nMiddleware);
+
+// Error response helper middleware
+app.use(errorResponse);
 
 // Static files
 app.use('/uploads', express.static('uploads'));

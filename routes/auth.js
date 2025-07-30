@@ -6,6 +6,8 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { requireAuth, authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
+const { AppError } = require('../middleware/errorHandler');
+const { ErrorCodes } = require('../utils/errorHandler');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -70,14 +72,7 @@ router.post('/register', validateRegistration, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { email, password, firstName, lastName, phone, preferences } = req.body;
@@ -85,13 +80,7 @@ router.post('/register', validateRegistration, async (req, res) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        error: {
-          code: 'USER_EXISTS',
-          message: 'User with this email already exists'
-        }
-      });
+      return res.error(409, ErrorCodes.USER_EXISTS, 'User with this email already exists');
     }
 
     // Create new user
@@ -150,13 +139,7 @@ router.post('/register', validateRegistration, async (req, res) => {
 
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'REGISTRATION_ERROR',
-        message: 'Failed to register user'
-      }
-    });
+    res.error(500, ErrorCodes.REGISTRATION_ERROR, 'Failed to register user');
   }
 });
 
@@ -165,14 +148,7 @@ router.post('/login', validateLogin, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { email, password, guestCartItems } = req.body;
@@ -180,25 +156,13 @@ router.post('/login', validateLogin, async (req, res) => {
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid email or password'
-        }
-      });
+      return res.error(401, ErrorCodes.INVALID_CREDENTIALS, 'Invalid email or password');
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid email or password'
-        }
-      });
+      return res.error(401, ErrorCodes.INVALID_CREDENTIALS, 'Invalid email or password');
     }
 
     // Check if user is active
@@ -260,14 +224,7 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { email } = req.body;
@@ -348,14 +305,7 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { token, password } = req.body;
@@ -511,14 +461,7 @@ router.put('/profile', requireAuth, validateCSRFToken, [
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.error('Profile update validation errors:', errors.array());
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { firstName, lastName, phone, email, addresses, preferences } = req.body;
@@ -649,14 +592,7 @@ router.post('/change-password', requireAuth, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { currentPassword, newPassword } = req.body;
