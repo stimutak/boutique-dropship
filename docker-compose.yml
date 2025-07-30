@@ -90,22 +90,30 @@ services:
       retries: 3
       start_period: 40s
 
-  # Nginx Reverse Proxy (prepared for next task)
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: boutique-nginx
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./nginx/ssl:/etc/nginx/ssl:ro
-  #   depends_on:
-  #     - backend
-  #     - frontend
-  #   networks:
-  #     - boutique-network
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: boutique-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./docker/nginx/html:/usr/share/nginx/html:ro
+      - nginx_cache:/var/cache/nginx
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - boutique-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
 
 networks:
   boutique-network:
@@ -115,4 +123,8 @@ volumes:
   mongodb_data:
     driver: local
   mongodb_config:
+    driver: local
+  nginx_cache:
+    driver: local
+  nginx_logs:
     driver: local

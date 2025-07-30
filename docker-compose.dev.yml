@@ -1,66 +1,45 @@
 version: '3.8'
 
-# Development overrides for docker-compose.yml
+# Development configuration for docker-compose.yml
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:
-  # MongoDB - no changes needed for dev
+  # MongoDB - Development configuration
   mongodb:
     ports:
       - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: holistic-store
 
   # Backend API Service - Development mode
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: boutique-backend-dev
+      target: development
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
       NODE_ENV: development
       DEBUG: boutique:*
-    volumes:
-      # Mount source code for hot reload
-      - .:/app
-      - /app/node_modules  # Preserve node_modules from container
-      - ./logs:/app/logs
-      - ./uploads:/app/uploads
-      - ./public/images:/app/public/images
-    ports:
-      - "5001:5001"
-      - "9229:9229"  # Node.js debugger port
+    command: npm run dev
 
   # Frontend Service - Development mode
   frontend:
     build:
-      context: ./client
-      dockerfile: Dockerfile.dev  # Use development Dockerfile
-    container_name: boutique-frontend-dev
+      target: development
+    volumes:
+      - ./client:/app
+      - /app/node_modules
     environment:
       NODE_ENV: development
+    command: npm run dev
+
+  # Nginx - Development configuration
+  nginx:
     volumes:
-      # Mount source code for hot reload
-      - ./client:/app
-      - /app/node_modules  # Preserve node_modules from container
+      - ./docker/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/html:/usr/share/nginx/html:ro
     ports:
-      - "3001:3001"
-    stdin_open: true  # Keep stdin open for interactive mode
-    tty: true  # Allocate pseudo-TTY
-
-  # Development tools
-  mongo-express:
-    image: mongo-express:latest
-    container_name: boutique-mongo-express
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
+      - "80:80"
     environment:
-      ME_CONFIG_MONGODB_SERVER: mongodb
-      ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin123}
-    depends_on:
-      - mongodb
-    networks:
-      - boutique-network
-
-# Use same networks and volumes as base compose file
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
