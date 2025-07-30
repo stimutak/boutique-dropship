@@ -9,7 +9,9 @@ This file provides guidance for AI agents (Claude Code, GitHub Copilot, Cursor, 
 1. **code-review-architect**: Use after implementing features, fixing bugs, or refactoring
 2. **sprint-architect-planner**: Use for planning new features or organizing work
 3. **bug-detective-tdd**: Use for investigating and fixing bugs with proper test coverage
-4. **tdd-advocate**: Use when implementing new features with Test-Driven Development
+4. **system-architect-tdd**: Use for designing system architectures with testability (Docker, nginx, etc.)
+5. **tdd-advocate**: Use when implementing new features with Test-Driven Development
+6. **general-purpose**: Use for multi-step tasks like RTL support, UI enhancements
 
 ### When to Use Agents
 
@@ -59,11 +61,13 @@ This file provides guidance for AI agents (Claude Code, GitHub Copilot, Cursor, 
 ## 🚨 Critical Context for Agents
 
 ### Project Architecture
-- **Stack**: MongoDB, Express, React 19, Node.js
-- **Auth**: JWT in httpOnly cookies (recently migrated from localStorage)
-- **State**: Redux Toolkit with existing slices (don't create enhanced versions)
-- **i18n**: react-i18next with 7 languages configured
-- **Payments**: Mollie (international payment gateway)
+- **Stack**: MongoDB, Express, React 19, Node.js (MERN)
+- **Development**: Docker environment with hot reload
+- **Auth**: JWT in httpOnly cookies (✅ migrated from localStorage)
+- **State**: Redux Toolkit with existing slices (enhanced versions removed)
+- **i18n**: react-i18next with 7 languages + RTL support (Arabic, Hebrew)
+- **Payments**: Mollie with multi-currency support
+- **Deployment**: Docker + nginx, production-ready
 
 ### Known Issues & Solutions
 1. **Cart Persistence**: Already fixed with atomic updates
@@ -72,15 +76,18 @@ This file provides guidance for AI agents (Claude Code, GitHub Copilot, Cursor, 
 4. **Duplicate Code**: Don't create "enhanced" versions - fix existing code
 5. **React Version**: Both frontend and backend use React 19
 
-### Current Implementation Status
+### Current Implementation Status (~87% Complete)
 - ✅ Secure authentication (httpOnly cookies)
 - ✅ Cart persistence and merging
-- ✅ Internationalization framework
-- ✅ Database indexes added
-- ⏳ Multi-currency support (next priority)
-- ⏳ Full translation coverage
+- ✅ Internationalization (7 languages, RTL support)
+- ✅ Multi-currency support (20+ currencies)
+- ✅ Database indexes and performance optimization
+- ✅ Docker deployment infrastructure
+- ✅ nginx reverse proxy configuration
+- ⏳ Error handling standardization (next priority)
+- ⏳ Order fulfillment workflow
+- ⏳ Email notifications system
 - ⏳ Admin dashboard
-- ⏳ Email notifications
 
 ## 🛠️ Agent-Specific Guidelines
 

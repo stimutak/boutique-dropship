@@ -30,11 +30,11 @@ This file provides critical guidance to Claude Code (claude.ai/code) when workin
 
 ## 🚨 Known Issues and What NOT to Do
 
-### 1. **Duplicate Code Already Exists - DO NOT CREATE MORE**
-- **Enhanced Redux Slices**: `/client/src/store/slices/enhancedAuthSlice.js` and `enhancedCartSlice.js` are UNUSED dead code (1,200+ lines)
-- **Old Route Files**: `cart-old.js` exists - don't create new versions, fix the existing one
-- **Duplicate Test Files**: `auth.test.js` vs `auth-fixed.test.js` - update the original, don't create new ones
-- **Multiple Scripts**: 12+ scripts doing similar things in `/scripts/` - use existing ones
+### 1. **Duplicate Code - ✅ CLEANED UP**
+- **Enhanced Redux Slices**: ✅ REMOVED - No enhanced versions exist anymore
+- **Old Route Files**: ✅ CLEANED - No -old or -fixed files remain
+- **Duplicate Test Files**: ✅ FIXED - Only original test files exist
+- **Multiple Scripts**: Still have many scripts in `/scripts/` - use existing ones before creating new
 
 ### 2. **Architecture Rules - FOLLOW THESE**
 - **NO NEW ABSTRACTION LAYERS**: Don't create service layers that wrap existing functionality
@@ -42,16 +42,16 @@ This file provides critical guidance to Claude Code (claude.ai/code) when workin
 - **USE EXISTING MIDDLEWARE**: Don't create new auth middleware - `authenticateToken`, `requireAuth`, and `requireAdmin` already exist
 - **KEEP IT SIMPLE**: This is a standard e-commerce app, not a distributed system
 
-### 3. **Security Issues - FIX, DON'T WORKAROUND**
-- **JWT Storage**: Currently in localStorage (BAD) - should be httpOnly cookies
-- **196 localStorage references**: Need systematic fix, not band-aids
-- **CSRF Protection**: Already implemented in `sessionCSRF.js` - use it, don't recreate
-- **Cart Persistence**: ✅ ALREADY FIXED - Uses atomic operations, don't change
+### 3. **Security Issues - ✅ MOSTLY FIXED**
+- **JWT Storage**: ✅ FIXED - Now using httpOnly cookies
+- **localStorage references**: ✅ REDUCED - JWT removed from localStorage, only UI preferences remain
+- **CSRF Protection**: ✅ WORKING - Implemented in `sessionCSRF.js`
+- **Cart Persistence**: ✅ FIXED - Uses atomic operations with proper cleanup
 
-### 4. **Performance Problems - Address Root Causes**
-- **N+1 Queries**: In `/routes/orders.js` - use batch queries, not individual loops
-- **Missing Indexes**: Add to models, don't work around with complex caching
-- **No Code Splitting**: Frontend loads everything at once - implement lazy loading
+### 4. **Performance Problems - ✅ MOSTLY FIXED**
+- **N+1 Queries**: ✅ FIXED - Order routes now use batch queries
+- **Missing Indexes**: ✅ ADDED - Database indexes on email, customer+date, price+active
+- **Code Splitting**: ⚠️ TODO - Frontend still loads everything at once
 
 ## 📁 Project Structure - WHERE THINGS BELONG
 
@@ -83,46 +83,57 @@ client/
 
 ## 🔧 Development Commands
 
-### Backend Development
+### Docker Development (RECOMMENDED)
 ```bash
+./docker-helper.sh dev     # Start all services
+./docker-helper.sh stop    # Stop all services
+./docker-helper.sh logs    # View logs
+```
+
+Access points:
+- Frontend: http://localhost:3001
+- Backend API: http://localhost:5001
+- Database UI: http://localhost:8081 (admin/admin123)
+
+### Local Development (without Docker)
+```bash
+# Backend
 npm run dev        # Start with nodemon on port 5001
 npm start         # Production server
 npm test          # Run tests
-```
 
-### Frontend Development (in /client)
-```bash
+# Frontend (in /client)
 npm run dev       # Vite dev server on port 3001  
 npm run build     # Production build
 npm test          # Run Vitest tests
 ```
 
 ### Database
-- MongoDB: `mongodb://localhost:27017/holistic-store`
-- Populate: `node populate-simple.js`
+- MongoDB: `mongodb://localhost:27017/holistic-store` (or `mongodb://mongodb:27017/holistic-store` in Docker)
+- Populate: `docker-compose exec backend node populate-simple.js`
 - Test users: john@example.com / Password123! (admin), jane@example.com / Password123!
 
 ## 🐛 Current Bugs to Be Aware Of
 
-1. **Port Configuration**: Server defaults to 5000 if env not loaded properly (should be 5001)
-2. **Cart Logic**: Complex session handling - guest carts use sessionId headers
-3. **React Version Mismatch**: Backend has React 19, frontend has React 18
-4. **Unused Dependencies**: webpack, nyc, multiple eslint configs with no .eslintrc
+1. **Port Configuration**: ✅ FIXED - Properly reads from .env
+2. **Cart Logic**: ✅ FIXED - Session handling works correctly with atomic operations
+3. **React Version**: ✅ FIXED - Both using React 19 now
+4. **Unused Dependencies**: ⚠️ Still present - webpack, nyc, multiple eslint configs
 
-## 📊 Current Project Status: 68-72% Complete
+## 📊 Current Project Status: ~87% Complete (28/32 tasks)
 
-### ✅ What's Already Fixed:
-- Cart persistence issues (atomic operations, duplicate cleanup)
-- Basic authentication (needs security upgrade)
-- Guest checkout flow
-- Order creation
+### ✅ What's Completed:
+- **Security**: JWT in httpOnly cookies, CSRF protection, secure sessions
+- **Internationalization**: Full i18n with 7 languages, multi-currency support, RTL layouts
+- **E-commerce Core**: Cart persistence, guest checkout, order creation, payment integration
+- **Infrastructure**: Docker setup, nginx configuration, production-ready deployment
+- **Performance**: Database indexes, batch queries, optimized API responses
 
-### 🚨 Critical Issues Remaining:
-1. JWT in localStorage (security vulnerability)
-2. React version mismatch (v19 backend, v18 frontend)
-3. Weak JWT secret in production
-4. No real payment processing configured
-5. No i18n framework implemented
+### 🚧 Remaining Tasks (4):
+1. **Error Handling Standardization** - Consistent error responses across the app
+2. **Order Fulfillment Workflow** - Admin can process and ship orders
+3. **Email Notifications** - Order confirmations, shipping updates
+4. **Admin Dashboard** - Manage products, orders, and users
 
 ## ✅ Best Practices for This Codebase
 
@@ -149,22 +160,22 @@ npm test          # Run Vitest tests
 ## 🚀 Optimization Opportunities (If Asked)
 
 ### High Priority:
-1. Fix N+1 queries in order creation (batch product lookups)
-2. Add database indexes (User: email, Order: customer+createdAt, Product: price+isActive)
-3. Implement code splitting (lazy load routes)
-4. Fix memory leaks (event listeners not cleaned up)
+1. ✅ DONE - Fix N+1 queries in order creation (batch product lookups)
+2. ✅ DONE - Add database indexes (User: email, Order: customer+createdAt, Product: price+isActive)
+3. ⏳ TODO - Implement code splitting (lazy load routes)
+4. ⏳ TODO - Fix memory leaks (event listeners not cleaned up)
 
 ### Medium Priority:
-1. Consolidate duplicate auth middleware functions
-2. Create centralized error handling
-3. Move JWT to httpOnly cookies
-4. Add response caching
+1. ⏳ TODO - Consolidate duplicate auth middleware functions
+2. ⏳ NEXT - Create centralized error handling
+3. ✅ DONE - Move JWT to httpOnly cookies
+4. ⏳ TODO - Add response caching
 
 ### Low Priority:
-1. Remove unused dependencies
-2. Consolidate test files
-3. Clean up scripts directory
-4. Remove dead code (enhanced slices)
+1. ⏳ TODO - Remove unused dependencies
+2. ✅ DONE - Consolidate test files
+3. ⏳ TODO - Clean up scripts directory
+4. ✅ DONE - Remove dead code (enhanced slices)
 
 ## 📝 Environment Configuration
 
