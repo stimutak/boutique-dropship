@@ -40,48 +40,48 @@ case "$1" in
         check_docker
         check_env
         print_color "Starting development environment..." "$GREEN"
-        docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+        docker compose -f docker compose.yml -f docker compose.dev.yml up
         ;;
     
     "dev:build")
         check_docker
         check_env
         print_color "Building and starting development environment..." "$GREEN"
-        docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+        docker compose -f docker compose.yml -f docker compose.dev.yml up --build
         ;;
     
     "prod"|"production")
         check_docker
         check_env
         print_color "Starting production environment..." "$GREEN"
-        docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+        docker compose -f docker compose.yml -f docker compose.prod.yml up -d
         ;;
     
     "prod:build")
         check_docker
         check_env
         print_color "Building and starting production environment..." "$GREEN"
-        docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+        docker compose -f docker compose.yml -f docker compose.prod.yml up -d --build
         ;;
     
     "stop")
         check_docker
         print_color "Stopping all containers..." "$YELLOW"
-        docker-compose down
+        docker compose down
         ;;
     
     "clean")
         check_docker
         print_color "Stopping and removing all containers, networks, and volumes..." "$RED"
-        docker-compose down -v
+        docker compose down -v
         ;;
     
     "logs")
         check_docker
         if [ -z "$2" ]; then
-            docker-compose logs -f
+            docker compose logs -f
         else
-            docker-compose logs -f "$2"
+            docker compose logs -f "$2"
         fi
         ;;
     
@@ -89,25 +89,25 @@ case "$1" in
         check_docker
         service="${2:-backend}"
         print_color "Opening shell in $service container..." "$GREEN"
-        docker-compose exec "$service" sh
+        docker compose exec "$service" sh
         ;;
     
     "test")
         check_docker
         print_color "Running tests in backend container..." "$GREEN"
-        docker-compose exec backend npm test
+        docker compose exec backend npm test
         ;;
     
     "migrate")
         check_docker
         print_color "Running database migrations..." "$GREEN"
-        docker-compose exec backend node populate-simple.js
+        docker compose exec backend node populate-simple.js
         ;;
     
     "status")
         check_docker
         print_color "Container status:" "$GREEN"
-        docker-compose ps
+        docker compose ps
         ;;
     
     "restart")
@@ -115,10 +115,10 @@ case "$1" in
         service="${2}"
         if [ -z "$service" ]; then
             print_color "Restarting all containers..." "$YELLOW"
-            docker-compose restart
+            docker compose restart
         else
             print_color "Restarting $service..." "$YELLOW"
-            docker-compose restart "$service"
+            docker compose restart "$service"
         fi
         ;;
     
@@ -130,7 +130,7 @@ case "$1" in
             exit 1
         fi
         print_color "Scaling $2 to $3 instances..." "$GREEN"
-        docker-compose up -d --scale "$2=$3"
+        docker compose up -d --scale "$2=$3"
         ;;
     
     "backup")
@@ -139,8 +139,8 @@ case "$1" in
         backup_dir="backups/mongodb_$timestamp"
         mkdir -p "$backup_dir"
         print_color "Backing up MongoDB to $backup_dir..." "$GREEN"
-        docker-compose exec -T mongodb mongodump --archive="/tmp/backup.archive"
-        docker cp "$(docker-compose ps -q mongodb)":/tmp/backup.archive "$backup_dir/"
+        docker compose exec -T mongodb mongodump --archive="/tmp/backup.archive"
+        docker cp "$(docker compose ps -q mongodb)":/tmp/backup.archive "$backup_dir/"
         print_color "Backup completed!" "$GREEN"
         ;;
     
@@ -151,8 +151,8 @@ case "$1" in
             exit 1
         fi
         print_color "Restoring MongoDB from $2..." "$YELLOW"
-        docker cp "$2" "$(docker-compose ps -q mongodb)":/tmp/restore.archive
-        docker-compose exec mongodb mongorestore --archive="/tmp/restore.archive"
+        docker cp "$2" "$(docker compose ps -q mongodb)":/tmp/restore.archive
+        docker compose exec mongodb mongorestore --archive="/tmp/restore.archive"
         print_color "Restore completed!" "$GREEN"
         ;;
     

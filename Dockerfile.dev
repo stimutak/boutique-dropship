@@ -1,0 +1,19 @@
+# Development Dockerfile for Backend
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including dev)
+RUN npm install
+
+# Copy all files
+COPY . .
+
+# Expose port
+EXPOSE 5001
+
+# Run with nodemon for hot reload
+CMD ["npm", "run", "dev"]

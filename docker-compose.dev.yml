@@ -13,10 +13,8 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: dependencies  # Use dependencies stage for faster rebuilds
+      dockerfile: Dockerfile.dev
     container_name: boutique-backend-dev
-    command: npm run dev  # Use nodemon for hot reload
     environment:
       NODE_ENV: development
       DEBUG: boutique:*
