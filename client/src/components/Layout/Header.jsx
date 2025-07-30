@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { logout } from '../../store/slices/authSlice'
 import { clearAfterMerge } from '../../store/slices/cartSlice'
 import { searchProducts } from '../../store/slices/productsSlice'
+import LanguageSelector from '../LanguageSelector'
 
 const Header = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
   
@@ -56,7 +59,7 @@ const Header = () => {
           <form onSubmit={handleSearch} style={{ display: 'flex', flex: '1', maxWidth: '400px', margin: '0 2rem' }}>
             <input
               type="text"
-              placeholder="Search products..."
+              placeholder={t('common.search')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -78,18 +81,18 @@ const Header = () => {
                 cursor: 'pointer'
               }}
             >
-              Search
+              {t('common.search')}
             </button>
           </form>
 
           {/* Navigation */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <Link to="/products" style={{ color: 'white', textDecoration: 'none' }}>
-              Products
+              {t('navigation.products')}
             </Link>
             
             <Link to="/cart" style={{ color: 'white', textDecoration: 'none', position: 'relative' }}>
-              Cart
+              {t('navigation.cart')}
               {totalItems > 0 && (
                 <span style={{
                   position: 'absolute',
@@ -142,14 +145,14 @@ const Header = () => {
                       style={{ display: 'block', padding: '0.5rem 1rem', textDecoration: 'none', color: 'black' }}
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Profile
+                      {t('navigation.profile')}
                     </Link>
                     <Link
                       to="/orders"
                       style={{ display: 'block', padding: '0.5rem 1rem', textDecoration: 'none', color: 'black' }}
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Orders
+                      {t('navigation.orders')}
                     </Link>
                     <button
                       onClick={() => {
@@ -165,7 +168,7 @@ const Header = () => {
                         cursor: 'pointer'
                       }}
                     >
-                      Logout
+                      {t('navigation.logout')}
                     </button>
                   </div>
                 )}
@@ -173,13 +176,16 @@ const Header = () => {
             ) : (
               <>
                 <Link to="/login" style={{ color: 'white', textDecoration: 'none' }}>
-                  Login
+                  {t('navigation.login')}
                 </Link>
                 <Link to="/register" style={{ color: 'white', textDecoration: 'none' }}>
-                  Register
+                  {t('navigation.register')}
                 </Link>
               </>
             )}
+            
+            {/* Language Selector */}
+            <LanguageSelector />
           </nav>
         </div>
       </div>
