@@ -160,18 +160,18 @@ const Payment = () => {
             <div className="summary-breakdown">
               <div className="summary-line">
                 <span>Subtotal:</span>
-                <span>${order.subtotal.toFixed(2)}</span>
+                <span>{formatPrice(order.subtotal, orderCurrency, i18n.language)}</span>
               </div>
               {order.tax > 0 && (
                 <div className="summary-line">
                   <span>Tax:</span>
-                  <span>${order.tax.toFixed(2)}</span>
+                  <span>{formatPrice(order.tax, orderCurrency, i18n.language)}</span>
                 </div>
               )}
               {order.shipping > 0 && (
                 <div className="summary-line">
                   <span>Shipping:</span>
-                  <span>${order.shipping.toFixed(2)}</span>
+                  <span>{formatPrice(order.shipping, orderCurrency, i18n.language)}</span>
                 </div>
               )}
               <div className="summary-total">
@@ -214,7 +214,7 @@ const Payment = () => {
                 className="btn btn-primary payment-btn"
                 disabled={isLoading}
               >
-                {isLoading ? 'Processing...' : `Pay $${order.total.toFixed(2)}`}
+                {isLoading ? 'Processing...' : `Pay ${formatPrice(order.total, orderCurrency, i18n.language)}`}
               </button>
               
               {/* Demo/Testing button */}

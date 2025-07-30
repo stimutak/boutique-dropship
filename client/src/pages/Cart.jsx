@@ -8,8 +8,10 @@ import {
   clearCart
 } from '../store/slices/cartSlice'
 import PriceDisplay from '../components/PriceDisplay'
+import { useTranslation } from 'react-i18next'
 
 const Cart = () => {
+  const { i18n } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { items, totalItems, totalPrice, isLoading } = useSelector(state => state.cart)
@@ -30,7 +32,7 @@ const Cart = () => {
   useEffect(() => {
     // Always fetch cart - backend handles both authenticated and guest carts
     dispatch(fetchCart())
-  }, [dispatch, isAuthenticated])
+  }, [dispatch, isAuthenticated, i18n.language])
 
   const handleUpdateQuantity = (productId, quantity) => {
     if (quantity < 1) return

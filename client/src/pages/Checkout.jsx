@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { createOrder } from '../store/slices/ordersSlice'
-import { clearCart } from '../store/slices/cartSlice'
+import { clearCart, fetchCart } from '../store/slices/cartSlice'
 import PriceDisplay from '../components/PriceDisplay'
+import { useTranslation } from 'react-i18next'
 
 const Checkout = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const { i18n } = useTranslation()
   const { items, totalPrice } = useSelector(state => state.cart)
   
   // Calculate total using currency-specific prices
@@ -61,6 +63,11 @@ const Checkout = () => {
       navigate('/cart')
     }
   }, [items, navigate])
+
+  // Fetch cart when language changes to get updated currency data
+  useEffect(() => {
+    dispatch(fetchCart())
+  }, [dispatch, i18n.language])
 
   // Update form data when user data becomes available
   useEffect(() => {
@@ -119,7 +126,7 @@ const Checkout = () => {
       items: items.map(item => ({
         productId: item.product._id,
         quantity: item.quantity,
-        price: item.product.price
+        price: item.product.priceInCurrency || item.product.price
       })),
       guestInfo: {
         firstName: formData.firstName,
@@ -364,7 +371,7 @@ const Checkout = () => {
                   <span>
                     <PriceDisplay 
                       price={(item.product.priceInCurrency || item.product.price) * item.quantity} 
-                      currency={item.product.displayCurrency || 'USD'}
+                      currency={item.product.displayCurrency}
                     />
                   </span>
                 </div>
@@ -374,7 +381,7 @@ const Checkout = () => {
             <div className="summary-total">
               <strong>Total: <PriceDisplay 
                 price={currencyTotal} 
-                currency={items[0]?.product?.displayCurrency || 'USD'}
+                currency={items[0]?.product?.displayCurrency}
               /></strong>
             </div>
             
