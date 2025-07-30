@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Product = require('../models/Product');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { getCurrencyForLocale, formatPrice } = require('../utils/currency');
+const { ErrorCodes } = require('../utils/errorHandler');
 const router = express.Router();
 
 // Helper function to get user's currency from request
@@ -179,13 +180,7 @@ router.get('/', async (req, res) => {
     
   } catch (error) {
     console.error('Error fetching products:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PRODUCTS_FETCH_ERROR',
-        message: 'Failed to fetch products'
-      }
-    });
+    res.error(500, ErrorCodes.PRODUCTS_FETCH_ERROR, 'Failed to fetch products');
   }
 });
 
@@ -195,13 +190,7 @@ router.get('/search', async (req, res) => {
     const { q, suggest = false } = req.query;
     
     if (!q) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MISSING_QUERY',
-          message: 'Search query is required'
-        }
-      });
+      return res.error(400, ErrorCodes.MISSING_QUERY, 'Search query is required');
     }
     
     // Full text search
@@ -255,13 +244,7 @@ router.get('/search', async (req, res) => {
     
   } catch (error) {
     console.error('Search error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'SEARCH_ERROR',
-        message: 'Search failed'
-      }
-    });
+    res.error(500, ErrorCodes.SEARCH_ERROR, 'Search failed');
   }
 });
 

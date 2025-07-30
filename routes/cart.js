@@ -6,6 +6,7 @@ const Cart = require('../models/Cart');
 const { authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { getCurrencyForLocale, formatPrice } = require('../utils/currency');
+const { ErrorCodes } = require('../utils/errorHandler');
 
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
@@ -157,13 +158,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching cart:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CART_FETCH_ERROR',
-        message: 'Failed to fetch cart'
-      }
-    });
+    res.error(500, ErrorCodes.CART_FETCH_ERROR, 'Failed to fetch cart');
   }
 });
 
@@ -186,68 +181,32 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
 
     // Validation
     if (!productId) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MISSING_PRODUCT_ID',
-          message: 'Product ID is required'
-        }
-      });
+      return res.error(400, ErrorCodes.MISSING_PRODUCT_ID, 'Product ID is required');
     }
 
     // Enhanced quantity validation to prevent integer overflow and other edge cases
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_QUANTITY',
-          message: 'Quantity must be between 1 and 99'
-        }
-      });
+      return res.error(400, ErrorCodes.INVALID_QUANTITY, 'Quantity must be between 1 and 99');
     }
 
     // Additional safety check for potential integer overflow
     if (quantity > Number.MAX_SAFE_INTEGER) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_QUANTITY',
-          message: 'Quantity value is too large'
-        }
-      });
+      return res.error(400, ErrorCodes.INVALID_QUANTITY, 'Quantity value is too large');
     }
 
         // Validate product ID format
     if (!productId.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_PRODUCT_ID',
-          message: 'Invalid product ID format'
-        }
-      });
+      return res.error(400, ErrorCodes.INVALID_PRODUCT_ID, 'Invalid product ID format');
     }
 
     // Check if product exists and is active
     const product = await Product.findById(productId);
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'PRODUCT_NOT_FOUND',
-          message: 'Product not found'
-        }
-      });
+      return res.error(404, ErrorCodes.PRODUCT_NOT_FOUND, 'Product not found');
     }
     
     if (!product.isActive) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'PRODUCT_NOT_FOUND',
-          message: 'Product not found or inactive'
-        }
-      });
+      return res.error(404, ErrorCodes.PRODUCT_NOT_FOUND, 'Product not found or inactive');
     }
 
     // Check for existing item and validate maximum quantity
@@ -264,13 +223,7 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
         
         // Check for integer overflow and maximum quantity
         if (newQuantity > 99 || newQuantity < currentQuantity) {
-          return res.status(400).json({
-            success: false,
-            error: {
-              code: 'MAX_QUANTITY_EXCEEDED',
-              message: 'Cannot exceed maximum quantity of 99'
-            }
-          });
+          return res.error(400, ErrorCodes.MAX_QUANTITY_EXCEEDED, 'Cannot exceed maximum quantity of 99');
         }
       }
     } else {
@@ -284,13 +237,7 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
         
         // Check for integer overflow and maximum quantity
         if (newQuantity > 99 || newQuantity < currentQuantity) {
-          return res.status(400).json({
-            success: false,
-            error: {
-              code: 'MAX_QUANTITY_EXCEEDED',
-              message: 'Cannot exceed maximum quantity of 99'
-            }
-          });
+          return res.error(400, ErrorCodes.MAX_QUANTITY_EXCEEDED, 'Cannot exceed maximum quantity of 99');
         }
       }
     }
@@ -379,14 +326,9 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
   } catch (error) {
     console.error('Error adding to cart:', error);
     console.error('Full stack:', error.stack);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CART_ADD_ERROR',
-        message: 'Failed to add item to cart',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      }
+    res.error(500, ErrorCodes.CART_ADD_ERROR, 'Failed to add item to cart', {
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
@@ -398,23 +340,11 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
 
     // Validation
     if (!productId) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MISSING_PRODUCT_ID',
-          message: 'Product ID is required'
-        }
-      });
+      return res.error(400, ErrorCodes.MISSING_PRODUCT_ID, 'Product ID is required');
     }
 
     if (!Number.isInteger(quantity) || quantity < 0 || quantity > 99) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_QUANTITY',
-          message: 'Quantity must be between 0 and 99'
-        }
-      });
+      return res.error(400, ErrorCodes.INVALID_QUANTITY, 'Quantity must be between 0 and 99');
     }
 
     const { type, cart, user } = await getOrCreateCart(req);
@@ -435,13 +365,7 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
         user.cart.updatedAt = new Date();
         await user.save();
       } else {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'ITEM_NOT_FOUND',
-            message: 'Item not found in cart'
-          }
-        });
+        return res.error(404, ErrorCodes.ITEM_NOT_FOUND, 'Item not found in cart');
       }
     } else {
       // Update guest cart
@@ -474,13 +398,7 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
         );
         cart.items = updatedCart.items;
       } else {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'ITEM_NOT_FOUND',
-            message: 'Item not found in cart'
-          }
-        });
+        return res.error(404, ErrorCodes.ITEM_NOT_FOUND, 'Item not found in cart');
       }
     }
 
@@ -524,13 +442,7 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
 
   } catch (error) {
     console.error('Error updating cart:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CART_UPDATE_ERROR',
-        message: 'Failed to update cart'
-      }
-    });
+    res.error(500, ErrorCodes.CART_UPDATE_ERROR, 'Failed to update cart');
   }
 });
 
@@ -540,13 +452,7 @@ router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) 
     const { productId } = req.body;
 
     if (!productId) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MISSING_PRODUCT_ID',
-          message: 'Product ID is required'
-        }
-      });
+      return res.error(400, ErrorCodes.MISSING_PRODUCT_ID, 'Product ID is required');
     }
 
     const { type, cart, user } = await getOrCreateCart(req);
@@ -562,13 +468,7 @@ router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) 
         user.cart.updatedAt = new Date();
         await user.save();
       } else {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'ITEM_NOT_FOUND',
-            message: 'Item not found in cart'
-          }
-        });
+        return res.error(404, ErrorCodes.ITEM_NOT_FOUND, 'Item not found in cart');
       }
     } else {
       // Remove from guest cart
@@ -592,13 +492,7 @@ router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) 
         );
         cart.items = updatedCart.items;
       } else {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'ITEM_NOT_FOUND',
-            message: 'Item not found in cart'
-          }
-        });
+        return res.error(404, ErrorCodes.ITEM_NOT_FOUND, 'Item not found in cart');
       }
     }
 
@@ -639,13 +533,7 @@ router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) 
 
   } catch (error) {
     console.error('Error removing from cart:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CART_REMOVE_ERROR',
-        message: 'Failed to remove item from cart'
-      }
-    });
+    res.error(500, ErrorCodes.CART_REMOVE_ERROR, 'Failed to remove item from cart');
   }
 });
 
@@ -692,13 +580,7 @@ router.delete('/clear', authenticateToken, validateCSRFToken, async (req, res) =
 
   } catch (error) {
     console.error('Error clearing cart:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CART_CLEAR_ERROR',
-        message: 'Failed to clear cart'
-      }
-    });
+    res.error(500, ErrorCodes.CART_CLEAR_ERROR, 'Failed to clear cart');
   }
 });
 
@@ -706,13 +588,7 @@ router.delete('/clear', authenticateToken, validateCSRFToken, async (req, res) =
 router.post('/merge', authenticateToken, async (req, res) => {
   try {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'AUTHENTICATION_REQUIRED',
-          message: 'User must be authenticated to merge cart'
-        }
-      });
+      return res.error(401, ErrorCodes.AUTHENTICATION_REQUIRED, 'User must be authenticated to merge cart');
     }
 
     const { guestCartItems, sessionId } = req.body;
@@ -870,13 +746,8 @@ router.post('/merge', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error merging guest cart:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CART_MERGE_ERROR',
-        message: 'Failed to merge guest cart',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      }
+    res.error(500, ErrorCodes.CART_MERGE_ERROR, 'Failed to merge guest cart', {
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -886,13 +757,7 @@ router.post('/reset-guest-session', async (req, res) => {
   try {
     // Only allow this for non-authenticated users (guests)
     if (req.user) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'NOT_GUEST_USER',
-          message: 'This endpoint is only for guest users'
-        }
-      });
+      return res.error(400, ErrorCodes.NOT_GUEST_USER, 'This endpoint is only for guest users');
     }
 
     // Get the old session ID from header
@@ -928,13 +793,7 @@ router.post('/reset-guest-session', async (req, res) => {
 
   } catch (error) {
     console.error('Error resetting guest cart session:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'RESET_SESSION_ERROR',
-        message: 'Failed to reset guest cart session'
-      }
-    });
+    res.error(500, ErrorCodes.RESET_SESSION_ERROR, 'Failed to reset guest cart session');
   }
 });
 
@@ -969,7 +828,7 @@ if (process.env.NODE_ENV === 'development') {
         }
       });
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      res.error(500, ErrorCodes.INTERNAL_ERROR, error.message);
     }
   });
 }

@@ -167,13 +167,7 @@ router.post('/login', validateLogin, async (req, res) => {
 
     // Check if user is active
     if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'ACCOUNT_DISABLED',
-          message: 'Your account has been disabled'
-        }
-      });
+      return res.error(403, ErrorCodes.ACCOUNT_DISABLED, 'Your account has been disabled');
     }
 
     // Generate token
@@ -209,13 +203,7 @@ router.post('/login', validateLogin, async (req, res) => {
 
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'LOGIN_ERROR',
-        message: 'Failed to login'
-      }
-    });
+    res.error(500, ErrorCodes.LOGIN_ERROR, 'Failed to login');
   }
 });
 
@@ -290,13 +278,7 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
 
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'FORGOT_PASSWORD_ERROR',
-        message: 'Failed to process password reset request'
-      }
-    });
+    res.error(500, ErrorCodes.FORGOT_PASSWORD_ERROR, 'Failed to process password reset request');
   }
 });
 
@@ -323,13 +305,7 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_TOKEN',
-          message: 'Password reset token is invalid or has expired'
-        }
-      });
+      return res.error(400, ErrorCodes.INVALID_RESET_TOKEN, 'Password reset token is invalid or has expired');
     }
 
     // Update password
@@ -350,13 +326,7 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
 
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'RESET_PASSWORD_ERROR',
-        message: 'Failed to reset password'
-      }
-    });
+    res.error(500, ErrorCodes.RESET_PASSWORD_ERROR, 'Failed to reset password');
   }
 });
 
@@ -365,25 +335,13 @@ router.get('/verify', authenticateToken, async (req, res) => {
   try {
     // If authenticateToken middleware passed, user is authenticated
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'NOT_AUTHENTICATED',
-          message: 'Not authenticated'
-        }
-      });
+      return res.error(401, ErrorCodes.AUTHENTICATION_REQUIRED, 'Not authenticated');
     }
 
     // Get fresh user data
     const user = await User.findById(req.user._id).select('-password');
     if (!user || !user.isActive) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found or inactive'
-        }
-      });
+      return res.error(401, ErrorCodes.USER_NOT_FOUND, 'User not found or inactive');
     }
 
     res.json({
@@ -395,13 +353,7 @@ router.get('/verify', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Token verification error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'VERIFICATION_ERROR',
-        message: 'Failed to verify authentication'
-      }
-    });
+    res.error(500, ErrorCodes.VERIFICATION_ERROR, 'Failed to verify authentication');
   }
 });
 
@@ -412,13 +364,7 @@ router.get('/profile', requireAuth, async (req, res) => {
     const user = await User.findById(req.user._id).select('-password');
     
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found'
-        }
-      });
+      return res.error(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
     }
     
     res.json({
@@ -429,13 +375,7 @@ router.get('/profile', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PROFILE_FETCH_ERROR',
-        message: 'Failed to fetch user profile'
-      }
-    });
+    res.error(500, ErrorCodes.PROFILE_FETCH_ERROR, 'Failed to fetch user profile');
   }
 });
 
@@ -460,7 +400,6 @@ router.put('/profile', requireAuth, validateCSRFToken, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.error('Profile update validation errors:', errors.array());
       return res.validationError(errors);
     }
 
@@ -504,13 +443,7 @@ router.put('/profile', requireAuth, validateCSRFToken, [
       if (email && email !== req.user.email) {
         const existingUser = await User.findOne({ email, _id: { $ne: req.user._id } });
         if (existingUser) {
-          return res.status(409).json({
-            success: false,
-            error: {
-              code: 'EMAIL_EXISTS',
-              message: 'Email address is already in use'
-            }
-          });
+          return res.error(409, ErrorCodes.EMAIL_IN_USE, 'Email address is already in use');
         }
       }
 
@@ -522,13 +455,7 @@ router.put('/profile', requireAuth, validateCSRFToken, [
       ).select('-password');
 
       if (!user) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'USER_NOT_FOUND',
-            message: 'User not found'
-          }
-        });
+        return res.error(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
       }
 
       const totalDuration = Date.now() - startTime;
@@ -548,13 +475,7 @@ router.put('/profile', requireAuth, validateCSRFToken, [
       });
     } catch (updateError) {
       console.error('Profile update error:', updateError);
-      return res.status(500).json({
-        success: false,
-        error: {
-          code: 'PROFILE_UPDATE_ERROR',
-          message: updateError.message || 'Failed to update profile'
-        }
-      });
+      return res.error(500, ErrorCodes.PROFILE_UPDATE_ERROR, updateError.message || 'Failed to update profile');
     }
 
   } catch (error) {
@@ -564,23 +485,10 @@ router.put('/profile', requireAuth, validateCSRFToken, [
     
     // Handle specific MongoDB errors
     if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        error: {
-          code: 'DUPLICATE_EMAIL',
-          message: 'Email address is already in use'
-        }
-      });
+      return res.error(409, ErrorCodes.DUPLICATE_EMAIL, 'Email address is already in use');
     }
 
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PROFILE_UPDATE_ERROR',
-        message: 'Failed to update profile',
-        details: error.message
-      }
-    });
+    res.error(500, ErrorCodes.PROFILE_UPDATE_ERROR, 'Failed to update profile', null, { details: error.message });
   }
 });
 
@@ -700,14 +608,7 @@ router.post('/profile/addresses', requireAuth, validateCSRFToken, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid address data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const addressData = {
@@ -726,13 +627,7 @@ router.post('/profile/addresses', requireAuth, validateCSRFToken, [
     // Add address to user
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found'
-        }
-      });
+      return res.error(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
     }
 
     // If this is the default address, unset other defaults
@@ -779,14 +674,7 @@ router.put('/profile/addresses/:addressId', requireAuth, validateCSRFToken, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid address data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { addressId } = req.params;
@@ -803,13 +691,7 @@ router.put('/profile/addresses/:addressId', requireAuth, validateCSRFToken, [
     // Update address on user
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found'
-        }
-      });
+      return res.error(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
     }
 
     const address = user.addresses.id(addressId);
@@ -862,13 +744,7 @@ router.delete('/profile/addresses/:addressId', requireAuth, validateCSRFToken, a
     // Delete address from user
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found'
-        }
-      });
+      return res.error(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
     }
 
     const address = user.addresses.id(addressId);
@@ -912,13 +788,7 @@ router.patch('/profile/addresses/:addressId/default', requireAuth, validateCSRFT
     // Set default address
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found'
-        }
-      });
+      return res.error(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
     }
 
     const address = user.addresses.id(addressId);

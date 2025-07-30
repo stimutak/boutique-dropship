@@ -130,13 +130,13 @@ describe('Error Handler Utilities', () => {
 
   describe('i18n support', () => {
     it('should use i18n key when available', () => {
-      // Mock i18n function
-      const mockI18n = (key) => {
+      // Mock i18n function that matches the actual signature
+      const mockI18n = (code, defaultMessage) => {
         const translations = {
-          'errors.USER_NOT_FOUND': 'User not found',
-          'errors.INVALID_EMAIL': 'Invalid email format'
+          'USER_NOT_FOUND': 'User not found',
+          'INVALID_EMAIL': 'Invalid email format'
         };
-        return translations[key] || key;
+        return translations[code] || defaultMessage || code;
       };
 
       const result = formatError('USER_NOT_FOUND', 'User not found', null, null, mockI18n);
@@ -144,7 +144,7 @@ describe('Error Handler Utilities', () => {
     });
 
     it('should fallback to provided message when i18n key not found', () => {
-      const mockI18n = (key) => key; // Return key when not found
+      const mockI18n = (code, defaultMessage) => defaultMessage || code; // Return default message when not found
       
       const result = formatError('CUSTOM_ERROR', 'Custom error message', null, null, mockI18n);
       expect(result.error.message).toBe('Custom error message');

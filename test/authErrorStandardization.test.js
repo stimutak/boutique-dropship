@@ -2,6 +2,7 @@ const request = require('supertest');
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const authRoutes = require('../routes/auth');
 const { i18nMiddleware } = require('../utils/i18n');
@@ -179,7 +180,7 @@ describe('Auth Routes Error Standardization', () => {
       // Create disabled user
       await User.create({
         email: 'disabled@example.com',
-        password: await bcrypt.hash('password123', 10),
+        password: 'password123',
         firstName: 'Test',
         lastName: 'User',
         isActive: false
@@ -254,21 +255,23 @@ describe('Auth Routes Error Standardization', () => {
       // Create test user
       testUser = await User.create({
         email: 'test@example.com',
-        password: await bcrypt.hash('password123', 10),
+        password: 'password123',
         firstName: 'Test',
         lastName: 'User'
       });
 
-      // Mock authentication
-      app.use((req, res, next) => {
-        req.user = testUser;
-        next();
-      });
+      // Generate auth token
+      authToken = jwt.sign(
+        { userId: testUser._id.toString() },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
     });
 
     test('should return validation error for invalid profile data', async () => {
       const response = await request(app)
         .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           firstName: '', // Empty name
           email: 'invalid-email' // Invalid email
@@ -289,13 +292,14 @@ describe('Auth Routes Error Standardization', () => {
       // Create another user with target email
       await User.create({
         email: 'taken@example.com',
-        password: await bcrypt.hash('password123', 10),
+        password: 'password123',
         firstName: 'Another',
         lastName: 'User'
       });
 
       const response = await request(app)
         .put('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           email: 'taken@example.com'
         })

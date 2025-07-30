@@ -24,6 +24,27 @@ const ErrorCodes = {
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
   AUTHENTICATION_REQUIRED: 'AUTHENTICATION_REQUIRED',
   REGISTRATION_ERROR: 'REGISTRATION_ERROR',
+  ACCOUNT_DISABLED: 'ACCOUNT_DISABLED',
+  LOGIN_ERROR: 'LOGIN_ERROR',
+  FORGOT_PASSWORD_ERROR: 'FORGOT_PASSWORD_ERROR',
+  RESET_PASSWORD_ERROR: 'RESET_PASSWORD_ERROR',
+  INVALID_RESET_TOKEN: 'INVALID_RESET_TOKEN',
+  VERIFICATION_ERROR: 'VERIFICATION_ERROR',
+  PROFILE_FETCH_ERROR: 'PROFILE_FETCH_ERROR',
+  PROFILE_UPDATE_ERROR: 'PROFILE_UPDATE_ERROR',
+  EMAIL_EXISTS: 'EMAIL_EXISTS',
+  EMAIL_IN_USE: 'EMAIL_IN_USE',
+  DUPLICATE_EMAIL: 'DUPLICATE_EMAIL',
+  INVALID_PASSWORD: 'INVALID_PASSWORD',
+  PASSWORD_CHANGE_ERROR: 'PASSWORD_CHANGE_ERROR',
+  LOGOUT_ERROR: 'LOGOUT_ERROR',
+  ADDRESS_ADD_ERROR: 'ADDRESS_ADD_ERROR',
+  ADDRESS_UPDATE_ERROR: 'ADDRESS_UPDATE_ERROR',
+  ADDRESS_DELETE_ERROR: 'ADDRESS_DELETE_ERROR',
+  ADDRESS_NOT_FOUND: 'ADDRESS_NOT_FOUND',
+  ADDRESS_DEFAULT_ERROR: 'ADDRESS_DEFAULT_ERROR',
+  MISSING_TOKEN: 'MISSING_TOKEN',
+  TOKEN_REFRESH_ERROR: 'TOKEN_REFRESH_ERROR',
   
   // Product errors
   PRODUCT_NOT_FOUND: 'PRODUCT_NOT_FOUND',
@@ -49,6 +70,8 @@ const ErrorCodes = {
   MAX_QUANTITY_EXCEEDED: 'MAX_QUANTITY_EXCEEDED',
   INVALID_QUANTITY: 'INVALID_QUANTITY',
   MISSING_PRODUCT_ID: 'MISSING_PRODUCT_ID',
+  NOT_GUEST_USER: 'NOT_GUEST_USER',
+  RESET_SESSION_ERROR: 'RESET_SESSION_ERROR',
   
   // Order errors
   ORDER_NOT_FOUND: 'ORDER_NOT_FOUND',
@@ -122,7 +145,7 @@ function createValidationError(validationResult) {
       code: ErrorCodes.VALIDATION_ERROR,
       message: 'Invalid input data',
       details: errors.map(err => ({
-        field: err.param,
+        field: err.param || err.path,
         message: err.msg,
         location: err.location
       }))
@@ -157,6 +180,10 @@ function errorResponse(req, res, next) {
    */
   res.validationError = function(validationErrors) {
     const errorData = createValidationError(validationErrors);
+    // Apply i18n to the validation error message
+    if (req.i18n && errorData.error) {
+      errorData.error.message = req.i18n(ErrorCodes.VALIDATION_ERROR, errorData.error.message);
+    }
     return this.status(400).json(errorData);
   };
 

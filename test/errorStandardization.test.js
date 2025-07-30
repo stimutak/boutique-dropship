@@ -126,12 +126,12 @@ describe('Error Code Usage', () => {
 // Test i18n support for errors
 describe('Error i18n Support', () => {
   test('error messages should support translation', () => {
-    const mockI18n = (key) => {
+    const mockI18n = (code, defaultMessage) => {
       const translations = {
-        'errors.PRODUCT_NOT_FOUND': 'Producto no encontrado',
-        'errors.INVALID_CREDENTIALS': 'Correo o contraseña inválidos'
+        'PRODUCT_NOT_FOUND': 'Producto no encontrado',
+        'INVALID_CREDENTIALS': 'Correo o contraseña inválidos'
       };
-      return translations[key] || key;
+      return translations[code] || defaultMessage || code;
     };
 
     const { formatError } = require('../utils/errorHandler');
@@ -141,7 +141,7 @@ describe('Error i18n Support', () => {
   });
 
   test('should fallback to default message when translation not found', () => {
-    const mockI18n = (key) => key; // No translations available
+    const mockI18n = (code, defaultMessage) => defaultMessage || code; // No translations available
     
     const { formatError } = require('../utils/errorHandler');
     

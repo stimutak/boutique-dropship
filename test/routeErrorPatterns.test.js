@@ -11,7 +11,8 @@ describe('Route Error Pattern Analysis', () => {
     good: [
       /res\.status\(\d+\)\.json\(\{\s*success:\s*false,\s*error:\s*\{[^}]+\}\s*\}\)/,
       /new AppError\(/,
-      /next\(new AppError\(/
+      /next\(new AppError\(/,
+      /res\.error\(/  // New standardized error helper
     ],
     // Bad patterns - inconsistent formats
     bad: [
@@ -33,7 +34,7 @@ describe('Route Error Pattern Analysis', () => {
       });
 
       test('should have at least one error response', () => {
-        const hasErrorResponse = /res\.status\([45]\d{2}\)/.test(content);
+        const hasErrorResponse = /res\.status\([45]\d{2}\)|res\.error\(/.test(content);
         expect(hasErrorResponse).toBe(true);
       });
 

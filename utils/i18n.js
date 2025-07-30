@@ -19,11 +19,14 @@ const errorTranslations = {
     // Authentication errors
     INVALID_CREDENTIALS: 'Invalid email or password',
     USER_EXISTS: 'User with this email already exists',
+    EMAIL_IN_USE: 'Email address is already in use',
     USER_NOT_FOUND: 'User not found',
     TOKEN_INVALID: 'Invalid token',
     TOKEN_EXPIRED: 'Token has expired',
+    INVALID_RESET_TOKEN: 'Password reset token is invalid or has expired',
     AUTHENTICATION_REQUIRED: 'Authentication required',
     REGISTRATION_ERROR: 'Failed to register user',
+    ACCOUNT_DISABLED: 'Your account has been disabled',
     
     // Product errors
     PRODUCT_NOT_FOUND: 'Product not found',
@@ -49,6 +52,8 @@ const errorTranslations = {
     MAX_QUANTITY_EXCEEDED: 'Cannot exceed maximum quantity of 99',
     INVALID_QUANTITY: 'Invalid quantity',
     MISSING_PRODUCT_ID: 'Product ID is required',
+    NOT_GUEST_USER: 'This endpoint is only for guest users',
+    RESET_SESSION_ERROR: 'Failed to reset guest cart session',
     
     // Order errors
     ORDER_NOT_FOUND: 'Order not found',

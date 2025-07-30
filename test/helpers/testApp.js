@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 
 // Mock Mollie client before importing routes
 jest.mock('@mollie/api-client', () => ({
@@ -40,6 +41,8 @@ jest.mock('@mollie/api-client', () => ({
 
 // Import middleware
 const { globalErrorHandler } = require('../../middleware/errorHandler');
+const { i18nMiddleware } = require('../../utils/i18n');
+const { errorResponse } = require('../../utils/errorHandler');
 
 // Import routes
 const authRoutes = require('../../routes/auth');
@@ -104,6 +107,15 @@ function createTestApp() {
     }
   }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Cookie parser middleware
+  app.use(cookieParser());
+
+  // i18n middleware for error messages
+  app.use(i18nMiddleware);
+
+  // Error response helper middleware
+  app.use(errorResponse);
 
   // Health check endpoint
   app.get('/health', (req, res) => {

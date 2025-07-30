@@ -16,14 +16,11 @@ describe('Admin Routes', () => {
   let regularUserToken;
   let adminUser;
   let regularUser;
-
-  beforeAll(async () => {
-    app = createTestApp();
-  });
   let testProduct;
   let testOrder;
 
   beforeAll(async () => {
+    app = createTestApp();
     // Create admin user
     adminUser = await User.create({
       email: 'admin@test.com',
@@ -44,14 +41,14 @@ describe('Admin Routes', () => {
 
     // Generate tokens
     adminToken = jwt.sign(
-      { userId: adminUser._id },
-      process.env.JWT_SECRET || 'test-secret',
+      { userId: adminUser._id.toString() },
+      process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
     regularUserToken = jwt.sign(
-      { userId: regularUser._id },
-      process.env.JWT_SECRET || 'test-secret',
+      { userId: regularUser._id.toString() },
+      process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
@@ -164,7 +161,7 @@ describe('Admin Routes', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.products).toBeDefined();
+      expect(response.body.data.products).toBeDefined();
     });
   });
 
@@ -176,9 +173,9 @@ describe('Admin Routes', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.products).toHaveLength(1);
-      expect(response.body.products[0].wholesaler).toBeDefined();
-      expect(response.body.pagination).toBeDefined();
+      expect(response.body.data.products).toHaveLength(1);
+      expect(response.body.data.products[0].wholesaler).toBeDefined();
+      expect(response.body.data.pagination).toBeDefined();
     });
 
     test('should filter products by category', async () => {
@@ -188,8 +185,8 @@ describe('Admin Routes', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.products).toHaveLength(1);
-      expect(response.body.products[0].category).toBe('crystals');
+      expect(response.body.data.products).toHaveLength(1);
+      expect(response.body.data.products[0].category).toBe('crystals');
     });
 
     test('should search products', async () => {
@@ -199,7 +196,7 @@ describe('Admin Routes', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.products).toHaveLength(1);
+      expect(response.body.data.products).toHaveLength(1);
     });
 
     test('should export products to CSV', async () => {
@@ -270,9 +267,9 @@ Invalid Product`; // Missing required fields
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.orders).toHaveLength(1);
-      expect(response.body.orders[0].items[0].wholesaler).toBeDefined();
-      expect(response.body.pagination).toBeDefined();
+      expect(response.body.data.orders).toHaveLength(1);
+      expect(response.body.data.orders[0].items[0].wholesaler).toBeDefined();
+      expect(response.body.data.pagination).toBeDefined();
     });
 
     test('should get single order with full admin data', async () => {
@@ -325,8 +322,8 @@ Invalid Product`; // Missing required fields
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.orders).toHaveLength(1);
-      expect(response.body.orders[0].status).toBe('shipped');
+      expect(response.body.data.orders).toHaveLength(1);
+      expect(response.body.data.orders[0].status).toBe('shipped');
     });
   });
 
