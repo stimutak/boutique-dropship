@@ -9,8 +9,8 @@
 - [x] 4. **Remove duplicate test files** (15 min) - ✅ Removed auth-fixed.test.js
 
 ### 🔧 Then These Immediate Actions:
-- [ ] 5. **Fix React version mismatch** (30 min) - Choose upgrade or downgrade
-- [ ] 6. **Configure Mollie API key** (30 min) - Enable production payments
+- [x] 5. **Fix React version mismatch** (30 min) - ✅ Both on React v19
+- [x] 6. **Configure Mollie API key** (30 min) - ✅ Setup guide created
 
 ## 📋 Next Phase (After Quick Wins)
 - [ ] JWT migration to cookies (2-3 days)
