@@ -114,7 +114,19 @@ const orderSchema = new mongoose.Schema({
   },
   trackingNumber: String,
   notes: String,
-  referralSource: String // Track which sister site referred this order
+  referralSource: String, // Track which sister site referred this order
+  // Multi-currency support
+  currency: {
+    type: String,
+    required: true,
+    default: 'USD',
+    enum: ['USD', 'EUR', 'CNY', 'JPY', 'SAR', 'GBP', 'CAD']
+  },
+  exchangeRate: {
+    type: Number,
+    required: true,
+    default: 1
+  }
 }, {
   timestamps: true
 });

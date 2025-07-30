@@ -20,6 +20,10 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     
+    // Add locale header for currency support
+    const locale = localStorage.getItem('i18nextLng') || 'en'
+    config.headers['x-locale'] = locale
+    
     // Add guest session ID for cart operations (when not authenticated)
     // Check both cookie-based auth and localStorage during migration
     const guestSessionId = window.sessionStorage?.getItem('guestSessionId')

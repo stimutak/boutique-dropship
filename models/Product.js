@@ -31,6 +31,21 @@ const productSchema = new mongoose.Schema({
     type: Number,
     min: 0
   },
+  // Multi-currency support
+  baseCurrency: {
+    type: String,
+    default: 'USD',
+    enum: ['USD', 'EUR', 'CNY', 'JPY', 'SAR', 'GBP', 'CAD']
+  },
+  prices: {
+    USD: { type: Number, required: true },
+    EUR: { type: Number },
+    CNY: { type: Number },
+    JPY: { type: Number },
+    SAR: { type: Number },
+    GBP: { type: Number },
+    CAD: { type: Number }
+  },
   images: [{
     url: { type: String, required: true },
     alt: { type: String, required: true },
@@ -125,6 +140,13 @@ productSchema.pre('save', function(next) {
   if (this.crossSiteIntegration.enabled && !this.crossSiteIntegration.referenceKey) {
     this.crossSiteIntegration.referenceKey = this.slug;
   }
+  
+  // Ensure USD price is always set from base price
+  if (!this.prices) {
+    this.prices = {};
+  }
+  this.prices.USD = this.price;
+  
   next();
 });
 

@@ -2,7 +2,36 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Product = require('../models/Product');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { getCurrencyForLocale, formatPrice } = require('../utils/currency');
 const router = express.Router();
+
+// Helper function to get user's currency from request
+function getUserCurrency(req) {
+  // Check for explicit currency in query or header
+  if (req.query.currency) return req.query.currency;
+  if (req.headers['x-currency']) return req.headers['x-currency'];
+  
+  // Get from locale header (set by frontend based on i18n)
+  const locale = req.headers['x-locale'] || 'en';
+  return getCurrencyForLocale(locale);
+}
+
+// Helper to enhance product with currency info
+function enhanceProductWithCurrency(product, currency, locale = 'en') {
+  const productObj = product.toObject ? product.toObject() : product;
+  
+  // Get price in user's currency
+  const priceInCurrency = productObj.prices && productObj.prices[currency] 
+    ? productObj.prices[currency] 
+    : productObj.price; // Fallback to USD price
+    
+  return {
+    ...productObj,
+    displayPrice: formatPrice(priceInCurrency, currency, locale),
+    displayCurrency: currency,
+    priceInCurrency: priceInCurrency
+  };
+}
 
 // GET /api/products - Get all products with advanced filtering and search
 router.get('/', async (req, res) => {
@@ -112,8 +141,15 @@ router.get('/', async (req, res) => {
     const totalProducts = await Product.countDocuments(query);
     const totalPages = Math.ceil(totalProducts / limitNum);
     
-    // Convert to public JSON format
-    const publicProducts = products.map(product => product.toPublicJSON());
+    // Get user's currency
+    const userCurrency = getUserCurrency(req);
+    const locale = req.headers['x-locale'] || 'en';
+    
+    // Convert to public JSON format with currency info
+    const publicProducts = products.map(product => {
+      const publicProduct = product.toPublicJSON();
+      return enhanceProductWithCurrency(publicProduct, userCurrency, locale);
+    });
     
     res.json({
       success: true,
@@ -463,11 +499,15 @@ router.get('/:slug', async (req, res) => {
     .select('-wholesaler')
     .limit(4);
     
+    // Get user's currency
+    const userCurrency = getUserCurrency(req);
+    const locale = req.headers['x-locale'] || 'en';
+    
     res.json({
       success: true,
       data: {
-        product: product.toPublicJSON(),
-        related: relatedProducts.map(p => p.toPublicJSON()),
+        product: enhanceProductWithCurrency(product.toPublicJSON(), userCurrency, locale),
+        related: relatedProducts.map(p => enhanceProductWithCurrency(p.toPublicJSON(), userCurrency, locale)),
         meta: {
           slug,
           category: product.category,
