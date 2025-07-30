@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchProducts } from '../store/slices/productsSlice'
+import PriceDisplay from '../components/PriceDisplay'
 
 const Home = () => {
   const dispatch = useDispatch()
@@ -76,7 +77,11 @@ const Home = () => {
                     </div>
                     <div className="product-info">
                       <h3>{product.name}</h3>
-                      <p className="price">${product.price.toFixed(2)}</p>
+                      <PriceDisplay 
+                        price={product.priceInCurrency || product.price} 
+                        displayPrice={product.displayPrice}
+                        currency={product.displayCurrency}
+                      />
                     </div>
                   </Link>
                 </div>

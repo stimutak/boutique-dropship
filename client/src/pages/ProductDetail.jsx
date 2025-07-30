@@ -4,11 +4,38 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchProductBySlug, clearCurrentProduct } from '../store/slices/productsSlice'
 import { addToCart } from '../store/slices/cartSlice'
 import PriceDisplay from '../components/PriceDisplay'
+import { localeCurrencies } from '../i18n/i18n'
+import { useTranslation } from 'react-i18next'
+
+// Helper function to format price
+function formatPrice(amount, currency, locale) {
+  try {
+    return new Intl.NumberFormat(locale || 'en', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: currency === 'JPY' ? 0 : 2,
+      maximumFractionDigits: currency === 'JPY' ? 0 : 2
+    }).format(amount)
+  } catch (error) {
+    const symbols = {
+      USD: '$',
+      EUR: '€',
+      GBP: '£',
+      CNY: '¥',
+      JPY: '¥',
+      SAR: 'ر.س',
+      CAD: 'C$'
+    }
+    const symbol = symbols[currency] || currency
+    return `${symbol}${amount.toFixed(currency === 'JPY' ? 0 : 2)}`
+  }
+}
 
 const ProductDetail = () => {
   const { slug } = useParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const { i18n } = useTranslation()
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
   
@@ -130,7 +157,7 @@ const ProductDetail = () => {
                 className="btn btn-primary add-to-cart-btn"
                 onClick={handleAddToCart}
               >
-                Add to Cart - ${(product.price * quantity).toFixed(2)}
+                Add to Cart - {formatPrice((product.priceInCurrency || product.price) * quantity, product.displayCurrency || 'USD', i18n.language)}
               </button>
             </div>
 

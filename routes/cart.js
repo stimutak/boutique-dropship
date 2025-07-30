@@ -5,6 +5,35 @@ const User = require('../models/User');
 const Cart = require('../models/Cart');
 const { authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
+const { getCurrencyForLocale, formatPrice } = require('../utils/currency');
+
+// Helper function to get user's currency from request
+function getUserCurrency(req) {
+  // Check for explicit currency in query or header
+  if (req.query.currency) return req.query.currency;
+  if (req.headers['x-currency']) return req.headers['x-currency'];
+  
+  // Get from locale header (set by frontend based on i18n)
+  const locale = req.headers['x-locale'] || 'en';
+  return getCurrencyForLocale(locale);
+}
+
+// Helper to enhance product with currency info
+function enhanceProductWithCurrency(product, currency, locale = 'en') {
+  const productObj = product.toPublicJSON();
+  
+  // Get price in user's currency
+  const priceInCurrency = product.prices && product.prices[currency] 
+    ? product.prices[currency] 
+    : product.price; // Fallback to USD price
+    
+  return {
+    ...productObj,
+    displayPrice: formatPrice(priceInCurrency, currency, locale),
+    displayCurrency: currency,
+    priceInCurrency: priceInCurrency
+  };
+}
 
 // Helper function to get or create cart - Fixed cart persistence bug
 const getOrCreateCart = async (req) => {
@@ -89,9 +118,12 @@ router.get('/', authenticateToken, async (req, res) => {
             return null; // Filter out inactive products
           }
           
+          const userCurrency = getUserCurrency(req);
+          const locale = req.headers['x-locale'] || 'en';
+          
           return {
             _id: item.product,
-            product: product.toPublicJSON(),
+            product: enhanceProductWithCurrency(product, userCurrency, locale),
             quantity: item.quantity,
             price: item.price,
             subtotal: item.price * item.quantity
@@ -303,9 +335,12 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
         if (!prod) {
           return null; // Filter out missing products
         }
+        const userCurrency = getUserCurrency(req);
+        const locale = req.headers['x-locale'] || 'en';
+        
         return {
           _id: item.product,
-          product: prod.toPublicJSON(),
+          product: enhanceProductWithCurrency(prod, userCurrency, locale),
           quantity: item.quantity,
           price: item.price,
           subtotal: item.price * item.quantity
@@ -780,9 +815,12 @@ router.post('/merge', authenticateToken, async (req, res) => {
             return null; // Filter out inactive products
           }
           
+          const userCurrency = getUserCurrency(req);
+          const locale = req.headers['x-locale'] || 'en';
+          
           return {
             _id: item.product,
-            product: product.toPublicJSON(),
+            product: enhanceProductWithCurrency(product, userCurrency, locale),
             quantity: item.quantity,
             price: item.price,
             subtotal: item.price * item.quantity

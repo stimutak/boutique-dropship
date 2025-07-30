@@ -7,6 +7,7 @@ import {
   removeFromCart, 
   clearCart
 } from '../store/slices/cartSlice'
+import PriceDisplay from '../components/PriceDisplay'
 
 const Cart = () => {
   const dispatch = useDispatch()
@@ -76,7 +77,11 @@ const Cart = () => {
                       <h3>{item.product.name}</h3>
                     </Link>
                     <p className="category">{item.product.category}</p>
-                    <p className="price">${item.product.price.toFixed(2)} each</p>
+                    <PriceDisplay 
+                      price={item.product.priceInCurrency || item.product.price} 
+                      displayPrice={item.product.displayPrice}
+                      currency={item.product.displayCurrency}
+                    />
                   </div>
                   
                   <div className="item-quantity">
@@ -95,7 +100,10 @@ const Cart = () => {
                   </div>
                   
                   <div className="item-total">
-                    ${(item.product.price * item.quantity).toFixed(2)}
+                    <PriceDisplay 
+                      price={(item.product.priceInCurrency || item.product.price) * item.quantity} 
+                      currency={item.product.displayCurrency}
+                    />
                   </div>
                   
                   <button 
@@ -113,7 +121,10 @@ const Cart = () => {
                 <span>Total Items: {totalItems}</span>
               </div>
               <div className="summary-row total">
-                <span>Total: ${totalPrice.toFixed(2)}</span>
+                <span>Total: <PriceDisplay 
+                  price={totalPrice} 
+                  currency={items[0]?.product?.displayCurrency || 'USD'}
+                /></span>
               </div>
               
               <div className="cart-actions">

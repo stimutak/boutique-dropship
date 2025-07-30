@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { createOrder } from '../store/slices/ordersSlice'
 import { clearCart } from '../store/slices/cartSlice'
+import PriceDisplay from '../components/PriceDisplay'
 
 const Checkout = () => {
   const dispatch = useDispatch()
@@ -348,13 +349,21 @@ const Checkout = () => {
               {items.map(item => (
                 <div key={item.product._id} className="summary-item">
                   <span>{item.product.name} x {item.quantity}</span>
-                  <span>${(item.product.price * item.quantity).toFixed(2)}</span>
+                  <span>
+                    <PriceDisplay 
+                      price={(item.product.priceInCurrency || item.product.price) * item.quantity} 
+                      currency={item.product.displayCurrency || 'USD'}
+                    />
+                  </span>
                 </div>
               ))}
             </div>
             
             <div className="summary-total">
-              <strong>Total: ${totalPrice.toFixed(2)}</strong>
+              <strong>Total: <PriceDisplay 
+                price={totalPrice} 
+                currency={items[0]?.product?.displayCurrency || 'USD'}
+              /></strong>
             </div>
             
             <div className="payment-info">

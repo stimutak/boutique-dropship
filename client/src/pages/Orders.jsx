@@ -2,10 +2,38 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchUserOrders } from '../store/slices/ordersSlice'
+import { useTranslation } from 'react-i18next'
+import { localeCurrencies } from '../i18n/i18n'
+
+// Helper function to format price
+function formatPrice(amount, currency, locale) {
+  try {
+    return new Intl.NumberFormat(locale || 'en', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: currency === 'JPY' ? 0 : 2,
+      maximumFractionDigits: currency === 'JPY' ? 0 : 2
+    }).format(amount)
+  } catch (error) {
+    const symbols = {
+      USD: '$',
+      EUR: '€',
+      GBP: '£',
+      CNY: '¥',
+      JPY: '¥',
+      SAR: 'ر.س',
+      CAD: 'C$'
+    }
+    const symbol = symbols[currency] || currency
+    return `${symbol}${amount.toFixed(currency === 'JPY' ? 0 : 2)}`
+  }
+}
 
 const Orders = () => {
   const dispatch = useDispatch()
+  const { i18n } = useTranslation()
   const { orders, isLoading, error } = useSelector(state => state.orders)
+  const userCurrency = order => order.currency || localeCurrencies[i18n.language] || 'USD'
 
   useEffect(() => {
     dispatch(fetchUserOrders())
@@ -78,7 +106,7 @@ const Orders = () => {
                       .map(item => (
                         <div key={item._id} className="order-item">
                           <span>{item.product.name} x {item.quantity}</span>
-                          <span>${(item.price * item.quantity).toFixed(2)}</span>
+                          <span>{formatPrice(item.price * item.quantity, userCurrency(order), i18n.language)}</span>
                         </div>
                       ))}
                     {order.items.length > 3 && (
@@ -88,7 +116,7 @@ const Orders = () => {
                   
                   <div className="order-footer">
                     <div className="order-total">
-                      <strong>Total: ${order.total.toFixed(2)}</strong>
+                      <strong>Total: {formatPrice(order.total, userCurrency(order), i18n.language)}</strong>
                     </div>
                     <Link 
                       to={`/orders/${order._id}`} 
