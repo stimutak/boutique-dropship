@@ -17,6 +17,14 @@ body {
   flex-direction: column;
 }
 
+/* Ensure numbers and input fields remain LTR even in RTL mode */
+input[type="number"],
+input[type="tel"],
+input[type="email"] {
+  direction: ltr;
+  text-align: start;
+}
+
 .App {
   display: flex;
   flex-direction: column;
@@ -30,12 +38,13 @@ main {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding-inline: 20px;
 }
 
 /* Buttons */
 .btn {
-  padding: 10px 20px;
+  padding-block: 10px;
+  padding-inline: 20px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -71,12 +80,12 @@ main {
 
 /* Forms */
 .form-group {
-  margin-bottom: 20px;
+  margin-block-end: 20px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
+  margin-block-end: 5px;
   font-weight: 500;
 }
 
@@ -104,14 +113,14 @@ main {
 }
 
 .form-section {
-  margin-bottom: 30px;
+  margin-block-end: 30px;
   padding: 20px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
 }
 
 .form-section h2 {
-  margin-bottom: 20px;
+  margin-block-end: 20px;
   color: #374151;
 }
 
@@ -119,7 +128,7 @@ main {
 .error {
   color: #dc2626;
   font-size: 14px;
-  margin-top: 5px;
+  margin-block-start: 5px;
   padding: 10px;
   background-color: #fef2f2;
   border: 1px solid #fecaca;
@@ -129,7 +138,7 @@ main {
 .success {
   color: #059669;
   font-size: 14px;
-  margin-top: 5px;
+  margin-block-start: 5px;
   padding: 10px;
   background-color: #ecfdf5;
   border: 1px solid #86efac;
@@ -176,12 +185,12 @@ main {
 
 .hero-content h1 {
   font-size: 3rem;
-  margin-bottom: 20px;
+  margin-block-end: 20px;
 }
 
 .hero-content p {
   font-size: 1.2rem;
-  margin-bottom: 30px;
+  margin-block-end: 30px;
 }
 
 .categories {
@@ -190,7 +199,7 @@ main {
 
 .categories h2 {
   text-align: center;
-  margin-bottom: 40px;
+  margin-block-end: 40px;
   font-size: 2.5rem;
 }
 
@@ -215,7 +224,7 @@ main {
 
 .featured-products h2 {
   text-align: center;
-  margin-bottom: 40px;
+  margin-block-end: 40px;
   font-size: 2.5rem;
 }
 
@@ -259,7 +268,7 @@ main {
 }
 
 .product-info h3 {
-  margin-bottom: 10px;
+  margin-block-end: 10px;
   font-size: 1.1rem;
 }
 
@@ -267,13 +276,13 @@ main {
   font-size: 1.2rem;
   font-weight: bold;
   color: #7c3aed;
-  margin-bottom: 10px;
+  margin-block-end: 10px;
 }
 
 .product-info .category {
   color: #6b7280;
   font-size: 0.9rem;
-  margin-bottom: 10px;
+  margin-block-end: 10px;
 }
 
 .spiritual-properties {
@@ -283,11 +292,12 @@ main {
 .spiritual-properties .property {
   display: inline-block;
   background-color: #f3f4f6;
-  padding: 4px 8px;
+  padding-block: 4px;
+  padding-inline: 8px;
   border-radius: 4px;
   font-size: 0.8rem;
-  margin-right: 5px;
-  margin-bottom: 5px;
+  margin-inline-end: 5px;
+  margin-block-end: 5px;
 }
 
 /* Products Page */
@@ -298,7 +308,7 @@ main {
 .filters {
   display: flex;
   gap: 20px;
-  margin-bottom: 30px;
+  margin-block-end: 30px;
   padding: 20px;
   background-color: #f9fafb;
   border-radius: 8px;
@@ -312,7 +322,7 @@ main {
 }
 
 .filter-group label {
-  margin-bottom: 5px;
+  margin-block-end: 5px;
   font-weight: 500;
 }
 
@@ -321,7 +331,7 @@ main {
   justify-content: center;
   align-items: center;
   gap: 20px;
-  margin-top: 40px;
+  margin-block-start: 40px;
 }
 
 .page-info {
@@ -337,13 +347,13 @@ main {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 40px;
-  margin-bottom: 40px;
+  margin-block-end: 40px;
 }
 
 .product-images .main-image {
   width: 100%;
   height: 400px;
-  margin-bottom: 20px;
+  margin-block-end: 20px;
 }
 
 .product-images .main-image img {
@@ -739,7 +749,7 @@ main {
 }
 
 .order-total {
-  text-align: right;
+  text-align: end;
   font-size: 1.2rem;
   font-weight: bold;
   border-top: 1px solid #d1d5db;

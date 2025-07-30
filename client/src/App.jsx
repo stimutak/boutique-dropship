@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { loadUser } from './store/slices/authSlice'
 import { fetchCart } from './store/slices/cartSlice'
 import csrfService from './services/csrf'
+import { supportedLanguages } from './i18n/i18n'
 
 // Components
 import Header from './components/Layout/Header'
@@ -32,6 +34,7 @@ import ProtectedRoute from './components/Auth/ProtectedRoute'
 
 function App() {
   const dispatch = useDispatch()
+  const { i18n } = useTranslation()
 
   useEffect(() => {
     // Initialize CSRF token for all users (including guests)
@@ -55,6 +58,16 @@ function App() {
       })
     }
   }, [dispatch])
+
+  // Update document direction when language changes
+  useEffect(() => {
+    const currentLang = i18n.language
+    const langConfig = supportedLanguages[currentLang]
+    const direction = langConfig?.dir || 'ltr'
+    
+    document.documentElement.dir = direction
+    document.documentElement.lang = currentLang
+  }, [i18n.language])
 
   return (
     <div className="App">

@@ -9,7 +9,7 @@ function PriceDisplay({ price, compareAtPrice, currency, displayPrice }) {
     return (
       <div className="price-display">
         {compareAtPrice && compareAtPrice > price && (
-          <span className="compare-price" style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px' }}>
+          <span className="compare-price" style={{ textDecoration: 'line-through', color: '#999', marginInlineEnd: '8px' }}>
             {formatPriceForDisplay(compareAtPrice, currency || localeCurrencies[i18n.language], i18n.language)}
           </span>
         )}
@@ -26,7 +26,7 @@ function PriceDisplay({ price, compareAtPrice, currency, displayPrice }) {
   return (
     <div className="price-display">
       {compareAtPrice && compareAtPrice > price && (
-        <span className="compare-price" style={{ textDecoration: 'line-through', color: '#999', marginRight: '8px' }}>
+        <span className="compare-price" style={{ textDecoration: 'line-through', color: '#999', marginInlineEnd: '8px' }}>
           {formatPriceForDisplay(compareAtPrice, userCurrency, i18n.language)}
         </span>
       )}

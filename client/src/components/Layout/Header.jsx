@@ -6,17 +6,20 @@ import { logout } from '../../store/slices/authSlice'
 import { clearAfterMerge } from '../../store/slices/cartSlice'
 import { searchProducts } from '../../store/slices/productsSlice'
 import LanguageSelector from '../LanguageSelector'
+import { supportedLanguages } from '../../i18n/i18n'
 
 const Header = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
   
   const { isAuthenticated, user } = useSelector(state => state.auth)
   const { totalItems } = useSelector(state => state.cart)
+  
+  const isRTL = supportedLanguages[i18n.language]?.dir === 'rtl'
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -66,7 +69,7 @@ const Header = () => {
                 flex: '1',
                 padding: '0.5rem',
                 border: 'none',
-                borderRadius: '4px 0 0 4px',
+                borderRadius: isRTL ? '0 4px 4px 0' : '4px 0 0 4px',
                 fontSize: '1rem'
               }}
             />
@@ -77,7 +80,7 @@ const Header = () => {
                 backgroundColor: '#6d28d9',
                 color: 'white',
                 border: 'none',
-                borderRadius: '0 4px 4px 0',
+                borderRadius: isRTL ? '4px 0 0 4px' : '0 4px 4px 0',
                 cursor: 'pointer'
               }}
             >
@@ -97,7 +100,7 @@ const Header = () => {
                 <span style={{
                   position: 'absolute',
                   top: '-8px',
-                  right: '-8px',
+                  [isRTL ? 'left' : 'right']: '-8px',
                   backgroundColor: '#dc2626',
                   color: 'white',
                   borderRadius: '50%',
@@ -125,14 +128,14 @@ const Header = () => {
                     fontSize: '1rem'
                   }}
                 >
-                  {user?.firstName || 'Account'} ▼
+                  {user?.firstName || 'Account'} {isRTL ? '▲' : '▼'}
                 </button>
                 
                 {isMenuOpen && (
                   <div style={{
                     position: 'absolute',
                     top: '100%',
-                    right: '0',
+                    [isRTL ? 'left' : 'right']: '0',
                     backgroundColor: 'white',
                     color: 'black',
                     minWidth: '150px',
@@ -161,7 +164,7 @@ const Header = () => {
                       }}
                       style={{
                         width: '100%',
-                        textAlign: 'left',
+                        textAlign: 'start',
                         padding: '0.5rem 1rem',
                         border: 'none',
                         background: 'none',

@@ -11,6 +11,7 @@ import deTranslations from './locales/de/translation.json'
 import zhTranslations from './locales/zh/translation.json'
 import jaTranslations from './locales/ja/translation.json'
 import arTranslations from './locales/ar/translation.json'
+import heTranslations from './locales/he/translation.json'
 
 const resources = {
   en: { translation: enTranslations },
@@ -19,7 +20,8 @@ const resources = {
   de: { translation: deTranslations },
   zh: { translation: zhTranslations },
   ja: { translation: jaTranslations },
-  ar: { translation: arTranslations }
+  ar: { translation: arTranslations },
+  he: { translation: heTranslations }
 }
 
 // Supported languages configuration
@@ -30,7 +32,8 @@ export const supportedLanguages = {
   de: { name: 'Deutsch', flag: '🇩🇪', dir: 'ltr' },
   zh: { name: '中文', flag: '🇨🇳', dir: 'ltr' },
   ja: { name: '日本語', flag: '🇯🇵', dir: 'ltr' },
-  ar: { name: 'العربية', flag: '🇸🇦', dir: 'rtl' }
+  ar: { name: 'العربية', flag: '🇸🇦', dir: 'rtl' },
+  he: { name: 'עברית', flag: '🇮🇱', dir: 'rtl' }
 }
 
 // Currency configuration per locale
@@ -41,7 +44,8 @@ export const localeCurrencies = {
   de: 'EUR',
   zh: 'CNY',
   ja: 'JPY',
-  ar: 'SAR'
+  ar: 'SAR',
+  he: 'ILS'
 }
 
 i18n
