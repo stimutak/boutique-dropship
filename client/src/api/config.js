@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '', // Use empty string to use relative URLs and proxy
+  baseURL: '', // Always use relative URLs in production for nginx proxy
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

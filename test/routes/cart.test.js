@@ -116,8 +116,6 @@ jest.mock('../../middleware/sessionCSRF', () => ({
 // Mock auth service (removed cartService mock as it no longer exists)
 // The services were deleted during cleanup
 
-// Removed cartService require as the services directory was deleted
-
 // Create test app
 const createTestApp = () => {
   const app = express();
@@ -244,28 +242,15 @@ describe('Cart Routes', () => {
     global.Cart.findByIdAndUpdate = Cart.findByIdAndUpdate;
     global.Cart.findOneAndUpdate = Cart.findOneAndUpdate;
     
-    // Setup cart service mocks
-    cartService.getCartWithPerformanceOptimization.mockImplementation(async (req) => ({
-      type: 'guest',
-      cart: testCart,
-      sessionId: 'guest_test_session'
-    }));
-    
-    cartService.updateCartOptimistically.mockResolvedValue({
-      duration: 0,
-      performance: 'test'
-    });
+    // No cart service mocks needed - cart logic is in routes
   });
   
   describe('GET /api/cart', () => {
     it('should return empty cart for new session', async () => {
       // Mock empty cart
       const emptyCart = { ...testCart, items: [] };
-      cartService.getCartWithPerformanceOptimization.mockResolvedValue({
-        type: 'guest',
-        cart: emptyCart,
-        sessionId: 'guest_test_session'
-      });
+      Cart.findOne.mockResolvedValue(null);
+      Cart.findOneAndUpdate.mockResolvedValue(emptyCart);
       
       const response = await request(app)
         .get('/api/cart')
@@ -290,11 +275,7 @@ describe('Cart Routes', () => {
         }]
       };
       
-      cartService.getCartWithPerformanceOptimization.mockResolvedValue({
-        type: 'guest',
-        cart: cartWithItems,
-        sessionId: 'guest_test_session'
-      });
+      Cart.findOne.mockResolvedValue(cartWithItems);
       
       const response = await request(app)
         .get('/api/cart')
@@ -325,11 +306,7 @@ describe('Cart Routes', () => {
         }]
       };
       
-      cartService.getCartWithPerformanceOptimization.mockResolvedValue({
-        type: 'guest',
-        cart: cartWithItems,
-        sessionId: 'guest_test_session'
-      });
+      Cart.findOne.mockResolvedValue(cartWithItems);
       
       const response = await request(app)
         .get('/api/cart')
@@ -343,6 +320,18 @@ describe('Cart Routes', () => {
   
   describe('POST /api/cart/add', () => {
     it('should add new item to cart', async () => {
+      // Mock the getOrCreateCart flow
+      Cart.findOne.mockResolvedValue(null);
+      Cart.findOneAndUpdate.mockResolvedValue({
+        ...testCart,
+        items: [{
+          product: testProduct._id,
+          quantity: 1,
+          price: 29.99,
+          addedAt: new Date()
+        }]
+      });
+      
       const response = await request(app)
         .post('/api/cart/add')
         .send({ productId: testProduct._id, quantity: 1 })
@@ -350,6 +339,57 @@ describe('Cart Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Item added to cart');
+    });
+
+    it('should handle CSRF token validation correctly', async () => {
+      // Test with missing CSRF token by removing the mock
+      jest.unmock('../../middleware/sessionCSRF');
+      const { validateCSRFToken } = require('../../middleware/sessionCSRF');
+      
+      // Create a new app instance with real CSRF validation
+      const appWithCSRF = express();
+      appWithCSRF.use(express.json());
+      appWithCSRF.use('/api/cart', cartRoutes);
+      
+      const response = await request(appWithCSRF)
+        .post('/api/cart/add')
+        .send({ productId: testProduct._id, quantity: 1 })
+        .expect(403);
+      
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('CSRF_TOKEN_MISSING');
+      
+      // Re-mock for other tests
+      jest.mock('../../middleware/sessionCSRF', () => ({
+        validateCSRFToken: (req, res, next) => next()
+      }));
+    });
+
+    it('should handle guest session header correctly', async () => {
+      // Mock the getOrCreateCart flow with session ID
+      Cart.findOne.mockResolvedValue(null);
+      Cart.findOneAndUpdate.mockResolvedValue({
+        ...testCart,
+        sessionId: 'guest_123_abc',
+        items: [{
+          product: testProduct._id,
+          quantity: 1,
+          price: 29.99,
+          addedAt: new Date()
+        }]
+      });
+      
+      const response = await request(app)
+        .post('/api/cart/add')
+        .set('x-guest-session-id', 'guest_123_abc')
+        .send({ productId: testProduct._id, quantity: 1 })
+        .expect(200);
+      
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Item added to cart');
+      
+      // Verify Cart.findOne was called with the session ID
+      expect(Cart.findOne).toHaveBeenCalledWith({ sessionId: 'guest_123_abc' });
     });
     
     it('should reject invalid product ID', async () => {
@@ -430,17 +470,10 @@ describe('Cart Routes', () => {
       // Mock getOrCreateCart by overriding Cart.findOne to return cart with items
       Cart.findOne = jest.fn().mockResolvedValue(cartWithItems);
       
-      cartService.getCartWithPerformanceOptimization
-        .mockResolvedValueOnce({
-          type: 'guest',
-          cart: cartWithItems,
-          sessionId: 'guest_test_session'
-        })
-        .mockResolvedValueOnce({
-          type: 'guest',
-          cart: { ...cartWithItems, items: [{ product: testProduct._id, quantity: 5, price: 29.99 }] },
-          sessionId: 'guest_test_session'
-        });
+      Cart.findByIdAndUpdate.mockResolvedValue({
+        ...cartWithItems,
+        items: [{ product: testProduct._id, quantity: 5, price: 29.99 }]
+      });
       
       const response = await request(app)
         .put('/api/cart/update')
@@ -461,17 +494,10 @@ describe('Cart Routes', () => {
       // Mock getOrCreateCart by overriding Cart.findOne to return cart with items
       Cart.findOne = jest.fn().mockResolvedValue(cartWithItems);
       
-      cartService.getCartWithPerformanceOptimization
-        .mockResolvedValueOnce({
-          type: 'guest',
-          cart: cartWithItems,
-          sessionId: 'guest_test_session'
-        })
-        .mockResolvedValueOnce({
-          type: 'guest',
-          cart: { ...cartWithItems, items: [] },
-          sessionId: 'guest_test_session'
-        });
+      Cart.findByIdAndUpdate.mockResolvedValue({
+        ...cartWithItems,
+        items: []
+      });
       
       const response = await request(app)
         .put('/api/cart/update')
@@ -506,11 +532,7 @@ describe('Cart Routes', () => {
       // Mock empty cart
       Cart.findOne = jest.fn().mockResolvedValue({ ...testCart, items: [] });
       
-      cartService.getCartWithPerformanceOptimization.mockResolvedValue({
-        type: 'guest',
-        cart: { ...testCart, items: [] },
-        sessionId: 'guest_test_session'
-      });
+      Cart.findOne.mockResolvedValue({ ...testCart, items: [] });
       
       const response = await request(app)
         .put('/api/cart/update')
@@ -533,17 +555,10 @@ describe('Cart Routes', () => {
       // Mock getOrCreateCart by overriding Cart.findOne to return cart with items
       Cart.findOne = jest.fn().mockResolvedValue(cartWithItems);
       
-      cartService.getCartWithPerformanceOptimization
-        .mockResolvedValueOnce({
-          type: 'guest',
-          cart: cartWithItems,
-          sessionId: 'guest_test_session'
-        })
-        .mockResolvedValueOnce({
-          type: 'guest',
-          cart: { ...cartWithItems, items: [] },
-          sessionId: 'guest_test_session'
-        });
+      Cart.findByIdAndUpdate.mockResolvedValue({
+        ...cartWithItems,
+        items: []
+      });
       
       const response = await request(app)
         .delete('/api/cart/remove')
@@ -568,11 +583,7 @@ describe('Cart Routes', () => {
       // Mock empty cart
       Cart.findOne = jest.fn().mockResolvedValue({ ...testCart, items: [] });
       
-      cartService.getCartWithPerformanceOptimization.mockResolvedValue({
-        type: 'guest',
-        cart: { ...testCart, items: [] },
-        sessionId: 'guest_test_session'
-      });
+      Cart.findOne.mockResolvedValue({ ...testCart, items: [] });
       
       const response = await request(app)
         .delete('/api/cart/remove')
@@ -592,16 +603,12 @@ describe('Cart Routes', () => {
         items: [{ product: testProduct._id, quantity: 2, price: 29.99 }]
       };
       
-      cartService.getCartWithPerformanceOptimization.mockResolvedValue({
-        type: 'guest',
-        cart: cartWithItems,
-        sessionId: 'guest_test_session'
-      });
+      Cart.findOne.mockResolvedValue(cartWithItems);
       
-      Cart.deleteOne = jest.fn().mockResolvedValue(true);
-      Cart.prototype.constructor = jest.fn().mockImplementation(() => ({
-        save: jest.fn().mockResolvedValue(true)
-      }));
+      Cart.deleteMany = jest.fn().mockResolvedValue({ deletedCount: 1 });
+      // Mock Cart constructor for creating new cart
+      const newCart = { ...testCart, items: [], save: jest.fn().mockResolvedValue(true) };
+      global.Cart.mockImplementation(() => newCart);
       
       const response = await request(app)
         .delete('/api/cart/clear')
@@ -614,11 +621,7 @@ describe('Cart Routes', () => {
     
     it('should work on empty cart', async () => {
       // Mock empty cart
-      cartService.getCartWithPerformanceOptimization.mockResolvedValue({
-        type: 'guest',
-        cart: { ...testCart, items: [] },
-        sessionId: 'guest_test_session'
-      });
+      Cart.findOne.mockResolvedValue({ ...testCart, items: [] });
       
       const response = await request(app)
         .delete('/api/cart/clear')

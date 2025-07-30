@@ -4,7 +4,7 @@ import axios from 'axios'
 // Create a separate axios instance without interceptors to avoid circular dependency
 // This instance is only used for fetching CSRF tokens
 const csrfAxios = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: '',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -18,6 +18,11 @@ class CSRFService {
   }
 
   async getToken() {
+    // Return cached token if available
+    if (this.token) {
+      return this.token
+    }
+    
     try {
       // Auth is handled via httpOnly cookies automatically
       const response = await csrfAxios.get('/api/csrf-token')

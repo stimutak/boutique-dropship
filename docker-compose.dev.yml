@@ -33,7 +33,7 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
-      VITE_API_URL: http://backend:5001
+      # Don't set VITE_API_URL so it uses the proxy in vite.config.js
     ports:
       - "3001:3001"
     command: npm run dev -- --host

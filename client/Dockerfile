@@ -38,7 +38,7 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
 # Build arguments for environment variables
-ARG VITE_API_URL=http://localhost:5001
+ARG VITE_API_URL=""
 ARG VITE_APP_NAME="International Boutique Store"
 ARG NODE_ENV=production
 

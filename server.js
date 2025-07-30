@@ -45,10 +45,34 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(securityHeaders);
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3003', 'http://localhost:5173'],
-  credentials: true
-}));
+// Configure CORS with explicit settings for Docker environment
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'http://localhost:3003',
+      'http://localhost:5173'
+    ];
+    
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    
+    // Check if the origin is allowed
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-guest-session-id', 'x-locale', 'x-currency', 'Cookie'],
+  exposedHeaders: ['set-cookie']
+};
+
+app.use(cors(corsOptions));
 
 // Input sanitization
 app.use(sanitizeInput);

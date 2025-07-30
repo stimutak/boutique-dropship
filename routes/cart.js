@@ -171,6 +171,18 @@ router.get('/', authenticateToken, async (req, res) => {
 router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
+    
+    // Debug logging for Docker environment
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Add to cart request:', {
+        productId,
+        quantity,
+        user: req.user ? 'authenticated' : 'guest',
+        sessionId: req.sessionID,
+        guestSessionId: req.headers['x-guest-session-id'],
+        csrfToken: req.headers['x-csrf-token'] ? 'present' : 'missing'
+      });
+    }
 
     // Validation
     if (!productId) {
