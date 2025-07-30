@@ -1,6 +1,6 @@
 # Production Roadmap - Boutique E-Commerce Store
 
-## Project Status: ~87% Complete (28/32 major tasks)
+## Project Status: ~75% Complete (24/32 major tasks)
 
 Last Updated: 2025-07-30
 
@@ -19,13 +19,14 @@ Transform this e-commerce store from development prototype to a production-ready
 ## 📊 Progress Tracking
 
 ### Phase 1: Critical Security & Internationalization Foundation (Week 1-2)
-**Status**: ✅ COMPLETED | **Actual Duration**: 2 weeks
+**Status**: ⚠️ PARTIALLY COMPLETE | **Actual Duration**: 2 weeks
 
-- [x] **JWT Security Migration** (2-3 days) ✅ COMPLETED
-  - [x] Move JWT from localStorage to httpOnly cookies
-  - [x] Update all 196 references across codebase
-  - [x] Test authentication flow thoroughly
-  - [x] Update frontend API client
+- [⚠️] **JWT Security Migration** (2-3 days) ⚠️ PARTIAL - Backend done, Frontend incomplete
+  - [x] Backend: JWT sent as httpOnly cookies ✅ COMPLETED
+  - [❌] Frontend: Still reads JWT from localStorage (8 files)
+  - [❌] Frontend: Still sets JWT to localStorage (3 locations)
+  - [❌] Remove all 196 localStorage references
+  - [⚠️] Update frontend API client (partial - still has localStorage code)
 
 - [x] **Internationalization Setup** (3-4 days) ✅ COMPLETED
   - [x] Install and configure i18n framework (react-i18next)
@@ -84,11 +85,11 @@ Transform this e-commerce store from development prototype to a production-ready
 ### Phase 3: Performance & Reliability (Week 3)
 **Status**: ✅ MOSTLY COMPLETED | **Actual Duration**: 3 days
 
-- [x] **Database Optimization** (2 days) ✅ COMPLETED
-  - [x] Add compound indexes (Order: customer+createdAt)
-  - [x] Add Product indexes (price+isActive)
-  - [x] Fix N+1 queries in order routes (batch fetching)
-  - [x] Optimize product queries
+- [⚠️] **Database Optimization** (2 days) ⚠️ PARTIAL
+  - [x] Add compound indexes (Order: customer+createdAt) ✅ COMPLETED
+  - [x] Add Product indexes (price+isActive) ✅ COMPLETED
+  - [⚠️] Fix N+1 queries - Only fixed for guest checkout, NOT for registered users
+  - [x] Optimize product queries ✅ COMPLETED
 
 - [ ] **Caching Implementation** (2 days)
   - [ ] Setup Redis
@@ -255,9 +256,10 @@ Transform this e-commerce store from development prototype to a production-ready
 ## 🚧 Known Blockers & Risks
 
 ### ✅ Fixed High Risk Issues
-1. **JWT in localStorage** - ✅ FIXED - Now using httpOnly cookies
+1. **JWT in localStorage** - ❌ NOT FIXED - Backend sends httpOnly cookies but frontend still uses localStorage
 2. **No payment processing** - ✅ FIXED - Mollie integration complete
 3. **Cart persistence bugs** - ✅ FIXED - Atomic operations implemented
+4. **Sensitive .env in repository** - ❌ NOT FIXED - .env file is tracked in git
 
 ### 🟡 Current Medium Risk
 1. **No error standardization** - Inconsistent error handling (NEXT PRIORITY)
@@ -311,10 +313,13 @@ Each phase is considered complete when:
 ## 🎯 Next Steps
 
 ### Immediate Actions (This Week)
-1. ✅ DONE - JWT migration to httpOnly cookies
+1. ❌ INCOMPLETE - JWT migration (backend only, frontend still uses localStorage)
 2. ✅ DONE - Generate secure production secrets
 3. ✅ DONE - Fix React version mismatch
 4. ✅ DONE - Mollie integration complete
+5. 🔴 CRITICAL - Remove .env from git repository
+6. 🔴 CRITICAL - Complete JWT migration in frontend
+7. 🔴 HIGH - Fix N+1 queries for registered users
 
 ### Completed Quick Wins
 1. ✅ DONE - Delete enhanced Redux slices

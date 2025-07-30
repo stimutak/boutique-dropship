@@ -1,14 +1,15 @@
 # TODO List - Boutique E-Commerce
 
-## 📊 Project Status: ~87% Complete (28/32 tasks)
+## 📊 Project Status: ~75% Complete (24/32 tasks)
 
 ## ✅ Completed Tasks
 
 ### Security & Infrastructure
 - [x] Generate secure JWT_SECRET and SESSION_SECRET
-- [x] JWT migration to httpOnly cookies
+- [⚠️] JWT migration to httpOnly cookies (Backend ✅, Frontend ❌)
 - [x] CSRF protection implementation
 - [x] Fix React version mismatch (both on v19)
+- [❌] Remove .env from git repository
 
 ### Internationalization & Currency
 - [x] i18n framework setup (react-i18next with 7 languages)
@@ -27,7 +28,7 @@
 
 ### Performance & Quality
 - [x] Database indexes added
-- [x] N+1 queries fixed (batch fetching)
+- [⚠️] N+1 queries fixed (guest checkout only, NOT registered users)
 - [x] Enhanced Redux slices removed
 - [x] Duplicate test files cleaned up
 
@@ -36,7 +37,28 @@
 - [x] nginx configuration
 - [x] Production-ready deployment
 
-## 🚧 Remaining Tasks (4)
+## 🚧 Remaining Tasks (8)
+
+### 🔴 CRITICAL Security Issues (Must Fix Immediately)
+
+#### 1. 🔒 Complete JWT Migration in Frontend
+- [ ] Remove localStorage.getItem('token') from 8 files
+- [ ] Remove localStorage.setItem('token') from 3 locations  
+- [ ] Update API client to rely only on httpOnly cookies
+- [ ] Test authentication flow without localStorage
+
+#### 2. 🔐 Remove Sensitive .env from Repository
+- [ ] Remove .env from git tracking
+- [ ] Add .env to .gitignore
+- [ ] Create .env.example with dummy values
+- [ ] Rotate all exposed secrets
+
+#### 3. 🎯 Fix N+1 Queries in Registered User Orders
+- [ ] Update routes/orders.js lines 507-540
+- [ ] Batch fetch products before loop
+- [ ] Test order creation performance
+
+### 🟡 HIGH Priority Tasks
 
 ### 1. 🛠️ Error Handling Standardization (Next Priority)
 - [ ] Create consistent error response format

@@ -10,15 +10,11 @@ const api = axios.create({
   withCredentials: true, // Important for CSRF tokens and sessions
 })
 
-// Request interceptor to add auth token, CSRF token, and guest session ID
+// Request interceptor to add CSRF token and guest session ID
 api.interceptors.request.use(
   async (config) => {
-    // JWT Migration: Token now sent via httpOnly cookie
-    // Keeping localStorage check for backward compatibility during migration
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    // JWT is now sent automatically via httpOnly cookies
+    // No need to manually add Authorization header
     
     // Add locale header for currency support
     const locale = localStorage.getItem('i18nextLng') || 'en'
@@ -61,13 +57,9 @@ api.interceptors.response.use(
       // Only redirect to login for specific authentication errors
       // Don't redirect for optional authentication routes
       if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'INVALID_TOKEN' || errorCode === 'NO_TOKEN') {
-        // Clear token and redirect to login only if user was previously authenticated
-        const wasAuthenticated = localStorage.getItem('token')
-        if (wasAuthenticated) {
-          localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          window.location.href = '/login'
-        }
+        // Redirect to login for authentication errors
+        // Cookies will be cleared by the server
+        window.location.href = '/login'
       }
     }
     return Promise.reject(error)

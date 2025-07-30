@@ -38,11 +38,8 @@ export const fetchUserOrders = createAsyncThunk(
   'orders/fetchUserOrders',
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token')
-      console.log('Fetching user orders with token:', token ? 'present' : 'missing')
-      const response = await api.get('/api/orders', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      // Auth is handled via httpOnly cookies automatically
+      const response = await api.get('/api/orders')
       console.log('Orders API response:', response.data)
       return response.data
     } catch (error) {
@@ -61,10 +58,8 @@ export const fetchOrderById = createAsyncThunk(
   'orders/fetchOrderById',
   async (orderId, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await api.get(`/api/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      // Auth is handled via httpOnly cookies automatically
+      const response = await api.get(`/api/orders/${orderId}`)
       return response.data
     } catch (error) {
       console.error('Fetch order error:', error)

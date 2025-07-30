@@ -50,10 +50,8 @@ const Payment = () => {
 
   const fetchOrder = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await api.get(`/api/orders/${orderId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      })
+      // API will use httpOnly cookies for auth automatically
+      const response = await api.get(`/api/orders/${orderId}`)
       setOrder(response.data.data.order)
     } catch (error) {
       setError(`Order not found: ${error.response?.data?.error?.message || error.message}`)
@@ -69,7 +67,6 @@ const Payment = () => {
       
       
       // Create Mollie payment
-      const token = localStorage.getItem('token')
       const paymentRequest = {
         orderId: order._id,
         method: paymentMethod,
@@ -77,10 +74,8 @@ const Payment = () => {
         webhookUrl: `http://localhost:5001/api/payments/webhook`
       }
       
-      
-      const response = await api.post('/api/payments/create', paymentRequest, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      })
+      // API will use httpOnly cookies for auth automatically
+      const response = await api.post('/api/payments/create', paymentRequest)
 
 
       if (response.data.success && response.data.data.checkoutUrl) {
@@ -101,10 +96,8 @@ const Payment = () => {
     try {
       setError(null)
       
-      const token = localStorage.getItem('token')
-      const response = await api.post(`/api/payments/demo-complete/${order._id}`, {}, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      })
+      // API will use httpOnly cookies for auth automatically
+      const response = await api.post(`/api/payments/demo-complete/${order._id}`, {})
       
       
       // Navigate to payment success page (cart will be cleared there)

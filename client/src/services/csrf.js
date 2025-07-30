@@ -19,14 +19,8 @@ class CSRFService {
 
   async getToken() {
     try {
-      // Add auth token if available
-      const token = localStorage.getItem('token')
-      const headers = {}
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
-      
-      const response = await csrfAxios.get('/api/csrf-token', { headers })
+      // Auth is handled via httpOnly cookies automatically
+      const response = await csrfAxios.get('/api/csrf-token')
       this.token = response.data.csrfToken
       return this.token
     } catch (error) {

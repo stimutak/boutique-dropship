@@ -50,10 +50,8 @@ const PaymentSuccess = () => {
 
   const fetchOrderAndClearCart = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await api.get(`/api/orders/${orderId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      })
+      // API will use httpOnly cookies for auth automatically
+      const response = await api.get(`/api/orders/${orderId}`)
       
       const orderData = response.data.data.order
       setOrder(orderData)

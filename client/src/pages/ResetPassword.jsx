@@ -36,11 +36,8 @@ const ResetPassword = () => {
         password
       })
       
-      // Store token and user data
-      localStorage.setItem('token', response.data.token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      
-      // Redirect to home
+      // Auth token is now handled via httpOnly cookies
+      // Redirect to home after successful password reset
       navigate('/')
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Failed to reset password')

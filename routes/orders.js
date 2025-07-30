@@ -500,12 +500,17 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
       }));
     }
 
-    // Validate and process cart items (same logic as guest checkout)
+    // Validate and process cart items - FIXED N+1 QUERY
     const orderItems = [];
     let subtotal = 0;
 
+    // Batch fetch all products at once to avoid N+1 queries
+    const productIds = itemsToProcess.map(item => item.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
+
     for (const item of itemsToProcess) {
-      const product = await Product.findById(item.productId);
+      const product = productMap.get(item.productId.toString());
       
       if (!product || !product.isActive) {
         return res.status(400).json({

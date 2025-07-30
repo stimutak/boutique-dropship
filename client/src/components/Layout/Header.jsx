@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { logout } from '../../store/slices/authSlice'
+import { logoutUser } from '../../store/slices/authSlice'
 import { clearAfterMerge } from '../../store/slices/cartSlice'
 import { searchProducts } from '../../store/slices/productsSlice'
 import LanguageSelector from '../LanguageSelector'
@@ -30,17 +30,14 @@ const Header = () => {
     }
   }
 
-  const handleLogout = () => {
-    // Set flag to prevent immediate cart merge on next login
-    window.sessionStorage.setItem('justLoggedOut', 'true')
+  const handleLogout = async () => {
+    // Call backend logout endpoint to clear httpOnly cookie
+    await dispatch(logoutUser())
     
     // Clear the flag after 5 seconds to allow normal operation
     setTimeout(() => {
       window.sessionStorage.removeItem('justLoggedOut')
     }, 5000)
-    
-    // Clear auth state
-    dispatch(logout())
     
     // Clear cart state and reset to fresh guest session
     dispatch(clearAfterMerge())

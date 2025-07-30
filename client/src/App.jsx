@@ -42,21 +42,21 @@ function App() {
       console.warn('Failed to initialize CSRF token:', err)
     })
     
-    // Load user if token exists
-    const token = localStorage.getItem('token')
-    if (token) {
-      dispatch(loadUser()).then(() => {
-        // Refresh CSRF token after loading user to ensure it's valid
+    // Try to load user from cookie-based auth
+    dispatch(loadUser())
+      .unwrap()
+      .then(() => {
+        // User is authenticated, refresh CSRF token
         csrfService.fetchToken().catch(err => {
           console.warn('Failed to refresh CSRF token after user load:', err)
         })
       })
-    } else {
-      // For guest users, fetch cart to ensure it's loaded before potential login
-      dispatch(fetchCart()).catch(err => {
-        console.warn('Failed to initialize guest cart:', err)
+      .catch(() => {
+        // User is not authenticated, fetch guest cart
+        dispatch(fetchCart()).catch(err => {
+          console.warn('Failed to initialize guest cart:', err)
+        })
       })
-    }
   }, [dispatch])
 
   // Update document direction when language changes

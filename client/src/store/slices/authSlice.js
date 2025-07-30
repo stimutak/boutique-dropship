@@ -10,12 +10,7 @@ export const loginUser = createAsyncThunk(
         email, 
         password
       })
-      // Token is now handled via httpOnly cookies
-      // Backend still sends token for backward compatibility during migration
-      const token = response.data.data?.token || response.data.token
-      if (token) {
-        localStorage.setItem('token', token)
-      }
+      // Token is now handled via httpOnly cookies only
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || 'Login failed')
@@ -28,12 +23,7 @@ export const registerUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const response = await api.post('/api/auth/register', userData)
-      // Token is now handled via httpOnly cookies
-      // Backend still sends token for backward compatibility during migration
-      const token = response.data.data?.token || response.data.token
-      if (token) {
-        localStorage.setItem('token', token)
-      }
+      // Token is now handled via httpOnly cookies only
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || 'Registration failed')
@@ -58,25 +48,10 @@ export const loadUser = createAsyncThunk(
   'auth/loadUser',
   async (_, { rejectWithValue }) => {
     try {
-      // First try to verify via cookie
-      const verifyResponse = await api.get('/api/auth/verify')
-      if (verifyResponse.data.success && verifyResponse.data.data?.user) {
-        return verifyResponse.data
-      }
-      
-      // Fallback to token-based auth during migration
-      const token = localStorage.getItem('token')
-      if (!token) {
-        return rejectWithValue('No token found')
-      }
-      
+      // Use cookie-based authentication only
       const response = await api.get('/api/auth/profile')
       return response.data
     } catch (error) {
-      // Only remove token if it's actually invalid (401), not for other errors
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token')
-      }
       return rejectWithValue(error.response?.data?.error?.message || 'Failed to load user')
     }
   }
@@ -96,18 +71,31 @@ export const updateProfile = createAsyncThunk(
   }
 )
 
+export const logoutUser = createAsyncThunk(
+  'auth/logout',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/api/auth/logout')
+      return response.data
+    } catch (error) {
+      // Even if logout fails on server, we should clear local state
+      return { success: true }
+    }
+  }
+)
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
     user: null,
-    token: localStorage.getItem('token'),
+    token: null, // No longer storing token in Redux state
     isLoading: false,
     error: null,
     isAuthenticated: false,
   },
   reducers: {
     logout: (state) => {
-      localStorage.removeItem('token')
+      // Token will be cleared by server when we call logout endpoint
       state.user = null
       state.token = null
       state.isAuthenticated = false
@@ -198,6 +186,15 @@ const authSlice = createSlice({
         state.token = null
         state.isAuthenticated = false
         state.user = null
+      })
+      // Logout
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null
+        state.token = null
+        state.isAuthenticated = false
+        state.error = null
+        // Set logout flag to prevent cart merge on next login
+        window.sessionStorage.setItem('justLoggedOut', 'true')
       })
   },
 })
