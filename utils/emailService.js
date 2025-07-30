@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { formatPrice } = require('./currency');
 
 // Create transporter with environment configuration
 const createTransporter = () => {
@@ -22,10 +23,10 @@ const createTransporter = () => {
 // Email templates
 const emailTemplates = {
   orderConfirmation: (orderData) => {
-    const { orderNumber, customerName, items, total, shippingAddress } = orderData;
+    const { orderNumber, customerName, items, total, shippingAddress, currency = 'USD' } = orderData;
     
     const itemsList = items.map(item => 
-      `- ${item.productName || 'Product'} (Qty: ${item.quantity}) - $${item.price.toFixed(2)}`
+      `- ${item.productName || 'Product'} (Qty: ${item.quantity}) - ${formatPrice(item.price, currency)}`
     ).join('\n');
 
     return {
@@ -37,7 +38,7 @@ Thank you for your order! We're excited to help you on your holistic wellness jo
 
 ORDER DETAILS:
 Order Number: ${orderNumber}
-Order Total: $${total.toFixed(2)}
+Order Total: ${formatPrice(total, currency)}
 
 ITEMS ORDERED:
 ${itemsList}
@@ -64,12 +65,12 @@ The Holistic Store Team
   <div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
     <h3 style="color: #2d3748; margin-top: 0;">Order Details</h3>
     <p><strong>Order Number:</strong> ${orderNumber}</p>
-    <p><strong>Order Total:</strong> $${total.toFixed(2)}</p>
+    <p><strong>Order Total:</strong> ${formatPrice(total, currency)}</p>
   </div>
   
   <h3 style="color: #2d3748;">Items Ordered</h3>
   <ul>
-    ${items.map(item => `<li>${item.productName || 'Product'} (Qty: ${item.quantity}) - $${item.price.toFixed(2)}</li>`).join('')}
+    ${items.map(item => `<li>${item.productName || 'Product'} (Qty: ${item.quantity}) - ${formatPrice(item.price, currency)}</li>`).join('')}
   </ul>
   
   <h3 style="color: #2d3748;">Shipping Address</h3>
@@ -89,7 +90,7 @@ The Holistic Store Team
   },
 
   paymentReceipt: (paymentData) => {
-    const { orderNumber, customerName, total, paymentMethod, transactionId, paidAt } = paymentData;
+    const { orderNumber, customerName, total, paymentMethod, transactionId, paidAt, currency = 'USD' } = paymentData;
     
     return {
       subject: `Payment Receipt - ${orderNumber}`,
@@ -100,7 +101,7 @@ Your payment has been successfully processed!
 
 PAYMENT DETAILS:
 Order Number: ${orderNumber}
-Amount Paid: $${total.toFixed(2)}
+Amount Paid: ${formatPrice(total, currency)}
 Payment Method: ${paymentMethod}
 Transaction ID: ${transactionId}
 Payment Date: ${new Date(paidAt).toLocaleDateString()}
@@ -123,7 +124,7 @@ The Holistic Store Team
   <div style="background: #f0fff4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #48bb78;">
     <h3 style="color: #2d3748; margin-top: 0;">Payment Details</h3>
     <p><strong>Order Number:</strong> ${orderNumber}</p>
-    <p><strong>Amount Paid:</strong> $${total.toFixed(2)}</p>
+    <p><strong>Amount Paid:</strong> ${formatPrice(total, currency)}</p>
     <p><strong>Payment Method:</strong> ${paymentMethod}</p>
     <p><strong>Transaction ID:</strong> ${transactionId}</p>
     <p><strong>Payment Date:</strong> ${new Date(paidAt).toLocaleDateString()}</p>

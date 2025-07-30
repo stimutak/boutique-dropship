@@ -38,7 +38,7 @@ const productSchema = new mongoose.Schema({
     enum: ['USD', 'EUR', 'CNY', 'JPY', 'SAR', 'GBP', 'CAD']
   },
   prices: {
-    USD: { type: Number, required: true },
+    USD: { type: Number },
     EUR: { type: Number },
     CNY: { type: Number },
     JPY: { type: Number },

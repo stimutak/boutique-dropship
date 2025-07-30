@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useSearchParams, Link } from 'react-router-dom'
 import { fetchProducts, setFilters } from '../store/slices/productsSlice'
 import { addToCart } from '../store/slices/cartSlice'
+import PriceDisplay from '../components/PriceDisplay'
 
 const Products = () => {
   const dispatch = useDispatch()
@@ -122,7 +123,11 @@ const Products = () => {
                     <Link to={`/products/${product.slug}`}>
                       <h3>{product.name}</h3>
                     </Link>
-                    <p className="price">${product.price.toFixed(2)}</p>
+                    <PriceDisplay 
+                      price={product.priceInCurrency || product.price} 
+                      displayPrice={product.displayPrice}
+                      currency={product.displayCurrency}
+                    />
                     <p className="category">{product.category}</p>
                     
                     {/* Spiritual Properties */}

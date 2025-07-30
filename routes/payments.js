@@ -97,7 +97,7 @@ router.post('/create', [
     // Prepare payment data
     const paymentData = {
       amount: {
-        currency: 'USD',
+        currency: order.currency || 'USD',
         value: order.total.toFixed(2)
       },
       description: `Order ${order.orderNumber}`,

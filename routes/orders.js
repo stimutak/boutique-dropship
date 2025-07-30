@@ -6,6 +6,18 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const { authenticateToken, requireAuth } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
+const { getCurrencyForLocale, getExchangeRates } = require('../utils/currency');
+
+// Helper function to get user's currency from request
+function getUserCurrency(req) {
+  // Check for explicit currency in query or header
+  if (req.query.currency) return req.query.currency;
+  if (req.headers['x-currency']) return req.headers['x-currency'];
+  
+  // Get from locale header (set by frontend based on i18n)
+  const locale = req.headers['x-locale'] || 'en';
+  return getCurrencyForLocale(locale);
+}
 
 // Validation middleware for guest checkout
 const validateGuestCheckout = [
@@ -145,13 +157,19 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
         });
       }
 
-      const itemTotal = product.price * item.quantity;
+      // Get the price in user's currency if available, otherwise use USD price
+      const userCurrency = getUserCurrency(req);
+      const priceInCurrency = product.prices && product.prices[userCurrency] 
+        ? product.prices[userCurrency] 
+        : product.price;
+      
+      const itemTotal = priceInCurrency * item.quantity;
       subtotal += itemTotal;
 
       orderItems.push({
         product: product._id,
         quantity: item.quantity,
-        price: product.price,
+        price: priceInCurrency,
         wholesaler: {
           name: product.wholesaler.name,
           email: product.wholesaler.email,
@@ -161,17 +179,23 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
       });
     }
 
-    // Calculate totals (simplified - you may want to add tax calculation)
-    const tax = Math.round(subtotal * 0.08 * 100) / 100; // 8% tax rate
-    const shipping = subtotal > 50 ? 0 : 5.99; // Free shipping over $50
-    const total = Math.round((subtotal + tax + shipping) * 100) / 100;
+    // Get user's currency
+    const userCurrency = getUserCurrency(req);
+    const exchangeRates = getExchangeRates();
+    const exchangeRate = exchangeRates[userCurrency] || 1;
+    
+    // Subtotal is already in user's currency
+    const subtotalInCurrency = subtotal;
+    const tax = Math.round(subtotalInCurrency * 0.08 * 100) / 100; // 8% tax rate
+    const shipping = subtotalInCurrency > 50 ? 0 : 5.99; // Free shipping threshold in user currency
+    const total = Math.round((subtotalInCurrency + tax + shipping) * 100) / 100;
 
     // Create order
     const orderData = {
       items: orderItems,
       shippingAddress,
       billingAddress,
-      subtotal: Math.round(subtotal * 100) / 100,
+      subtotal: Math.round(subtotalInCurrency * 100) / 100,
       tax,
       shipping,
       total,
@@ -181,7 +205,9 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
       },
       status: 'pending',
       notes,
-      referralSource
+      referralSource,
+      currency: userCurrency,
+      exchangeRate: exchangeRate
     };
 
     // Add customer ID if user is authenticated
@@ -217,7 +243,8 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
           price: item.price
         })),
         total: order.total,
-        shippingAddress: order.shippingAddress
+        shippingAddress: order.shippingAddress,
+        currency: order.currency
       };
 
       const emailResult = await sendOrderConfirmation(order.guestInfo.email, emailData);
@@ -239,6 +266,8 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
         orderNumber: order.orderNumber,
         total: order.total,
         status: order.status,
+        currency: order.currency,
+        exchangeRate: order.exchangeRate,
         createdAt: order.createdAt
       }
     });
@@ -302,13 +331,19 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
         });
       }
 
-      const itemTotal = product.price * item.quantity;
+      // Get the price in user's currency if available, otherwise use USD price
+      const userCurrency = getUserCurrency(req);
+      const priceInCurrency = product.prices && product.prices[userCurrency] 
+        ? product.prices[userCurrency] 
+        : product.price;
+      
+      const itemTotal = priceInCurrency * item.quantity;
       subtotal += itemTotal;
 
       orderItems.push({
         product: product._id,
         quantity: item.quantity,
-        price: product.price,
+        price: priceInCurrency,
         wholesaler: {
           name: product.wholesaler.name,
           email: product.wholesaler.email,
@@ -319,10 +354,16 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
       });
     }
 
-    // Calculate totals
-    const tax = subtotal * 0.08; // 8% tax rate
-    const shipping = subtotal > 50 ? 0 : 9.99; // Free shipping over $50
-    const total = subtotal + tax + shipping;
+    // Get user's currency
+    const userCurrency = getUserCurrency(req);
+    const exchangeRates = getExchangeRates();
+    const exchangeRate = exchangeRates[userCurrency] || 1;
+    
+    // Subtotal is already in user's currency
+    const subtotalInCurrency = subtotal;
+    const tax = Math.round(subtotalInCurrency * 0.08 * 100) / 100; // 8% tax rate
+    const shipping = subtotalInCurrency > 50 ? 0 : 5.99; // Free shipping threshold in user currency
+    const total = Math.round((subtotalInCurrency + tax + shipping) * 100) / 100;
 
     // Create order
     const orderData = {
@@ -330,7 +371,7 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
       items: orderItems,
       shippingAddress,
       billingAddress: billingAddress || shippingAddress,
-      subtotal,
+      subtotal: Math.round(subtotalInCurrency * 100) / 100,
       tax,
       shipping,
       total,
@@ -340,7 +381,9 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
       },
       status: 'pending',
       notes,
-      referralSource
+      referralSource,
+      currency: userCurrency,
+      exchangeRate: exchangeRate
     };
 
     const order = await Order.create(orderData);
@@ -361,6 +404,8 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
           shipping: order.shipping,
           total: order.total,
           status: order.status,
+          currency: order.currency,
+          exchangeRate: order.exchangeRate,
           createdAt: order.createdAt
         }
       }
@@ -472,13 +517,19 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
         });
       }
 
-      const itemTotal = product.price * item.quantity;
+      // Get the price in user's currency if available, otherwise use USD price
+      const userCurrency = getUserCurrency(req);
+      const priceInCurrency = product.prices && product.prices[userCurrency] 
+        ? product.prices[userCurrency] 
+        : product.price;
+      
+      const itemTotal = priceInCurrency * item.quantity;
       subtotal += itemTotal;
 
       orderItems.push({
         product: product._id,
         quantity: item.quantity,
-        price: product.price,
+        price: priceInCurrency,
         wholesaler: {
           name: product.wholesaler.name,
           email: product.wholesaler.email,
@@ -488,10 +539,16 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
       });
     }
 
-    // Calculate totals
-    const tax = Math.round(subtotal * 0.08 * 100) / 100;
-    const shipping = subtotal > 50 ? 0 : 5.99;
-    const total = Math.round((subtotal + tax + shipping) * 100) / 100;
+    // Get user's currency
+    const userCurrency = getUserCurrency(req);
+    const exchangeRates = getExchangeRates();
+    const exchangeRate = exchangeRates[userCurrency] || 1;
+    
+    // Subtotal is already in user's currency
+    const subtotalInCurrency = subtotal;
+    const tax = Math.round(subtotalInCurrency * 0.08 * 100) / 100; // 8% tax rate
+    const shipping = subtotalInCurrency > 50 ? 0 : 5.99; // Free shipping threshold in user currency
+    const total = Math.round((subtotalInCurrency + tax + shipping) * 100) / 100;
 
     // Create order for registered user
     const orderData = {
@@ -499,7 +556,7 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
       items: orderItems,
       shippingAddress: finalShippingAddress,
       billingAddress: finalBillingAddress,
-      subtotal: Math.round(subtotal * 100) / 100,
+      subtotal: Math.round(subtotalInCurrency * 100) / 100,
       tax,
       shipping,
       total,
@@ -509,7 +566,9 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
       },
       status: 'pending',
       notes,
-      referralSource
+      referralSource,
+      currency: userCurrency,
+      exchangeRate: exchangeRate
     };
 
     const order = await Order.create(orderData);
@@ -531,7 +590,8 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
             price: item.price
           })),
           total: order.total,
-          shippingAddress: order.shippingAddress
+          shippingAddress: order.shippingAddress,
+          currency: order.currency
         };
 
         const emailResult = await sendOrderConfirmation(req.user.email, emailData);
@@ -561,6 +621,8 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
         orderNumber: order.orderNumber,
         total: order.total,
         status: order.status,
+        currency: order.currency,
+        exchangeRate: order.exchangeRate,
         createdAt: order.createdAt
       }
     });

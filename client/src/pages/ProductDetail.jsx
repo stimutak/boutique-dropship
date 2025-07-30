@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchProductBySlug, clearCurrentProduct } from '../store/slices/productsSlice'
 import { addToCart } from '../store/slices/cartSlice'
+import PriceDisplay from '../components/PriceDisplay'
 
 const ProductDetail = () => {
   const { slug } = useParams()
@@ -81,7 +82,11 @@ const ProductDetail = () => {
           {/* Product Info */}
           <div className="product-info">
             <h1>{product.name}</h1>
-            <p className="price">${product.price.toFixed(2)}</p>
+            <PriceDisplay 
+              price={product.priceInCurrency || product.price} 
+              displayPrice={product.displayPrice}
+              currency={product.displayCurrency}
+            />
             <p className="category">Category: {product.category}</p>
             
             {/* Spiritual Properties */}
