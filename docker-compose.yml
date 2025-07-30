@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: boutique-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: holistic-store
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - boutique-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/holistic-store --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Backend API Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: boutique-backend
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 5001
+      MONGODB_URI: mongodb://mongodb:27017/holistic-store
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      MOLLIE_API_KEY: ${MOLLIE_API_KEY}
+      MOLLIE_TEST_KEY: ${MOLLIE_TEST_KEY}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
+      API_URL: ${API_URL:-http://localhost:5001}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3001}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      WHOLESALER_NOTIFICATION_EMAIL: ${WHOLESALER_NOTIFICATION_EMAIL}
+      VALID_API_KEYS: ${VALID_API_KEYS}
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+      - ./public/images:/app/public/images
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - boutique-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5001/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5001}
+        VITE_APP_NAME: ${VITE_APP_NAME:-International Boutique Store}
+    container_name: boutique-frontend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - boutique-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy (prepared for next task)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: boutique-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #   networks:
+  #     - boutique-network
+
+networks:
+  boutique-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
