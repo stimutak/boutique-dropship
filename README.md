@@ -70,17 +70,13 @@ A full-stack e-commerce application for spiritual and wellness products with dro
    cp .env.example .env
    ```
    
-   Update `.env` with your configuration:
-   ```env
-   NODE_ENV=development
-   PORT=5001
-   MONGODB_URI=mongodb://localhost:27017/holistic-store
-   JWT_SECRET=your-super-secret-jwt-key-here
-   SESSION_SECRET=your-session-secret-key-here
-   MOLLIE_API_KEY=your-mollie-api-key-here
-   FRONTEND_URL=http://localhost:3001
-   API_URL=http://localhost:5001
-   ```
+   Update `.env` with your configuration. See [SENSITIVE_CONFIG.md](SENSITIVE_CONFIG.md) for detailed explanations of each variable.
+   
+   **Important Security Notes:**
+   - The `.env` file contains sensitive information and is excluded from version control
+   - Generate secure values for JWT_SECRET and SESSION_SECRET (minimum 32 characters)
+   - Store your actual `.env` file securely (e.g., 1Password, LastPass)
+   - Never commit the `.env` file to Git
 
 5. **Start MongoDB**
    ```bash
