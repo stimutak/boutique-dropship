@@ -6,15 +6,16 @@ This guide explains the deployment architecture for the Boutique e-commerce appl
 
 ## Development vs Production
 
-### Development Setup (Current)
+### Development Setup
 - **Backend**: Runs in Docker container on port 5001
-- **Frontend**: Runs locally with `npm run dev` on port 3001
+- **Frontend**: Runs in Docker container with hot reloading on port 3001
 - **Database**: MongoDB in Docker container
-- **Purpose**: Hot reloading, debugging, rapid development
+- **Nginx**: Optional - can access services directly
+- **Purpose**: Hot reloading, debugging, consistent environment
 
-### Production Setup (Required for Deployment)
+### Production Setup
 - **Backend**: Runs in Docker container
-- **Frontend**: Runs in Docker container with production build
+- **Frontend**: Runs in Docker container with production build served by nginx
 - **Database**: MongoDB in Docker container (or managed service)
 - **Nginx**: Reverse proxy for routing and static file serving
 - **Purpose**: Optimized performance, security, scalability
@@ -110,11 +111,13 @@ Production deployment should include:
 
 ## Deployment Commands
 
-### Local Development
+### Development with Docker
 ```bash
-# Start backend in Docker, frontend locally
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d mongodb backend
-cd client && npm run dev
+# Start all services in development mode
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+# Or use the helper script
+./docker-helper.sh dev
 ```
 
 ### Production Deployment
@@ -135,10 +138,10 @@ docker-compose up -d --scale backend=3
 ## Environment-Specific Considerations
 
 ### Development
-- Frontend proxy configuration in `vite.config.js` points to `http://localhost:5001`
-- Hot module replacement enabled
+- Frontend in Docker uses `VITE_API_URL=http://backend:5001` to connect to backend container
+- Hot module replacement enabled with volume mounts
 - Verbose logging
-- CORS configured for local development
+- CORS configured for container-to-container communication
 
 ### Production
 - Frontend served statically via nginx

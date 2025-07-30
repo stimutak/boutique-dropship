@@ -26,13 +26,17 @@ services:
   # Frontend Service - Development mode
   frontend:
     build:
+      context: ./client
       target: development
     volumes:
       - ./client:/app
       - /app/node_modules
     environment:
       NODE_ENV: development
-    command: npm run dev
+      VITE_API_URL: http://backend:5001
+    ports:
+      - "3001:3001"
+    command: npm run dev -- --host
 
   # Nginx - Development configuration
   nginx:

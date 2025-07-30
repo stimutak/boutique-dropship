@@ -9,9 +9,25 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
-# Stage 2: Build
+# Stage 2: Development
+FROM node:20-alpine AS development
+WORKDIR /app
+
+# Copy dependencies from previous stage
+COPY --from=dependencies /app/node_modules ./node_modules
+
+# Copy package files
+COPY package*.json ./
+
+# Expose port for dev server
+EXPOSE 3001
+
+# Start development server
+CMD ["npm", "run", "dev"]
+
+# Stage 3: Build
 FROM node:20-alpine AS build
 WORKDIR /app
 
@@ -34,7 +50,7 @@ ENV NODE_ENV=$NODE_ENV
 # Build the application
 RUN npm run build
 
-# Stage 3: Production with nginx
+# Stage 4: Production with nginx
 FROM nginx:alpine AS production
 
 # Install curl for health checks

@@ -11,7 +11,26 @@ COPY package*.json ./
 # Install production dependencies
 RUN npm ci --only=production
 
-# Stage 2: Build
+# Stage 2: Development
+FROM node:20-alpine AS development
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies including devDependencies
+RUN npm install
+
+# Copy source code (will be overridden by volume mount)
+COPY . .
+
+# Expose port
+EXPOSE 5001
+
+# Development command
+CMD ["npm", "run", "dev"]
+
+# Stage 3: Build
 FROM node:20-alpine AS build
 WORKDIR /app
 
@@ -26,7 +45,7 @@ COPY . .
 
 # No build step needed for backend (no webpack/transpilation)
 
-# Stage 3: Production
+# Stage 4: Production
 FROM node:20-alpine AS production
 WORKDIR /app
 

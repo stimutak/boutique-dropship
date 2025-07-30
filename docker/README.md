@@ -14,13 +14,13 @@ This directory contains Docker configuration files for the Boutique application.
 
 ## Quick Start
 
-### Development (Backend in Docker, Frontend Local)
+### Development (Everything in Docker)
 ```bash
-# Start backend and database
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d mongodb backend
+# Start all services in development mode
+./docker-helper.sh dev
 
-# Start frontend locally
-cd client && npm run dev
+# Or manually with docker-compose
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 ```
 
 ### Production (Everything in Docker)
