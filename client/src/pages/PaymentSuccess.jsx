@@ -4,16 +4,45 @@ import { useDispatch, useSelector } from 'react-redux'
 import { clearCart } from '../store/slices/cartSlice'
 import { fetchUserOrders } from '../store/slices/ordersSlice'
 import api from '../api/config'
+import { useTranslation } from 'react-i18next'
+import { localeCurrencies } from '../i18n/i18n'
+
+// Helper function to format price
+function formatPrice(amount, currency, locale) {
+  try {
+    return new Intl.NumberFormat(locale || 'en', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: currency === 'JPY' ? 0 : 2,
+      maximumFractionDigits: currency === 'JPY' ? 0 : 2
+    }).format(amount)
+  } catch (error) {
+    const symbols = {
+      USD: '$',
+      EUR: '€',
+      GBP: '£',
+      CNY: '¥',
+      JPY: '¥',
+      SAR: 'ر.س',
+      CAD: 'C$'
+    }
+    const symbol = symbols[currency] || currency
+    return `${symbol}${amount.toFixed(currency === 'JPY' ? 0 : 2)}`
+  }
+}
 
 const PaymentSuccess = () => {
   const { orderId } = useParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const { i18n } = useTranslation()
   const { isAuthenticated } = useSelector(state => state.auth)
   
   const [order, setOrder] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  
+  const orderCurrency = order?.currency || localeCurrencies[i18n.language] || 'USD'
 
   useEffect(() => {
     fetchOrderAndClearCart()
@@ -70,7 +99,7 @@ const PaymentSuccess = () => {
             <div className="order-details">
               <h2>Order Details</h2>
               <p><strong>Order Number:</strong> {order.orderNumber}</p>
-              <p><strong>Total:</strong> ${order.total.toFixed(2)}</p>
+              <p><strong>Total:</strong> {formatPrice(order.total, orderCurrency, i18n.language)}</p>
               <p><strong>Status:</strong> {order.status}</p>
               
               <div className="order-items">
@@ -78,7 +107,7 @@ const PaymentSuccess = () => {
                 {order.items.map(item => (
                   <div key={item._id} className="order-item">
                     <span>{item.product?.name || 'Product'} x {item.quantity}</span>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    <span>{formatPrice(item.price * item.quantity, orderCurrency, i18n.language)}</span>
                   </div>
                 ))}
               </div>

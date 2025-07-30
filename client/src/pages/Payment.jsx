@@ -3,17 +3,46 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearCart } from '../store/slices/cartSlice'
 import api from '../api/config'
+import { useTranslation } from 'react-i18next'
+import { localeCurrencies } from '../i18n/i18n'
+
+// Helper function to format price
+function formatPrice(amount, currency, locale) {
+  try {
+    return new Intl.NumberFormat(locale || 'en', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: currency === 'JPY' ? 0 : 2,
+      maximumFractionDigits: currency === 'JPY' ? 0 : 2
+    }).format(amount)
+  } catch (error) {
+    const symbols = {
+      USD: '$',
+      EUR: '€',
+      GBP: '£',
+      CNY: '¥',
+      JPY: '¥',
+      SAR: 'ر.س',
+      CAD: 'C$'
+    }
+    const symbol = symbols[currency] || currency
+    return `${symbol}${amount.toFixed(currency === 'JPY' ? 0 : 2)}`
+  }
+}
 
 const Payment = () => {
   const { orderId } = useParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const { i18n } = useTranslation()
   const { isAuthenticated } = useSelector(state => state.auth)
   
   const [order, setOrder] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('card')
+  
+  const orderCurrency = order?.currency || localeCurrencies[i18n.language] || 'USD'
 
   useEffect(() => {
     fetchOrder()
@@ -123,7 +152,7 @@ const Payment = () => {
               {order.items.map(item => (
                 <div key={item._id} className="summary-item">
                   <span>{item.product?.name || 'Product'} x {item.quantity}</span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                  <span>{formatPrice(item.price * item.quantity, orderCurrency, i18n.language)}</span>
                 </div>
               ))}
             </div>
@@ -146,7 +175,7 @@ const Payment = () => {
                 </div>
               )}
               <div className="summary-total">
-                <strong>Total: ${order.total.toFixed(2)}</strong>
+                <strong>Total: {formatPrice(order.total, orderCurrency, i18n.language)}</strong>
               </div>
             </div>
           </div>

@@ -9,6 +9,18 @@ const Checkout = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { items, totalPrice } = useSelector(state => state.cart)
+  
+  // Calculate total using currency-specific prices
+  const calculateCurrencyTotal = () => {
+    if (!items || items.length === 0) return totalPrice
+    
+    return items.reduce((total, item) => {
+      const price = item.product?.priceInCurrency || item.product?.price || 0
+      return total + (price * item.quantity)
+    }, 0)
+  }
+  
+  const currencyTotal = calculateCurrencyTotal()
   const { isAuthenticated, user } = useSelector(state => state.auth)
   const { isLoading, error } = useSelector(state => state.orders)
   
@@ -361,7 +373,7 @@ const Checkout = () => {
             
             <div className="summary-total">
               <strong>Total: <PriceDisplay 
-                price={totalPrice} 
+                price={currencyTotal} 
                 currency={items[0]?.product?.displayCurrency || 'USD'}
               /></strong>
             </div>

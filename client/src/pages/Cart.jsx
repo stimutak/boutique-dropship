@@ -13,6 +13,18 @@ const Cart = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { items, totalItems, totalPrice, isLoading } = useSelector(state => state.cart)
+  
+  // Calculate total using currency-specific prices
+  const calculateCurrencyTotal = () => {
+    if (!items || items.length === 0) return totalPrice
+    
+    return items.reduce((total, item) => {
+      const price = item.product?.priceInCurrency || item.product?.price || 0
+      return total + (price * item.quantity)
+    }, 0)
+  }
+  
+  const currencyTotal = calculateCurrencyTotal()
   const { isAuthenticated } = useSelector(state => state.auth)
 
   useEffect(() => {
@@ -122,7 +134,7 @@ const Cart = () => {
               </div>
               <div className="summary-row total">
                 <span>Total: <PriceDisplay 
-                  price={totalPrice} 
+                  price={currencyTotal} 
                   currency={items[0]?.product?.displayCurrency || 'USD'}
                 /></span>
               </div>
