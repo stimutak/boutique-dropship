@@ -10,7 +10,8 @@ export const loginUser = createAsyncThunk(
         email, 
         password
       })
-      // Store token in localStorage for now (will move to HTTP-only cookies later)
+      // Token is now handled via httpOnly cookies
+      // Backend still sends token for backward compatibility during migration
       const token = response.data.data?.token || response.data.token
       if (token) {
         localStorage.setItem('token', token)
@@ -27,7 +28,8 @@ export const registerUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const response = await api.post('/api/auth/register', userData)
-      // Store token in localStorage for now (will move to HTTP-only cookies later)
+      // Token is now handled via httpOnly cookies
+      // Backend still sends token for backward compatibility during migration
       const token = response.data.data?.token || response.data.token
       if (token) {
         localStorage.setItem('token', token)
@@ -39,10 +41,30 @@ export const registerUser = createAsyncThunk(
   }
 )
 
+export const verifyAuth = createAsyncThunk(
+  'auth/verify',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Use the verify endpoint which checks cookies
+      const response = await api.get('/api/auth/verify')
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error?.message || 'Not authenticated')
+    }
+  }
+)
+
 export const loadUser = createAsyncThunk(
   'auth/loadUser',
   async (_, { rejectWithValue }) => {
     try {
+      // First try to verify via cookie
+      const verifyResponse = await api.get('/api/auth/verify')
+      if (verifyResponse.data.success && verifyResponse.data.data?.user) {
+        return verifyResponse.data
+      }
+      
+      // Fallback to token-based auth during migration
       const token = localStorage.getItem('token')
       if (!token) {
         return rejectWithValue('No token found')
@@ -160,6 +182,22 @@ const authSlice = createSlice({
       .addCase(updateProfile.rejected, (state, action) => {
         state.isLoading = false
         state.error = action.payload
+      })
+      // Verify auth
+      .addCase(verifyAuth.pending, (state) => {
+        state.isLoading = true
+      })
+      .addCase(verifyAuth.fulfilled, (state, action) => {
+        state.isLoading = false
+        state.user = action.payload.data?.user || action.payload.user
+        state.isAuthenticated = true
+        // Don't set token in state since it's in httpOnly cookie
+      })
+      .addCase(verifyAuth.rejected, (state) => {
+        state.isLoading = false
+        state.token = null
+        state.isAuthenticated = false
+        state.user = null
       })
   },
 })

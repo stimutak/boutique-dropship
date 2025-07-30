@@ -13,19 +13,18 @@ const api = axios.create({
 // Request interceptor to add auth token, CSRF token, and guest session ID
 api.interceptors.request.use(
   async (config) => {
-    // Add auth token
+    // JWT Migration: Token now sent via httpOnly cookie
+    // Keeping localStorage check for backward compatibility during migration
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     
-    
     // Add guest session ID for cart operations (when not authenticated)
-    if (!token) {
-      const guestSessionId = window.sessionStorage?.getItem('guestSessionId')
-      if (guestSessionId) {
-        config.headers['x-guest-session-id'] = guestSessionId
-      }
+    // Check both cookie-based auth and localStorage during migration
+    const guestSessionId = window.sessionStorage?.getItem('guestSessionId')
+    if (guestSessionId && !config.headers.Authorization) {
+      config.headers['x-guest-session-id'] = guestSessionId
     }
     
     // Add CSRF token for state-changing requests

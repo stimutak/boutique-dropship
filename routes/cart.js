@@ -701,7 +701,8 @@ router.post('/merge', authenticateToken, async (req, res) => {
         );
 
         if (existingItemIndex >= 0) {
-          user.cart.items[existingItemIndex].quantity += quantity;
+          // Take the guest cart quantity (replace, don't add)
+          user.cart.items[existingItemIndex].quantity = quantity;
           user.cart.items[existingItemIndex].addedAt = new Date();
         } else {
           user.cart.items.push({
@@ -736,7 +737,8 @@ router.post('/merge', authenticateToken, async (req, res) => {
           );
 
           if (existingItemIndex >= 0) {
-            user.cart.items[existingItemIndex].quantity += guestItem.quantity;
+            // Take the guest cart quantity (replace, don't add)
+            user.cart.items[existingItemIndex].quantity = guestItem.quantity;
             user.cart.items[existingItemIndex].addedAt = new Date();
           } else {
             user.cart.items.push({

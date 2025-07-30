@@ -4,8 +4,13 @@ const User = require('../models/User');
 // Middleware to authenticate JWT tokens
 const authenticateToken = async (req, res, next) => {
   try {
+    // Check for token in cookie first (more secure), then fall back to header
+    const cookieToken = req.cookies?.token;
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const headerToken = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    
+    // Prefer cookie token over header token for security
+    const token = cookieToken || headerToken;
     
     if (!token) {
       req.user = null;
@@ -33,9 +38,13 @@ const authenticateToken = async (req, res, next) => {
 // Middleware to require authentication
 const requireAuth = async (req, res, next) => {
   try {
+    // Check for token in cookie first (more secure), then fall back to header
+    const cookieToken = req.cookies?.token;
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const headerToken = authHeader && authHeader.split(' ')[1];
     
+    // Prefer cookie token over header token for security
+    const token = cookieToken || headerToken;
     
     if (!token) {
       return res.status(401).json({

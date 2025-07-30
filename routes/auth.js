@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 
 // Generate JWT token
@@ -130,11 +130,20 @@ router.post('/register', validateRegistration, async (req, res) => {
       console.error('Error sending welcome email:', emailError);
     }
 
+    // Set token as httpOnly cookie for security
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
+    });
+
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       data: {
-        token,
+        token, // Still send token for backward compatibility during migration
         user: user.toPublicJSON()
       }
     });
@@ -215,11 +224,20 @@ router.post('/login', validateLogin, async (req, res) => {
     
     // Guest cart merging would happen on the frontend after login
 
+    // Set token as httpOnly cookie for security
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
+    });
+
     res.json({
       success: true,
       message: 'Login successful',
       data: {
-        token,
+        token, // Still send token for backward compatibility during migration
         user: user.toPublicJSON(),
         cart: cartInfo
       }
@@ -387,6 +405,51 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
       error: {
         code: 'RESET_PASSWORD_ERROR',
         message: 'Failed to reset password'
+      }
+    });
+  }
+});
+
+// Verify token from cookie (for auth persistence check)
+router.get('/verify', authenticateToken, async (req, res) => {
+  try {
+    // If authenticateToken middleware passed, user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'NOT_AUTHENTICATED',
+          message: 'Not authenticated'
+        }
+      });
+    }
+
+    // Get fresh user data
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'User not found or inactive'
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: user.toPublicJSON(),
+        authenticated: true
+      }
+    });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'VERIFICATION_ERROR',
+        message: 'Failed to verify authentication'
       }
     });
   }
@@ -657,6 +720,14 @@ router.post('/logout', requireAuth, async (req, res) => {
         }
       });
     }
+
+    // Clear the JWT cookie
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
 
     res.json({
       success: true,
