@@ -385,12 +385,26 @@ router.put('/profile', requireAuth, validateCSRFToken, [
   body('lastName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('Last name must be 1-50 characters'),
   body('phone').optional().isString().isLength({ min: 7, max: 30 }).withMessage('Phone must be 7-30 characters'),
   body('email').optional().isEmail().withMessage('Valid email is required'),
-  body('addresses').optional().isArray().withMessage('Addresses must be an array'),
-  body('addresses.*.street').optional().trim().isLength({ min: 1, max: 100 }).withMessage('Street must be 1-100 characters'),
-  body('addresses.*.city').optional().trim().isLength({ min: 1, max: 50 }).withMessage('City must be 1-50 characters'),
-  body('addresses.*.state').optional().trim().isLength({ min: 1, max: 50 }).withMessage('State must be 1-50 characters'),
-  body('addresses.*.zipCode').optional().trim().isLength({ min: 5, max: 10 }).withMessage('ZIP code must be 5-10 characters'),
-  body('addresses.*.country').optional().trim().isLength({ min: 2, max: 2 }).withMessage('Country must be 2-letter code'),
+  body('addresses').optional().custom((value) => {
+    // Allow null or array
+    return value === null || Array.isArray(value);
+  }).withMessage('Addresses must be null or an array'),
+  body('addresses.*.street').optional().custom((value) => {
+    // Allow empty string or valid length
+    return !value || (value.trim().length >= 1 && value.trim().length <= 100);
+  }).withMessage('Street must be 1-100 characters'),
+  body('addresses.*.city').optional().custom((value) => {
+    return !value || (value.trim().length >= 1 && value.trim().length <= 50);
+  }).withMessage('City must be 1-50 characters'),
+  body('addresses.*.state').optional().custom((value) => {
+    return !value || (value.trim().length >= 1 && value.trim().length <= 50);
+  }).withMessage('State must be 1-50 characters'),
+  body('addresses.*.zipCode').optional().custom((value) => {
+    return !value || (value.trim().length >= 5 && value.trim().length <= 10);
+  }).withMessage('ZIP code must be 5-10 characters'),
+  body('addresses.*.country').optional().custom((value) => {
+    return !value || value.trim().length === 2;
+  }).withMessage('Country must be 2-letter code'),
   body('preferences.notifications').optional().isBoolean().withMessage('Notifications must be boolean'),
   body('preferences.newsletter').optional().isBoolean().withMessage('Newsletter must be boolean'),
   body('preferences.emailPreferences').optional().isObject().withMessage('Email preferences must be an object')
@@ -411,7 +425,48 @@ router.put('/profile', requireAuth, validateCSRFToken, [
     if (lastName !== undefined) updateData.lastName = lastName;
     if (phone !== undefined) updateData.phone = phone;
     if (email !== undefined) updateData.email = email;
-    if (addresses !== undefined) updateData.addresses = addresses;
+    
+    // Handle addresses carefully
+    if (addresses !== undefined) {
+      if (addresses === null) {
+        // Skip null addresses
+      } else if (Array.isArray(addresses)) {
+        // Process addresses array
+        const validAddresses = [];
+        
+        for (const addr of addresses) {
+          // Skip if no address data
+          if (!addr) continue;
+          
+          // Skip if all fields are empty
+          const hasContent = addr.street || addr.city || addr.state || addr.zipCode;
+          if (!hasContent) continue;
+          
+          // Check if address has required fields
+          if (addr.street && addr.city && addr.state && addr.zipCode) {
+            // Create valid address object
+            const validAddress = {
+              type: addr.type || 'shipping',
+              firstName: addr.firstName || firstName || req.user.firstName,
+              lastName: addr.lastName || lastName || req.user.lastName,
+              street: addr.street,
+              city: addr.city,
+              state: addr.state,
+              zipCode: addr.zipCode,
+              country: addr.country || 'US',
+              phone: addr.phone,
+              isDefault: addr.isDefault !== undefined ? addr.isDefault : validAddresses.length === 0
+            };
+            validAddresses.push(validAddress);
+          }
+        }
+        
+        // Only update addresses if we have valid ones
+        if (validAddresses.length > 0) {
+          updateData.addresses = validAddresses;
+        }
+      }
+    }
     
     // Handle nested preferences updates
     if (preferences !== undefined) {
@@ -746,8 +801,8 @@ router.delete('/profile/addresses/:addressId', requireAuth, validateCSRFToken, a
       });
     }
 
-    // Remove the address
-    address.remove();
+    // Remove the address using pull method
+    user.addresses.pull(addressId);
     await user.save();
 
     res.json({
