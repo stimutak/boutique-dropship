@@ -29,8 +29,13 @@ import OrderDetail from './pages/OrderDetail'
 import PaymentSuccess from './pages/PaymentSuccess'
 import NotFound from './pages/NotFound'
 
-// Protected Route Component
+// Protected Route Components
 import ProtectedRoute from './components/Auth/ProtectedRoute'
+import AdminRoute from './components/Auth/AdminRoute'
+
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminProducts from './pages/admin/AdminProducts'
 
 function App() {
   const dispatch = useDispatch()
@@ -108,6 +113,31 @@ function App() {
               <ProtectedRoute>
                 <OrderDetail />
               </ProtectedRoute>
+            } 
+          />
+          {/* Admin Routes */}
+          <Route 
+            path="/admin" 
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/dashboard" 
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/products" 
+            element={
+              <AdminRoute>
+                <AdminProducts />
+              </AdminRoute>
             } 
           />
           <Route path="*" element={<NotFound />} />
