@@ -7,6 +7,7 @@ const { authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { getCurrencyForLocale, formatPrice } = require('../utils/currency');
 const { ErrorCodes } = require('../utils/errorHandler');
+const { secureSessionLog, secureOperationLog } = require('../utils/secureLogging');
 
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
@@ -54,13 +55,15 @@ const getOrCreateCart = async (req) => {
     // If no session ID from frontend, this is a new session
     if (!sessionId || !sessionId.startsWith('guest_')) {
       sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      console.log('Created new guest session:', sessionId);
+      secureSessionLog('Created new guest session:', sessionId);
     }
     
     // Clean up any duplicate carts for this session BEFORE creating/fetching
     const existingCarts = await Cart.find({ sessionId });
     if (existingCarts.length > 1) {
-      console.warn(`Found ${existingCarts.length} carts for session ${sessionId}, cleaning up duplicates`);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Found ${existingCarts.length} carts for session (masked), cleaning up duplicates`);
+      }
       // Keep the most recently updated cart and delete the rest
       const sortedCarts = existingCarts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
       const cartsToDelete = sortedCarts.slice(1);
@@ -94,7 +97,7 @@ const getOrCreateCart = async (req) => {
       if (!cart) {
         cart = new Cart({ sessionId, items: [] });
         await cart.save();
-        console.log('Created new guest cart for session (fallback):', sessionId);
+        secureSessionLog('Created new guest cart for session (fallback):', sessionId);
       }
     }
     
@@ -547,20 +550,22 @@ router.delete('/clear', authenticateToken, validateCSRFToken, async (req, res) =
       user.cart.items = [];
       user.cart.updatedAt = new Date();
       await user.save();
-      console.log('Cleared user cart for user:', user._id);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Cleared user cart for user:', user._id);
+      }
     } else {
       // Clear guest cart - use atomic update instead of delete/recreate
-      console.log('Clearing guest cart for session:', cart.sessionId);
+      secureSessionLog('Clearing guest cart for session:', cart.sessionId);
       
       // First, delete ALL carts with this session ID to handle duplicates
       const deleteResult = await Cart.deleteMany({ sessionId: cart.sessionId });
-      console.log(`Deleted ${deleteResult?.deletedCount || 0} cart(s) for session ${cart.sessionId}`);
+      secureOperationLog('Deleted cart(s)', deleteResult?.deletedCount || 0, cart.sessionId);
       
       // Create a single fresh cart
       const newCart = new Cart({ sessionId: cart.sessionId, items: [] });
       await newCart.save();
       
-      console.log('Created fresh guest cart for session:', cart.sessionId);
+      secureSessionLog('Created fresh guest cart for session:', cart.sessionId);
     }
 
     res.json({
@@ -766,7 +771,7 @@ router.post('/reset-guest-session', async (req, res) => {
     // Delete old guest cart if it exists
     if (oldSessionId && oldSessionId.startsWith('guest_')) {
       const deleteResult = await Cart.deleteMany({ sessionId: oldSessionId });
-      console.log(`Deleted ${deleteResult?.deletedCount || 0} guest cart(s) for old session ${oldSessionId}`);
+      secureOperationLog('Deleted guest cart(s)', deleteResult?.deletedCount || 0, oldSessionId);
     }
 
     // Create a fresh guest session ID
