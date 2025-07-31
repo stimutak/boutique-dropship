@@ -4,9 +4,11 @@ const { body, validationResult } = require('express-validator');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
-const { authenticateToken, requireAuth } = require('../middleware/auth');
+const { authenticateToken, requireAuth, requireAdmin } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { getCurrencyForLocale, getExchangeRates } = require('../utils/currency');
+const { ErrorCodes } = require('../utils/errorHandler');
+const { i18nMiddleware, getErrorMessage } = require('../utils/i18n');
 
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
@@ -644,6 +646,62 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
   }
 });
 
+// Admin orders list endpoint (must come before /:id route)
+router.get('/admin', requireAdmin, i18nMiddleware, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const statusFilter = req.query.status;
+
+    // Build query
+    const query = {};
+    if (statusFilter && ['pending', 'processing', 'shipped', 'delivered', 'cancelled'].includes(statusFilter)) {
+      query.status = statusFilter;
+    }
+
+    // Get orders with full details (admin can see everything)
+    const orders = await Order.find(query)
+      .populate('customer', 'firstName lastName email')
+      .populate('items.product', 'name slug images price')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalOrders = await Order.countDocuments(query);
+    const totalPages = Math.ceil(totalOrders / limit);
+
+    // Return full order data for admin (including wholesaler info)
+    res.json({
+      success: true,
+      data: {
+        orders: orders.map(order => {
+          const orderObj = order.toObject();
+          // Admin can see all data, don't filter wholesaler info
+          return orderObj;
+        }),
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalOrders,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching admin orders:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'ADMIN_ORDERS_ERROR',
+        message: req.i18n('ADMIN_ORDERS_ERROR', 'Failed to fetch orders')
+      }
+    });
+  }
+});
+
 // Get order by ID (supports both authenticated and guest orders)
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
@@ -804,8 +862,162 @@ router.post('/:id/associate', requireAuth, async (req, res) => {
   }
 });
 
-// Update order status (admin only - placeholder for now)
-router.put('/:id/status', async (req, res) => {
+// Admin order fulfillment endpoint
+router.put('/:id/fulfill', requireAdmin, i18nMiddleware, async (req, res) => {
+  try {
+    const { status, trackingNumber, shippingCarrier, shipDate, estimatedDeliveryDate, notes } = req.body;
+    
+    // Validate required status
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: req.i18n('VALIDATION_ERROR', 'Status is required')
+        }
+      });
+    }
+
+    // Validate status is in allowed enum
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_STATUS',
+          message: req.i18n('INVALID_ORDER_STATUS', 'Invalid order status')
+        }
+      });
+    }
+
+    // Find the order
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'ORDER_NOT_FOUND',
+          message: req.i18n('ORDER_NOT_FOUND', 'Order not found')
+        }
+      });
+    }
+
+    // Check if transition is valid
+    if (!order.canTransitionTo(status)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_STATUS_TRANSITION',
+          message: req.i18n('INVALID_STATUS_TRANSITION', `Cannot transition from ${order.status} to ${status}`)
+        }
+      });
+    }
+
+    // Validate required fields for shipping
+    if (status === 'shipped') {
+      if (!trackingNumber) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'TRACKING_NUMBER_REQUIRED',
+            message: req.i18n('TRACKING_NUMBER_REQUIRED', 'Tracking number is required when shipping orders')
+          }
+        });
+      }
+    }
+
+    try {
+      // Update order status using the model method
+      order.addStatusHistory(status, {
+        notes,
+        trackingNumber,
+        shippingCarrier,
+        admin: req.user._id
+      });
+
+      // Set additional dates if provided
+      if (shipDate) order.shipDate = new Date(shipDate);
+      if (estimatedDeliveryDate) order.estimatedDeliveryDate = new Date(estimatedDeliveryDate);
+
+      await order.save();
+
+      // Send status update email
+      try {
+        const { sendOrderStatusUpdate } = require('../utils/emailService');
+        
+        let customerEmail, customerName, shouldSendEmail = true;
+        
+        if (order.customer) {
+          // Registered user
+          await order.populate('customer', 'firstName lastName email preferences');
+          customerEmail = order.customer.email;
+          customerName = `${order.customer.firstName} ${order.customer.lastName}`;
+          shouldSendEmail = order.customer.preferences?.emailPreferences?.orderUpdates !== false;
+        } else {
+          // Guest user
+          customerEmail = order.guestInfo.email;
+          customerName = `${order.guestInfo.firstName} ${order.guestInfo.lastName}`;
+        }
+
+        if (shouldSendEmail && ['processing', 'shipped', 'delivered'].includes(status)) {
+          const statusData = {
+            orderNumber: order.orderNumber,
+            customerName,
+            status,
+            trackingNumber,
+            shippingCarrier,
+            estimatedDeliveryDate: order.estimatedDeliveryDate
+          };
+
+          const emailResult = await sendOrderStatusUpdate(customerEmail, statusData);
+          if (!emailResult.success) {
+            console.error('Failed to send order status update email:', emailResult.error);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending order status update email:', emailError);
+      }
+
+      res.json({
+        success: true,
+        message: 'Order status updated successfully',
+        order: {
+          _id: order._id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          trackingNumber: order.trackingNumber,
+          shippingCarrier: order.shippingCarrier,
+          shipDate: order.shipDate,
+          estimatedDeliveryDate: order.estimatedDeliveryDate,
+          statusHistory: order.statusHistory,
+          updatedAt: order.updatedAt
+        }
+      });
+
+    } catch (transitionError) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_STATUS_TRANSITION',
+          message: req.i18n('INVALID_STATUS_TRANSITION', transitionError.message)
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('Error updating order fulfillment:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'ORDER_FULFILLMENT_ERROR',
+        message: req.i18n('ORDER_FULFILLMENT_ERROR', 'Failed to update order fulfillment status')
+      }
+    });
+  }
+});
+
+// Update order status (admin only - legacy endpoint, use /fulfill instead)
+router.put('/:id/status', requireAdmin, i18nMiddleware, async (req, res) => {
   try {
     const { status, trackingNumber } = req.body;
     

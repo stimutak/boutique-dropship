@@ -2,32 +2,49 @@ const request = require('supertest');
 const express = require('express');
 const session = require('express-session');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const Order = require('../../models/Order');
 const Product = require('../../models/Product');
 const User = require('../../models/User');
 const orderRoutes = require('../../routes/orders');
 
-// Create test app
-const createTestApp = () => {
-  const app = express();
-  
-  app.use(session({
-    secret: 'test-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false }
-  }));
-  
-  app.use(express.json());
-  app.use('/api/orders', orderRoutes);
-  
-  return app;
-};
+// Import the test app with proper middleware
+const { createTestApp } = require('../helpers/testApp');
 
 describe('Order Routes', () => {
   let app;
   let testProduct;
   let testUser;
+  let adminToken;
+  let agent;  // For maintaining session cookies
+  let csrfToken;
+
+  // Helper function to create test order data
+  const createTestOrderData = (overrides = {}) => ({
+    guestInfo: { email: 'test@example.com', firstName: 'Test', lastName: 'User' },
+    items: [{ 
+      product: testProduct._id, 
+      quantity: 1, 
+      price: testProduct.price, 
+      wholesaler: { name: 'Test', email: 'test@test.com', productCode: 'TEST' } 
+    }],
+    shippingAddress: { 
+      firstName: 'Test', lastName: 'User', street: '123 St', city: 'City', 
+      state: 'ST', zipCode: '12345', country: 'US' 
+    },
+    billingAddress: { 
+      firstName: 'Test', lastName: 'User', street: '123 St', city: 'City', 
+      state: 'ST', zipCode: '12345', country: 'US' 
+    },
+    subtotal: testProduct.price,
+    tax: 0,
+    shipping: 0,
+    total: testProduct.price,
+    payment: { method: 'card', status: 'pending' },
+    currency: 'USD',
+    exchangeRate: 1,
+    ...overrides
+  });
   
   const validGuestOrderData = {
     guestInfo: {
@@ -66,7 +83,11 @@ describe('Order Routes', () => {
       useUnifiedTopology: true,
     });
     
+    // Set JWT secret for testing
+    process.env.JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-chars-long';
+    
     app = createTestApp();
+    agent = request.agent(app); // Create agent to maintain session
   });
   
   beforeEach(async () => {
@@ -80,6 +101,7 @@ describe('Order Routes', () => {
       name: 'Test Crystal',
       slug: 'test-crystal',
       description: 'A test crystal for unit testing',
+      shortDescription: 'Test crystal for TDD testing',
       price: 29.99,
       category: 'crystals',
       isActive: true,
@@ -130,6 +152,11 @@ describe('Order Routes', () => {
       productId: testProduct._id,
       quantity: 2
     }];
+
+    // Get CSRF token for the session
+    const csrfResponse = await agent.get('/health');
+    csrfToken = csrfResponse.headers['set-cookie'] ? 
+      (await agent.get('/csrf-token'))?.body?.csrfToken : null;
   });
   
   afterAll(async () => {
@@ -449,6 +476,255 @@ describe('Order Routes', () => {
       
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('ORDER_NOT_FOUND');
+    });
+  });
+
+  describe('Admin Order Fulfillment Workflow', () => {
+    let adminUser;
+    let adminToken;
+    
+    beforeEach(async () => {
+      // Create admin user for testing
+      adminUser = await User.create({
+        email: 'admin@example.com',
+        password: 'password123',
+        firstName: 'Admin',
+        lastName: 'User',
+        isAdmin: true
+      });
+
+      // Generate admin JWT token
+      adminToken = jwt.sign(
+        { userId: adminUser._id },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+    });
+
+    describe('PUT /api/orders/:id/fulfill - Admin Only', () => {
+      it('should require admin authentication', async () => {
+        // Create an order directly in database to bypass CSRF for test
+        const order = await Order.create(createTestOrderData());
+        
+        const orderId = order._id;
+        
+        const response = await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .send({ 
+            status: 'processing',
+            trackingNumber: 'TRACK123',
+            shippingCarrier: 'UPS'
+          })
+          .expect(401);
+        
+        expect(response.body.success).toBe(false);
+        expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
+      });
+
+      it('should validate status transitions (pending -> processing)', async () => {
+        // Create an order directly in database
+        const order = await Order.create(createTestOrderData());
+        
+        const orderId = order._id;
+        
+        const response = await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ 
+            status: 'processing',
+            notes: 'Order is being prepared'
+          })
+          .expect(200);
+        
+        expect(response.body.success).toBe(true);
+        expect(response.body.order.status).toBe('processing');
+        expect(response.body.order.statusHistory).toBeDefined();
+        expect(response.body.order.statusHistory).toHaveLength(2); // pending -> processing
+      });
+
+      it('should validate status transitions (processing -> shipped)', async () => {
+        // Create order directly in database
+        const order = await Order.create(createTestOrderData());
+        
+        const orderId = order._id;
+        
+        // First update to processing
+        await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ status: 'processing' })
+          .expect(200);
+        
+        // Then update to shipped with tracking
+        const response = await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ 
+            status: 'shipped',
+            trackingNumber: 'TRACK123456',
+            shippingCarrier: 'UPS',
+            shipDate: new Date().toISOString(),
+            estimatedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          })
+          .expect(200);
+        
+        expect(response.body.success).toBe(true);
+        expect(response.body.order.status).toBe('shipped');
+        expect(response.body.order.trackingNumber).toBe('TRACK123456');
+        expect(response.body.order.shippingCarrier).toBe('UPS');
+        expect(response.body.order.shipDate).toBeDefined();
+        expect(response.body.order.estimatedDeliveryDate).toBeDefined();
+      });
+
+      it('should reject invalid status transitions (delivered -> processing)', async () => {
+        // Create order directly in database and set to delivered
+        const order = await Order.create(createTestOrderData({ status: 'delivered' }));
+        
+        const orderId = order._id;
+        
+        // Try to transition back to processing (should fail)
+        const response = await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ status: 'processing' })
+          .expect(400);
+        
+        expect(response.body.success).toBe(false);
+        expect(response.body.error.code).toBe('INVALID_STATUS_TRANSITION');
+      });
+
+      it('should require tracking number when shipping', async () => {
+        // Create order directly in database
+        const order = await Order.create(createTestOrderData());
+        
+        const orderId = order._id;
+        
+        // Set to processing first
+        await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ status: 'processing' })
+          .expect(200);
+        
+        // Try to ship without tracking number
+        const response = await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ 
+            status: 'shipped',
+            shippingCarrier: 'UPS'
+          })
+          .expect(400);
+        
+        expect(response.body.success).toBe(false);
+        expect(response.body.error.code).toBe('TRACKING_NUMBER_REQUIRED');
+      });
+
+      it('should track status change history with timestamps', async () => {
+        // Create order directly in database
+        const order = await Order.create(createTestOrderData());
+        
+        const orderId = order._id;
+        
+        // Update to processing
+        const processResponse = await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ 
+            status: 'processing',
+            notes: 'Order confirmed and being prepared'
+          })
+          .expect(200);
+        
+        // Update to shipped
+        const shipResponse = await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ 
+            status: 'shipped',
+            trackingNumber: 'TRACK789',
+            shippingCarrier: 'FedEx'
+          })
+          .expect(200);
+        
+        // Verify status history
+        const updatedOrder = await Order.findById(orderId);
+        expect(updatedOrder.statusHistory).toHaveLength(3); // pending, processing, shipped
+        expect(updatedOrder.statusHistory[0].status).toBe('pending');
+        expect(updatedOrder.statusHistory[1].status).toBe('processing');
+        expect(updatedOrder.statusHistory[1].notes).toBe('Order confirmed and being prepared');
+        expect(updatedOrder.statusHistory[2].status).toBe('shipped');
+        expect(updatedOrder.statusHistory[2].trackingNumber).toBe('TRACK789');
+        expect(updatedOrder.statusHistory[2].shippingCarrier).toBe('FedEx');
+      });
+
+      it('should support i18n error messages', async () => {
+        // Create order directly in database
+        const order = await Order.create(createTestOrderData());
+        
+        const orderId = order._id;
+        
+        // Try invalid transition with Spanish locale header
+        const response = await request(app)
+          .put(`/api/orders/${orderId}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .set('x-locale', 'es')
+          .send({ status: 'invalid-status' })
+          .expect(400);
+        
+        expect(response.body.success).toBe(false);
+        expect(response.body.error.code).toBe('INVALID_STATUS');
+        // Should return Spanish error message
+        expect(response.body.error.message).toContain('inválido');
+      });
+    });
+
+    describe('GET /api/orders/admin - Admin order management', () => {
+      it('should require admin authentication', async () => {
+        const response = await request(app)
+          .get('/api/orders/admin')
+          .expect(401);
+        
+        expect(response.body.success).toBe(false);
+        expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
+      });
+
+      it('should return all orders for admin with fulfillment data', async () => {
+        // Create test order directly in database
+        await Order.create(createTestOrderData());
+        
+        const response = await request(app)
+          .get('/api/orders/admin')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+        
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.orders).toBeDefined();
+        expect(response.body.data.orders.length).toBeGreaterThan(0);
+        expect(response.body.data.orders[0]).toHaveProperty('statusHistory');
+        expect(response.body.data.orders[0].items[0]).toHaveProperty('wholesaler'); // Admin can see wholesaler info
+      });
+
+      it('should support filtering by status', async () => {
+        // Create orders with different statuses directly in database
+        const order1 = await Order.create(createTestOrderData());
+        
+        // Set one order to processing
+        await request(app)
+          .put(`/api/orders/${order1._id}/fulfill`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ status: 'processing' })
+          .expect(200);
+        
+        // Filter for processing orders
+        const response = await request(app)
+          .get('/api/orders/admin?status=processing')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+        
+        expect(response.body.data.orders).toHaveLength(1);
+        expect(response.body.data.orders[0].status).toBe('processing');
+      });
     });
   });
 });

@@ -4,6 +4,7 @@ const { createMollieClient } = require('@mollie/api-client');
 const { body, param, validationResult } = require('express-validator');
 const Order = require('../models/Order');
 const { requireAuth, authenticateToken } = require('../middleware/auth');
+const { ErrorCodes } = require('../utils/errorHandler');
 
 // Initialize Mollie client with fallback
 let mollieClient;
@@ -58,14 +59,7 @@ router.post('/create', [
     // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { orderId, method = 'card', redirectUrl, webhookUrl } = req.body;
@@ -74,24 +68,12 @@ router.post('/create', [
     const order = await Order.findById(orderId);
     
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ORDER_NOT_FOUND',
-          message: 'Order not found'
-        }
-      });
+      return res.error(404, ErrorCodes.ORDER_NOT_FOUND, 'Order not found');
     }
 
     // Check if order already has a payment
     if (order.payment.status === 'paid') {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'ORDER_ALREADY_PAID',
-          message: 'Order has already been paid'
-        }
-      });
+      return res.error(400, 'ORDER_ALREADY_PAID', 'Order has already been paid');
     }
 
     // Prepare payment data
@@ -145,34 +127,15 @@ router.post('/create', [
     
     // Handle Mollie API errors
     if (error.field) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MOLLIE_VALIDATION_ERROR',
-          message: `Mollie validation error: ${error.detail}`,
-          field: error.field
-        }
-      });
+      return res.error(400, 'MOLLIE_VALIDATION_ERROR', `Mollie validation error: ${error.detail}`, error.field);
     }
 
     // Handle Mollie API key errors
     if (error.title === 'Bad Request' && error.statusCode === 400) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MOLLIE_API_ERROR',
-          message: 'Payment service unavailable. Please use demo payment or contact support.'
-        }
-      });
+      return res.error(400, 'MOLLIE_API_ERROR', 'Payment service unavailable. Please use demo payment or contact support.');
     }
 
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PAYMENT_CREATION_ERROR',
-        message: 'Failed to create payment'
-      }
-    });
+    res.error(500, ErrorCodes.PAYMENT_CREATE_ERROR, 'Failed to create payment');
   }
 });
 
@@ -184,49 +147,24 @@ router.post('/demo-complete/:orderId', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { orderId } = req.params;
     
     const order = await Order.findById(orderId);
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ORDER_NOT_FOUND',
-          message: 'Order not found'
-        }
-      });
+      return res.error(404, ErrorCodes.ORDER_NOT_FOUND, 'Order not found');
     }
 
     // Check if user owns this order or is admin (allow guest orders)
     if (req.user && !req.user.isAdmin && order.customer && order.customer.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'ACCESS_DENIED',
-          message: 'You can only complete payments for your own orders'
-        }
-      });
+      return res.error(403, 'ACCESS_DENIED', 'You can only complete payments for your own orders');
     }
 
     // Check if order is already paid
     if (order.payment.status === 'paid') {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'ORDER_ALREADY_PAID',
-          message: 'Order has already been paid'
-        }
-      });
+      return res.error(400, 'ORDER_ALREADY_PAID', 'Order has already been paid');
     }
 
     // Update order payment status
@@ -273,13 +211,7 @@ router.post('/demo-complete/:orderId', [
 
   } catch (error) {
     console.error('Demo payment completion error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'DEMO_PAYMENT_ERROR',
-        message: 'Failed to complete demo payment'
-      }
-    });
+    res.error(500, 'DEMO_PAYMENT_ERROR', 'Failed to complete demo payment');
   }
 });
 
@@ -461,22 +393,10 @@ router.get('/status/:paymentId', async (req, res) => {
     console.error('Payment status check error:', error);
     
     if (error.statusCode === 404) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'PAYMENT_NOT_FOUND',
-          message: 'Payment not found'
-        }
-      });
+      return res.error(404, 'PAYMENT_NOT_FOUND', 'Payment not found');
     }
 
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PAYMENT_STATUS_ERROR',
-        message: 'Failed to check payment status'
-      }
-    });
+    res.error(500, ErrorCodes.PAYMENT_STATUS_ERROR, 'Failed to check payment status');
   }
 });
 
@@ -511,13 +431,7 @@ router.get('/methods', async (req, res) => {
 
   } catch (error) {
     console.error('Payment methods error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PAYMENT_METHODS_ERROR',
-        message: 'Failed to fetch payment methods'
-      }
-    });
+    res.error(500, 'PAYMENT_METHODS_ERROR', 'Failed to fetch payment methods');
   }
 });
 
@@ -528,35 +442,17 @@ router.post('/refund', requireAuth, async (req, res) => {
 
     // Check if user is admin (you may want to add proper admin middleware)
     if (!req.user.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'INSUFFICIENT_PERMISSIONS',
-          message: 'Admin access required'
-        }
-      });
+      return res.error(403, ErrorCodes.INSUFFICIENT_PERMISSIONS, 'Admin access required');
     }
 
     if (!paymentId) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MISSING_PAYMENT_ID',
-          message: 'Payment ID is required'
-        }
-      });
+      return res.error(400, 'MISSING_PAYMENT_ID', 'Payment ID is required');
     }
 
     // Find the order
     const order = await Order.findOne({ 'payment.molliePaymentId': paymentId });
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ORDER_NOT_FOUND',
-          message: 'Order not found for this payment'
-        }
-      });
+      return res.error(404, ErrorCodes.ORDER_NOT_FOUND, 'Order not found for this payment');
     }
 
     // Prepare refund data
@@ -602,23 +498,10 @@ router.post('/refund', requireAuth, async (req, res) => {
     console.error('Refund processing error:', error);
     
     if (error.field) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MOLLIE_REFUND_ERROR',
-          message: `Mollie refund error: ${error.detail}`,
-          field: error.field
-        }
-      });
+      return res.error(400, 'MOLLIE_REFUND_ERROR', `Mollie refund error: ${error.detail}`, error.field);
     }
 
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'REFUND_ERROR',
-        message: 'Failed to process refund'
-      }
-    });
+    res.error(500, 'REFUND_ERROR', 'Failed to process refund');
   }
 });
 
@@ -637,13 +520,7 @@ router.get('/test', async (req, res) => {
 
   } catch (error) {
     console.error('Mollie test error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'MOLLIE_CONNECTION_ERROR',
-        message: 'Failed to connect to Mollie API'
-      }
-    });
+    res.error(500, 'MOLLIE_CONNECTION_ERROR', 'Failed to connect to Mollie API');
   }
 });
 

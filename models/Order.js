@@ -113,6 +113,28 @@ const orderSchema = new mongoose.Schema({
     default: 'pending'
   },
   trackingNumber: String,
+  shippingCarrier: String,
+  shipDate: Date,
+  estimatedDeliveryDate: Date,
+  statusHistory: [{
+    status: {
+      type: String,
+      enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+      required: true
+    },
+    notes: String,
+    trackingNumber: String,
+    shippingCarrier: String,
+    admin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  }],
   notes: String,
   referralSource: String, // Track which sister site referred this order
   // Multi-currency support
@@ -146,6 +168,16 @@ orderSchema.pre('save', function(next) {
   if (!this.orderNumber) {
     this.orderNumber = 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5).toUpperCase();
   }
+  
+  // Initialize status history for new orders
+  if (this.isNew && (!this.statusHistory || this.statusHistory.length === 0)) {
+    this.statusHistory = [{
+      status: this.status || 'pending',
+      timestamp: new Date(),
+      notes: 'Order created'
+    }];
+  }
+  
   next();
 });
 
@@ -197,6 +229,51 @@ orderSchema.statics.findPendingNotifications = function() {
     'payment.status': 'paid',
     'items.wholesaler.notified': false
   });
+};
+
+// Method to validate status transitions
+orderSchema.methods.canTransitionTo = function(newStatus) {
+  const validTransitions = {
+    'pending': ['processing', 'cancelled'],
+    'processing': ['shipped', 'cancelled'],
+    'shipped': ['delivered'],
+    'delivered': [], // No transitions from delivered
+    'cancelled': [] // No transitions from cancelled
+  };
+  
+  return validTransitions[this.status]?.includes(newStatus) || false;
+};
+
+// Method to add status history entry
+orderSchema.methods.addStatusHistory = function(newStatus, options = {}) {
+  const { notes, trackingNumber, shippingCarrier, admin } = options;
+  
+  // Validate transition
+  if (!this.canTransitionTo(newStatus)) {
+    throw new Error(`Cannot transition from ${this.status} to ${newStatus}`);
+  }
+  
+  // Add to status history
+  this.statusHistory.push({
+    status: newStatus,
+    timestamp: new Date(),
+    notes,
+    trackingNumber,
+    shippingCarrier,
+    admin
+  });
+  
+  // Update current status
+  this.status = newStatus;
+  
+  // Update main order fields if provided
+  if (trackingNumber) this.trackingNumber = trackingNumber;
+  if (shippingCarrier) this.shippingCarrier = shippingCarrier;
+  
+  // Set dates based on status
+  if (newStatus === 'shipped' && !this.shipDate) {
+    this.shipDate = new Date();
+  }
 };
 
 // Method to get public order data (excludes sensitive wholesaler info)

@@ -280,13 +280,7 @@ router.get('/categories', async (req, res) => {
     
   } catch (error) {
     console.error('Categories fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CATEGORIES_ERROR',
-        message: 'Failed to fetch categories'
-      }
-    });
+    res.error(500, ErrorCodes.CATEGORIES_ERROR, 'Failed to fetch categories');
   }
 });
 
@@ -380,13 +374,7 @@ router.get('/filters', async (req, res) => {
     
   } catch (error) {
     console.error('Filters fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'FILTERS_ERROR',
-        message: 'Failed to fetch filter options'
-      }
-    });
+    res.error(500, ErrorCodes.FILTERS_ERROR, 'Failed to fetch filter options');
   }
 });
 
@@ -398,13 +386,7 @@ router.get('/recommendations/:productId', async (req, res) => {
     
     const product = await Product.findById(productId);
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'PRODUCT_NOT_FOUND',
-          message: 'Product not found'
-        }
-      });
+      return res.error(404, ErrorCodes.PRODUCT_NOT_FOUND, 'Product not found');
     }
     
     // Build recommendation query based on product properties
@@ -443,13 +425,7 @@ router.get('/recommendations/:productId', async (req, res) => {
     
   } catch (error) {
     console.error('Recommendations error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'RECOMMENDATIONS_ERROR',
-        message: 'Failed to fetch recommendations'
-      }
-    });
+    res.error(500, ErrorCodes.RECOMMENDATIONS_ERROR, 'Failed to fetch recommendations');
   }
 });
 
@@ -501,13 +477,7 @@ router.get('/:slug', async (req, res) => {
     
   } catch (error) {
     console.error('Product fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PRODUCT_FETCH_ERROR',
-        message: 'Failed to fetch product'
-      }
-    });
+    res.error(500, ErrorCodes.PRODUCTS_FETCH_ERROR, 'Failed to fetch product');
   }
 });
 
@@ -533,14 +503,7 @@ router.post('/', requireAdmin, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
     
     const productData = req.body;
@@ -569,13 +532,7 @@ router.post('/', requireAdmin, [
     
   } catch (error) {
     console.error('Product creation error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PRODUCT_CREATION_ERROR',
-        message: 'Failed to create product'
-      }
-    });
+    res.error(500, ErrorCodes.PRODUCT_CREATION_ERROR, 'Failed to create product');
   }
 });
 
@@ -614,13 +571,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
     
   } catch (error) {
     console.error('Product update error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PRODUCT_UPDATE_ERROR',
-        message: 'Failed to update product'
-      }
-    });
+    res.error(500, ErrorCodes.PRODUCT_UPDATE_ERROR, 'Failed to update product');
   }
 });
 
@@ -657,13 +608,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     
   } catch (error) {
     console.error('Product deletion error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PRODUCT_DELETION_ERROR',
-        message: 'Failed to delete product'
-      }
-    });
+    res.error(500, ErrorCodes.PRODUCT_DELETE_ERROR, 'Failed to delete product');
   }
 });
 

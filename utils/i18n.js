@@ -62,6 +62,12 @@ const errorTranslations = {
     ORDER_UPDATE_ERROR: 'Failed to update order',
     ORDER_CANCEL_ERROR: 'Failed to cancel order',
     INVALID_ORDER_STATUS: 'Invalid order status',
+    INVALID_STATUS_TRANSITION: 'Invalid status transition',
+    TRACKING_NUMBER_REQUIRED: 'Tracking number is required when shipping orders',
+    SHIPPING_CARRIER_REQUIRED: 'Shipping carrier is required when shipping orders',
+    ORDER_FULFILLMENT_ERROR: 'Failed to update order fulfillment status',
+    ORDER_ALREADY_SHIPPED: 'Order has already been shipped',
+    ORDER_ALREADY_DELIVERED: 'Order has already been delivered',
     EMPTY_CART: 'Your cart is empty',
     
     // Payment errors
@@ -108,6 +114,10 @@ const errorTranslations = {
     PRODUCT_NOT_FOUND: 'Producto no encontrado',
     CART_ADD_ERROR: 'Error al agregar artículo al carrito',
     ORDER_NOT_FOUND: 'Pedido no encontrado',
+    INVALID_ORDER_STATUS: 'Estado de pedido inválido',
+    INVALID_STATUS_TRANSITION: 'Transición de estado inválida',
+    TRACKING_NUMBER_REQUIRED: 'Se requiere número de seguimiento al enviar pedidos',
+    ORDER_FULFILLMENT_ERROR: 'Error al actualizar el estado de cumplimiento del pedido',
     PAYMENT_FAILED: 'Pago fallido',
     EMPTY_CART: 'Tu carrito está vacío'
   },
@@ -130,6 +140,10 @@ const errorTranslations = {
     PRODUCT_NOT_FOUND: 'Produit non trouvé',
     CART_ADD_ERROR: 'Échec de l\'ajout de l\'article au panier',
     ORDER_NOT_FOUND: 'Commande non trouvée',
+    INVALID_ORDER_STATUS: 'Statut de commande invalide',
+    INVALID_STATUS_TRANSITION: 'Transition de statut invalide',
+    TRACKING_NUMBER_REQUIRED: 'Numéro de suivi requis lors de l\'expédition',
+    ORDER_FULFILLMENT_ERROR: 'Échec de la mise à jour du statut de traitement',
     PAYMENT_FAILED: 'Paiement échoué',
     EMPTY_CART: 'Votre panier est vide'
   },
@@ -152,6 +166,10 @@ const errorTranslations = {
     PRODUCT_NOT_FOUND: 'Produkt nicht gefunden',
     CART_ADD_ERROR: 'Fehler beim Hinzufügen zum Warenkorb',
     ORDER_NOT_FOUND: 'Bestellung nicht gefunden',
+    INVALID_ORDER_STATUS: 'Ungültiger Bestellstatus',
+    INVALID_STATUS_TRANSITION: 'Ungültiger Statusübergang',
+    TRACKING_NUMBER_REQUIRED: 'Sendungsverfolgungsnummer beim Versand erforderlich',
+    ORDER_FULFILLMENT_ERROR: 'Fehler beim Aktualisieren des Bearbeitungsstatus',
     PAYMENT_FAILED: 'Zahlung fehlgeschlagen',
     EMPTY_CART: 'Ihr Warenkorb ist leer'
   },
