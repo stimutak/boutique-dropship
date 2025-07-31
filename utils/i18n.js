@@ -27,6 +27,7 @@ const errorTranslations = {
     AUTHENTICATION_REQUIRED: 'Authentication required',
     REGISTRATION_ERROR: 'Failed to register user',
     ACCOUNT_DISABLED: 'Your account has been disabled',
+    INSUFFICIENT_PERMISSIONS: 'Insufficient permissions to access this resource',
     
     // Product errors
     PRODUCT_NOT_FOUND: 'Product not found',

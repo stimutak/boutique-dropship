@@ -131,7 +131,7 @@ describe('Admin Routes', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('NO_TOKEN');
+      expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
     });
 
     test('should deny access with invalid token', async () => {
@@ -141,7 +141,7 @@ describe('Admin Routes', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('INVALID_TOKEN');
+      expect(response.body.error.code).toBe('TOKEN_INVALID');
     });
 
     test('should deny access for non-admin users', async () => {
