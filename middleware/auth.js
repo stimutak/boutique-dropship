@@ -111,8 +111,13 @@ const requireAuth = async (req, res, next) => {
 // Middleware to require admin role
 const requireAdmin = async (req, res, next) => {
   try {
+    // Check for token in cookie first (more secure), then fall back to header
+    const cookieToken = req.cookies?.token;
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const headerToken = authHeader && authHeader.split(' ')[1];
+    
+    // Prefer cookie token over header token for security
+    const token = cookieToken || headerToken;
     
     if (!token) {
       return res.error ? res.error(401, ErrorCodes.AUTHENTICATION_REQUIRED, 'Access token is required') : res.status(401).json({

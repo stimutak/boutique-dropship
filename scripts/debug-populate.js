@@ -7,8 +7,8 @@ require('dotenv').config();
 console.log('Imports loaded...');
 
 // Import models
-const User = require('./models/User');
-const Product = require('./models/Product');
+const User = require('../models/User');
+const Product = require('../models/Product');
 
 console.log('Models imported...');
 

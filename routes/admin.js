@@ -119,13 +119,7 @@ router.get('/products', async (req, res) => {
 
   } catch (error) {
     console.error('Admin products fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ADMIN_PRODUCTS_ERROR',
-        message: 'Failed to fetch products'
-      }
-    });
+    res.error(500, 'ADMIN_PRODUCTS_ERROR', 'Failed to fetch products');
   }
 });
 
@@ -156,22 +150,10 @@ router.post('/products', async (req, res) => {
     console.error('Error creating product:', error);
     
     if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'DUPLICATE_SLUG',
-          message: 'Product with this slug already exists'
-        }
-      });
+      return res.error(400, 'DUPLICATE_SLUG', 'Product with this slug already exists');
     }
     
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PRODUCT_CREATION_ERROR',
-        message: 'Failed to create product'
-      }
-    });
+    res.error(500, 'PRODUCT_CREATION_ERROR', 'Failed to create product');
   }
 });
 
@@ -179,13 +161,7 @@ router.post('/products', async (req, res) => {
 router.post('/products/bulk-import', upload.single('csvFile'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'NO_FILE',
-          message: 'CSV file is required'
-        }
-      });
+      return res.error(400, 'NO_FILE', 'CSV file is required');
     }
 
     const results = [];
@@ -318,13 +294,7 @@ router.post('/products/bulk-import', upload.single('csvFile'), async (req, res) 
     }
     
     console.error('Bulk import error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'BULK_IMPORT_ERROR',
-        message: 'Failed to import products'
-      }
-    });
+    res.error(500, 'BULK_IMPORT_ERROR', 'Failed to import products');
   }
 });
 
@@ -396,13 +366,7 @@ router.get('/products/export', async (req, res) => {
 
   } catch (error) {
     console.error('Product export error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'EXPORT_ERROR',
-        message: 'Failed to export products'
-      }
-    });
+    res.error(500, 'EXPORT_ERROR', 'Failed to export products');
   }
 });
 
@@ -504,13 +468,7 @@ router.get('/orders', async (req, res) => {
 
   } catch (error) {
     console.error('Admin orders fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ADMIN_ORDERS_ERROR',
-        message: 'Failed to fetch orders'
-      }
-    });
+    res.error(500, 'ADMIN_ORDERS_ERROR', 'Failed to fetch orders');
   }
 });
 
@@ -522,13 +480,7 @@ router.get('/orders/:id', async (req, res) => {
       .populate('items.product', 'name slug price images category');
 
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ORDER_NOT_FOUND',
-          message: 'Order not found'
-        }
-      });
+      return res.error(404, 'ORDER_NOT_FOUND', 'Order not found');
     }
 
     res.json({
@@ -538,13 +490,7 @@ router.get('/orders/:id', async (req, res) => {
 
   } catch (error) {
     console.error('Admin order fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ADMIN_ORDER_ERROR',
-        message: 'Failed to fetch order'
-      }
-    });
+    res.error(500, 'ADMIN_ORDER_ERROR', 'Failed to fetch order');
   }
 });
 
@@ -558,14 +504,7 @@ router.put('/orders/:id/status', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { status, notes } = req.body;
@@ -582,13 +521,7 @@ router.put('/orders/:id/status', [
     ).populate('customer', 'firstName lastName email');
 
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ORDER_NOT_FOUND',
-          message: 'Order not found'
-        }
-      });
+      return res.error(404, 'ORDER_NOT_FOUND', 'Order not found');
     }
 
     res.json({
@@ -605,13 +538,7 @@ router.put('/orders/:id/status', [
 
   } catch (error) {
     console.error('Order status update error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ORDER_UPDATE_ERROR',
-        message: 'Failed to update order status'
-      }
-    });
+    res.error(500, 'ORDER_UPDATE_ERROR', 'Failed to update order status');
   }
 });
 
@@ -726,13 +653,7 @@ router.get('/analytics/dashboard', async (req, res) => {
 
   } catch (error) {
     console.error('Analytics dashboard error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ANALYTICS_ERROR',
-        message: 'Failed to fetch analytics data'
-      }
-    });
+    res.error(500, 'ANALYTICS_ERROR', 'Failed to fetch analytics data');
   }
 });
 
@@ -825,13 +746,7 @@ router.get('/users', async (req, res) => {
 
   } catch (error) {
     console.error('Admin users fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ADMIN_USERS_ERROR',
-        message: 'Failed to fetch users'
-      }
-    });
+    res.error(500, 'ADMIN_USERS_ERROR', 'Failed to fetch users');
   }
 });
 
@@ -843,14 +758,7 @@ router.put('/users/:id/status', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid input data',
-          details: errors.array()
-        }
-      });
+      return res.validationError(errors);
     }
 
     const { isActive, isAdmin } = req.body;
@@ -867,13 +775,7 @@ router.put('/users/:id/status', [
     ).select('-password');
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found'
-        }
-      });
+      return res.error(404, 'USER_NOT_FOUND', 'User not found');
     }
 
     res.json({
@@ -892,13 +794,7 @@ router.put('/users/:id/status', [
 
   } catch (error) {
     console.error('User status update error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'USER_UPDATE_ERROR',
-        message: 'Failed to update user status'
-      }
-    });
+    res.error(500, 'USER_UPDATE_ERROR', 'Failed to update user status');
   }
 });
 

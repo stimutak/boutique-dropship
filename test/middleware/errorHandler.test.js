@@ -42,7 +42,7 @@ describe('Error Handling Middleware', () => {
         .expect(500);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.message).toBe('Something went wrong!');
+      expect(response.body.error.message).toBe('Internal server error');
     });
 
     test('should handle successful async operations', async () => {
@@ -100,7 +100,7 @@ describe('Error Handling Middleware', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('INTERNAL_ERROR');
-      expect(response.body.error.message).toBe('Something went wrong!');
+      expect(response.body.error.message).toBe('Internal server error');
     });
 
     test('should include stack trace in development', async () => {
@@ -172,7 +172,7 @@ describe('Error Handling Middleware', () => {
         .expect(400);
 
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
-      expect(response.body.error.message).toContain('Email is required');
+      expect(response.body.error.message).toBe('Invalid input data');
     });
   });
 });

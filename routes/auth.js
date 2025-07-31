@@ -7,7 +7,10 @@ const User = require('../models/User');
 const { requireAuth, authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { AppError } = require('../middleware/errorHandler');
-const { ErrorCodes } = require('../utils/errorHandler');
+const { ErrorCodes, errorResponse } = require('../utils/errorHandler');
+
+// Apply error response middleware
+router.use(errorResponse);
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -511,13 +514,7 @@ router.post('/change-password', requireAuth, [
     // Verify current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_PASSWORD',
-          message: 'Current password is incorrect'
-        }
-      });
+      return res.error(401, ErrorCodes.INVALID_PASSWORD, 'Current password is incorrect');
     }
 
     // Update password
@@ -530,13 +527,7 @@ router.post('/change-password', requireAuth, [
     });
   } catch (error) {
     console.error('Password change error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'PASSWORD_CHANGE_ERROR',
-        message: 'Failed to change password'
-      }
-    });
+    res.error(500, ErrorCodes.PASSWORD_CHANGE_ERROR, 'Failed to change password');
   }
 });
 

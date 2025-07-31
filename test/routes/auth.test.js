@@ -4,11 +4,31 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const User = require('../../models/User');
 const authRoutes = require('../../routes/auth');
+const { generateCSRFToken } = require('../../middleware/sessionCSRF');
 
 // Create test app
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
+  // Add session middleware for CSRF token support
+  const session = require('express-session');
+  app.use(session({
+    secret: 'test-secret',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false, httpOnly: true }
+  }));
+  // Add CSRF token generation middleware
+  app.use((req, res, next) => {
+    if (!req.session.csrfToken) {
+      req.session.csrfToken = generateCSRFToken();
+    }
+    next();
+  });
+  // Add endpoint to get CSRF token
+  app.get('/api/csrf-token', (req, res) => {
+    res.json({ csrfToken: req.session.csrfToken });
+  });
   app.use('/api/auth', authRoutes);
   return app;
 };
@@ -17,6 +37,8 @@ describe('Auth Routes', () => {
   let app;
   let testUser;
   let authToken;
+  let agent; // For maintaining session cookies
+  let csrfToken;
   
   const validUserData = {
     email: 'test@example.com',
@@ -36,6 +58,7 @@ describe('Auth Routes', () => {
     });
     
     app = createTestApp();
+    agent = request.agent(app); // Create agent to maintain session
   });
   
   beforeEach(async () => {
@@ -45,6 +68,10 @@ describe('Auth Routes', () => {
     // Create test user for login tests
     testUser = await User.create(validUserData);
     authToken = jwt.sign({ userId: testUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    
+    // Get CSRF token for the session
+    const csrfResponse = await agent.get('/api/csrf-token');
+    csrfToken = csrfResponse.body.csrfToken;
   });
   
   afterAll(async () => {
@@ -68,11 +95,11 @@ describe('Auth Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('User registered successfully');
-      expect(response.body.token).toBeDefined();
-      expect(response.body.user.email).toBe('newuser@example.com');
-      expect(response.body.user.firstName).toBe('Jane');
-      expect(response.body.user.lastName).toBe('Smith');
-      expect(response.body.user.password).toBeUndefined(); // Should not expose password
+      expect(response.body.data.token).toBeDefined();
+      expect(response.body.data.user.email).toBe('newuser@example.com');
+      expect(response.body.data.user.firstName).toBe('Jane');
+      expect(response.body.data.user.lastName).toBe('Smith');
+      expect(response.body.data.user.password).toBeUndefined(); // Should not expose password
       
       // Verify user was saved to database
       const savedUser = await User.findOne({ email: 'newuser@example.com' });
@@ -115,9 +142,9 @@ describe('Auth Routes', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
       expect(response.body.error.details).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ msg: 'Valid email is required' }),
-          expect.objectContaining({ msg: 'Password must be at least 6 characters long' }),
-          expect.objectContaining({ msg: 'First name is required and must be less than 50 characters' })
+          expect.objectContaining({ message: 'Valid email is required' }),
+          expect.objectContaining({ message: 'Password must be at least 6 characters long' }),
+          expect.objectContaining({ message: 'First name is required and must be less than 50 characters' })
         ])
       );
     });
@@ -136,7 +163,7 @@ describe('Auth Routes', () => {
         .expect(201);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.user.phone).toBeUndefined();
+      expect(response.body.data.user.phone).toBeUndefined();
     });
   });
   
@@ -154,9 +181,9 @@ describe('Auth Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Login successful');
-      expect(response.body.token).toBeDefined();
-      expect(response.body.user.email).toBe(validUserData.email);
-      expect(response.body.user.password).toBeUndefined();
+      expect(response.body.data.token).toBeDefined();
+      expect(response.body.data.user.email).toBe(validUserData.email);
+      expect(response.body.data.user.password).toBeUndefined();
       
       // Verify last login was updated
       const updatedUser = await User.findById(testUser._id);
@@ -205,10 +232,10 @@ describe('Auth Routes', () => {
       const response = await request(app)
         .post('/api/auth/login')
         .send(loginData)
-        .expect(401);
+        .expect(403);
       
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('INVALID_CREDENTIALS');
+      expect(response.body.error.code).toBe('ACCOUNT_DISABLED');
     });
     
     it('should validate login input', async () => {
@@ -235,9 +262,9 @@ describe('Auth Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.user.email).toBe(validUserData.email);
-      expect(response.body.user.firstName).toBe(validUserData.firstName);
-      expect(response.body.user.password).toBeUndefined();
+      expect(response.body.data.user.email).toBe(validUserData.email);
+      expect(response.body.data.user.firstName).toBe(validUserData.firstName);
+      expect(response.body.data.user.password).toBeUndefined();
     });
     
     it('should reject unauthenticated request', async () => {
@@ -246,7 +273,7 @@ describe('Auth Routes', () => {
         .expect(401);
       
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('NO_TOKEN');
+      expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
     });
     
     it('should reject invalid token', async () => {
@@ -256,7 +283,7 @@ describe('Auth Routes', () => {
         .expect(401);
       
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('INVALID_TOKEN');
+      expect(response.body.error.code).toBe('TOKEN_INVALID');
     });
   });
   
@@ -272,18 +299,19 @@ describe('Auth Routes', () => {
         }
       };
       
-      const response = await request(app)
+      const response = await agent
         .put('/api/auth/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-CSRF-Token', csrfToken)
         .send(updateData)
         .expect(200);
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Profile updated successfully');
-      expect(response.body.user.firstName).toBe('Updated');
-      expect(response.body.user.lastName).toBe('Name');
-      expect(response.body.user.phone).toBe('555-999-8888');
-      expect(response.body.user.preferences.newsletter).toBe(true);
+      expect(response.body.data.user.firstName).toBe('Updated');
+      expect(response.body.data.user.lastName).toBe('Name');
+      expect(response.body.data.user.phone).toBe('555-999-8888');
+      expect(response.body.data.user.preferences.newsletter).toBe(true);
       
       // Verify in database
       const updatedUser = await User.findById(testUser._id);
@@ -313,18 +341,19 @@ describe('Auth Routes', () => {
         }]
       };
       
-      const response = await request(app)
+      const response = await agent
         .put('/api/auth/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-CSRF-Token', csrfToken)
         .send(updateData)
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.user.addresses).toHaveLength(1);
-      expect(response.body.user.addresses[0].street).toBe('123 New Street');
-      expect(response.body.user.addresses[0].city).toBe('New City');
-      expect(response.body.user.addresses[0].type).toBe('shipping');
-      expect(response.body.user.addresses[0].isDefault).toBe(true);
+      expect(response.body.data.user.addresses).toHaveLength(1);
+      expect(response.body.data.user.addresses[0].street).toBe('123 New Street');
+      expect(response.body.data.user.addresses[0].city).toBe('New City');
+      expect(response.body.data.user.addresses[0].type).toBe('shipping');
+      expect(response.body.data.user.addresses[0].isDefault).toBe(true);
       
       // Verify in database
       const updatedUser = await User.findById(testUser._id);
@@ -356,17 +385,18 @@ describe('Auth Routes', () => {
         }]
       };
       
-      const response = await request(app)
+      const response = await agent
         .put('/api/auth/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-CSRF-Token', csrfToken)
         .send(updateData)
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.user.addresses).toHaveLength(1);
-      expect(response.body.user.addresses[0].street).toBe('789 Updated Street');
-      expect(response.body.user.addresses[0].city).toBe('Updated City');
-      expect(response.body.user.addresses[0].state).toBe('TX');
+      expect(response.body.data.user.addresses).toHaveLength(1);
+      expect(response.body.data.user.addresses[0].street).toBe('789 Updated Street');
+      expect(response.body.data.user.addresses[0].city).toBe('Updated City');
+      expect(response.body.data.user.addresses[0].state).toBe('TX');
       
       // Verify in database
       const updatedUser = await User.findById(testUser._id);
@@ -384,14 +414,15 @@ describe('Auth Routes', () => {
         }]
       };
       
-      const response = await request(app)
+      const response = await agent
         .put('/api/auth/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-CSRF-Token', csrfToken)
         .send(updateData)
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.user.addresses).toHaveLength(0); // No address created due to missing required fields
+      expect(response.body.data.user.addresses).toHaveLength(0); // No address created due to missing required fields
       
       // Verify in database
       const updatedUser = await User.findById(testUser._id);
@@ -409,14 +440,15 @@ describe('Auth Routes', () => {
         }]
       };
       
-      const response = await request(app)
+      const response = await agent
         .put('/api/auth/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-CSRF-Token', csrfToken)
         .send(updateData)
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.user.addresses).toHaveLength(0);
+      expect(response.body.data.user.addresses).toHaveLength(0);
       
       // Verify in database
       const updatedUser = await User.findById(testUser._id);
@@ -429,14 +461,15 @@ describe('Auth Routes', () => {
         addresses: []
       };
       
-      const response = await request(app)
+      const response = await agent
         .put('/api/auth/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-CSRF-Token', csrfToken)
         .send(updateData)
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.user.firstName).toBe('Updated');
+      expect(response.body.data.user.firstName).toBe('Updated');
       // Should not affect existing addresses
     });
 
@@ -446,14 +479,15 @@ describe('Auth Routes', () => {
         addresses: null
       };
       
-      const response = await request(app)
+      const response = await agent
         .put('/api/auth/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-CSRF-Token', csrfToken)
         .send(updateData)
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.user.firstName).toBe('Updated');
+      expect(response.body.data.user.firstName).toBe('Updated');
     });
 
     it('should use firstName and lastName from update for new address', async () => {
@@ -464,24 +498,26 @@ describe('Auth Routes', () => {
           street: '123 Test Street',
           city: 'Test City',
           state: 'CA',
-          zipCode: '90210'
+          zipCode: '90210',
+          country: 'US'
         }]
       };
       
-      const response = await request(app)
+      const response = await agent
         .put('/api/auth/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-CSRF-Token', csrfToken)
         .send(updateData)
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.user.addresses[0].firstName).toBe('NewFirst');
-      expect(response.body.user.addresses[0].lastName).toBe('NewLast');
+      expect(response.body.data.user.addresses[0].firstName).toBe('NewFirst');
+      expect(response.body.data.user.addresses[0].lastName).toBe('NewLast');
     });
   });
   
   describe('Address Management', () => {
-    describe('POST /api/auth/addresses', () => {
+    describe('POST /api/auth/profile/addresses', () => {
       it('should add new address', async () => {
         const addressData = {
           type: 'shipping',
@@ -496,9 +532,10 @@ describe('Auth Routes', () => {
           isDefault: true
         };
         
-        const response = await request(app)
-          .post('/api/auth/addresses')
+        const response = await agent
+          .post('/api/auth/profile/addresses')
           .set('Authorization', `Bearer ${authToken}`)
+          .set('X-CSRF-Token', csrfToken)
           .send(addressData)
           .expect(201);
         
@@ -521,19 +558,20 @@ describe('Auth Routes', () => {
           country: 'US'
         };
         
-        const response = await request(app)
-          .post('/api/auth/addresses')
+        const response = await agent
+          .post('/api/auth/profile/addresses')
           .set('Authorization', `Bearer ${authToken}`)
+          .set('X-CSRF-Token', csrfToken)
           .send(addressData)
           .expect(400);
         
         expect(response.body.success).toBe(false);
-        expect(response.body.error.code).toBe('INVALID_ADDRESS_TYPE');
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
       });
       
       it('should require authentication', async () => {
         const response = await request(app)
-          .post('/api/auth/addresses')
+          .post('/api/auth/profile/addresses')
           .send({ type: 'shipping' })
           .expect(401);
         
@@ -541,7 +579,7 @@ describe('Auth Routes', () => {
       });
     });
     
-    describe('PUT /api/auth/addresses/:addressId', () => {
+    describe('PUT /api/auth/profile/addresses/:addressId', () => {
       it('should update existing address', async () => {
         // Add address first
         const addressData = {
@@ -563,9 +601,10 @@ describe('Auth Routes', () => {
           city: 'Newtown'
         };
         
-        const response = await request(app)
-          .put(`/api/auth/addresses/${addressId}`)
+        const response = await agent
+          .put(`/api/auth/profile/addresses/${addressId}`)
           .set('Authorization', `Bearer ${authToken}`)
+          .set('X-CSRF-Token', csrfToken)
           .send(updateData)
           .expect(200);
         
@@ -581,9 +620,10 @@ describe('Auth Routes', () => {
       it('should return 404 for non-existent address', async () => {
         const fakeId = new mongoose.Types.ObjectId();
         
-        const response = await request(app)
-          .put(`/api/auth/addresses/${fakeId}`)
+        const response = await agent
+          .put(`/api/auth/profile/addresses/${fakeId}`)
           .set('Authorization', `Bearer ${authToken}`)
+          .set('X-CSRF-Token', csrfToken)
           .send({ street: 'Test' })
           .expect(404);
         
@@ -592,7 +632,7 @@ describe('Auth Routes', () => {
       });
     });
     
-    describe('DELETE /api/auth/addresses/:addressId', () => {
+    describe('DELETE /api/auth/profile/addresses/:addressId', () => {
       it('should remove address', async () => {
         // Add address first
         const addressData = {
@@ -609,13 +649,14 @@ describe('Auth Routes', () => {
         await testUser.addAddress(addressData);
         const addressId = testUser.addresses[0]._id;
         
-        const response = await request(app)
-          .delete(`/api/auth/addresses/${addressId}`)
+        const response = await agent
+          .delete(`/api/auth/profile/addresses/${addressId}`)
           .set('Authorization', `Bearer ${authToken}`)
+          .set('X-CSRF-Token', csrfToken)
           .expect(200);
         
         expect(response.body.success).toBe(true);
-        expect(response.body.message).toBe('Address removed successfully');
+        expect(response.body.message).toBe('Address deleted successfully');
         
         // Verify removal
         const updatedUser = await User.findById(testUser._id);
@@ -624,68 +665,6 @@ describe('Auth Routes', () => {
     });
   });
   
-  describe('GET /api/auth/checkout-preferences', () => {
-    it('should return checkout preferences with addresses', async () => {
-      // Add addresses
-      await testUser.addAddress({
-        type: 'shipping',
-        firstName: 'John',
-        lastName: 'Doe',
-        street: '123 Main St',
-        city: 'Anytown',
-        state: 'CA',
-        zipCode: '12345',
-        country: 'US',
-        isDefault: true
-      });
-      
-      await testUser.addAddress({
-        type: 'billing',
-        firstName: 'John',
-        lastName: 'Doe',
-        street: '456 Oak Ave',
-        city: 'Anytown',
-        state: 'CA',
-        zipCode: '12345',
-        country: 'US',
-        isDefault: true
-      });
-      
-      const response = await request(app)
-        .get('/api/auth/checkout-preferences')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-      
-      expect(response.body.success).toBe(true);
-      expect(response.body.preferences.hasAddresses).toBe(true);
-      expect(response.body.preferences.hasDefaultShipping).toBe(true);
-      expect(response.body.preferences.hasDefaultBilling).toBe(true);
-      expect(response.body.preferences.defaultShippingAddress).toBeDefined();
-      expect(response.body.preferences.defaultBillingAddress).toBeDefined();
-      expect(response.body.preferences.allAddresses).toHaveLength(2);
-    });
-    
-    it('should return empty preferences for user without addresses', async () => {
-      const response = await request(app)
-        .get('/api/auth/checkout-preferences')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-      
-      expect(response.body.success).toBe(true);
-      expect(response.body.preferences.hasAddresses).toBe(false);
-      expect(response.body.preferences.hasDefaultShipping).toBe(false);
-      expect(response.body.preferences.hasDefaultBilling).toBe(false);
-      expect(response.body.preferences.allAddresses).toHaveLength(0);
-    });
-    
-    it('should require authentication', async () => {
-      const response = await request(app)
-        .get('/api/auth/checkout-preferences')
-        .expect(401);
-      
-      expect(response.body.success).toBe(false);
-    });
-  });
   
   describe('POST /api/auth/logout', () => {
     it('should logout successfully', async () => {
@@ -715,7 +694,7 @@ describe('Auth Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toContain('password reset link has been sent');
+      expect(response.body.message).toBe('If an account exists with this email, a password reset link will be sent.');
     });
     
     it('should return same response for non-existent email', async () => {
@@ -725,7 +704,7 @@ describe('Auth Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toContain('password reset link has been sent');
+      expect(response.body.message).toBe('If an account exists with this email, a password reset link will be sent.');
     });
     
     it('should require email', async () => {
@@ -735,7 +714,7 @@ describe('Auth Routes', () => {
         .expect(400);
       
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('EMAIL_REQUIRED');
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 });

@@ -59,6 +59,10 @@ const ErrorCodes = {
   FILTERS_ERROR: 'FILTERS_ERROR',
   RECOMMENDATIONS_ERROR: 'RECOMMENDATIONS_ERROR',
   MISSING_QUERY: 'MISSING_QUERY',
+  DUPLICATE_SLUG: 'DUPLICATE_SLUG',
+  NO_FILE: 'NO_FILE',
+  BULK_IMPORT_ERROR: 'BULK_IMPORT_ERROR',
+  EXPORT_ERROR: 'EXPORT_ERROR',
   
   // Cart errors
   CART_ADD_ERROR: 'CART_ADD_ERROR',
@@ -93,7 +97,15 @@ const ErrorCodes = {
   // Integration errors
   MOLLIE_ERROR: 'MOLLIE_ERROR',
   WHOLESALER_ERROR: 'WHOLESALER_ERROR',
-  EMAIL_ERROR: 'EMAIL_ERROR'
+  EMAIL_ERROR: 'EMAIL_ERROR',
+  
+  // Admin errors
+  ADMIN_PRODUCTS_ERROR: 'ADMIN_PRODUCTS_ERROR',
+  ADMIN_ORDERS_ERROR: 'ADMIN_ORDERS_ERROR',
+  ADMIN_ORDER_ERROR: 'ADMIN_ORDER_ERROR',
+  ADMIN_USERS_ERROR: 'ADMIN_USERS_ERROR',
+  USER_UPDATE_ERROR: 'USER_UPDATE_ERROR',
+  ANALYTICS_ERROR: 'ANALYTICS_ERROR'
 };
 
 /**
@@ -201,10 +213,19 @@ function webhookError(res, statusCode, message) {
   return res.status(statusCode).send(message);
 }
 
+/**
+ * Initialize error handlers on a router
+ * @param {object} router - Express router object
+ */
+function initializeErrorHandlers(router) {
+  router.use(errorResponse);
+}
+
 module.exports = {
   ErrorCodes,
   formatError,
   createValidationError,
   errorResponse,
-  webhookError
+  webhookError,
+  initializeErrorHandlers
 };

@@ -75,7 +75,19 @@ const errorTranslations = {
     // Integration errors
     MOLLIE_ERROR: 'Payment service error',
     WHOLESALER_ERROR: 'Wholesaler communication error',
-    EMAIL_ERROR: 'Email service error'
+    EMAIL_ERROR: 'Email service error',
+    
+    // Admin errors
+    ADMIN_PRODUCTS_ERROR: 'Failed to fetch products',
+    ADMIN_ORDERS_ERROR: 'Failed to fetch orders',
+    ADMIN_ORDER_ERROR: 'Failed to fetch order',
+    ADMIN_USERS_ERROR: 'Failed to fetch users',
+    USER_UPDATE_ERROR: 'Failed to update user status',
+    ANALYTICS_ERROR: 'Failed to fetch analytics data',
+    DUPLICATE_SLUG: 'Product with this slug already exists',
+    NO_FILE: 'File is required',
+    BULK_IMPORT_ERROR: 'Failed to import products',
+    EXPORT_ERROR: 'Failed to export products'
   },
   es: {
     // Spanish translations
