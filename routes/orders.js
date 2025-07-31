@@ -236,6 +236,9 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
     try {
       const { sendOrderConfirmation } = require('../utils/emailService');
       
+      // Get user's locale from request headers
+      const userLocale = req.headers['x-locale'] || 'en';
+      
       const emailData = {
         orderNumber: order.orderNumber,
         customerName: `${order.guestInfo.firstName} ${order.guestInfo.lastName}`,
@@ -249,7 +252,7 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
         currency: order.currency
       };
 
-      const emailResult = await sendOrderConfirmation(order.guestInfo.email, emailData);
+      const emailResult = await sendOrderConfirmation(order.guestInfo.email, emailData, userLocale);
       if (!emailResult.success) {
         console.error('Failed to send order confirmation email:', emailResult.error);
       }
@@ -588,6 +591,9 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
       if (req.user.wantsEmail('orderConfirmations')) {
         const { sendOrderConfirmation } = require('../utils/emailService');
         
+        // Get user's locale from request headers or user preferences
+        const userLocale = req.headers['x-locale'] || req.user.preferences?.locale || 'en';
+        
         const emailData = {
           orderNumber: order.orderNumber,
           customerName: `${req.user.firstName} ${req.user.lastName}`,
@@ -601,7 +607,7 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
           currency: order.currency
         };
 
-        const emailResult = await sendOrderConfirmation(req.user.email, emailData);
+        const emailResult = await sendOrderConfirmation(req.user.email, emailData, userLocale);
         if (!emailResult.success) {
           console.error('Failed to send order confirmation email:', emailResult.error);
         }
@@ -945,7 +951,7 @@ router.put('/:id/fulfill', requireAdmin, i18nMiddleware, async (req, res) => {
       try {
         const { sendOrderStatusUpdate } = require('../utils/emailService');
         
-        let customerEmail, customerName, shouldSendEmail = true;
+        let customerEmail, customerName, shouldSendEmail = true, userLocale = 'en';
         
         if (order.customer) {
           // Registered user
@@ -953,10 +959,12 @@ router.put('/:id/fulfill', requireAdmin, i18nMiddleware, async (req, res) => {
           customerEmail = order.customer.email;
           customerName = `${order.customer.firstName} ${order.customer.lastName}`;
           shouldSendEmail = order.customer.preferences?.emailPreferences?.orderUpdates !== false;
+          userLocale = order.customer.preferences?.locale || req.headers['x-locale'] || 'en';
         } else {
           // Guest user
           customerEmail = order.guestInfo.email;
           customerName = `${order.guestInfo.firstName} ${order.guestInfo.lastName}`;
+          userLocale = req.headers['x-locale'] || 'en';
         }
 
         if (shouldSendEmail && ['processing', 'shipped', 'delivered'].includes(status)) {
@@ -969,7 +977,7 @@ router.put('/:id/fulfill', requireAdmin, i18nMiddleware, async (req, res) => {
             estimatedDeliveryDate: order.estimatedDeliveryDate
           };
 
-          const emailResult = await sendOrderStatusUpdate(customerEmail, statusData);
+          const emailResult = await sendOrderStatusUpdate(customerEmail, statusData, userLocale);
           if (!emailResult.success) {
             console.error('Failed to send order status update email:', emailResult.error);
           }
@@ -1057,17 +1065,19 @@ router.put('/:id/status', requireAdmin, i18nMiddleware, async (req, res) => {
     try {
       const { sendOrderStatusUpdate } = require('../utils/emailService');
       
-      let customerEmail, customerName, shouldSendEmail = true;
+      let customerEmail, customerName, shouldSendEmail = true, userLocale = 'en';
       
       if (order.customer) {
         // Registered user
         customerEmail = order.customer.email;
         customerName = `${order.customer.firstName} ${order.customer.lastName}`;
         shouldSendEmail = order.customer.preferences?.emailPreferences?.orderUpdates !== false;
+        userLocale = order.customer.preferences?.locale || req.headers['x-locale'] || 'en';
       } else {
         // Guest user
         customerEmail = order.guestInfo.email;
         customerName = `${order.guestInfo.firstName} ${order.guestInfo.lastName}`;
+        userLocale = req.headers['x-locale'] || 'en';
       }
 
       if (shouldSendEmail && ['processing', 'shipped', 'delivered'].includes(status)) {
@@ -1078,7 +1088,7 @@ router.put('/:id/status', requireAdmin, i18nMiddleware, async (req, res) => {
           trackingNumber
         };
 
-        const emailResult = await sendOrderStatusUpdate(customerEmail, statusData);
+        const emailResult = await sendOrderStatusUpdate(customerEmail, statusData, userLocale);
         if (!emailResult.success) {
           console.error('Failed to send order status update email:', emailResult.error);
         }

@@ -274,17 +274,19 @@ router.post('/webhook', async (req, res) => {
       try {
         const { sendPaymentReceipt } = require('../utils/emailService');
         
-        let customerEmail, customerName, shouldSendEmail = true;
+        let customerEmail, customerName, shouldSendEmail = true, userLocale = 'en';
         
         if (order.customer) {
           // Registered user
           customerEmail = order.customer.email;
           customerName = `${order.customer.firstName} ${order.customer.lastName}`;
           shouldSendEmail = order.customer.preferences?.emailPreferences?.paymentReceipts !== false;
+          userLocale = order.customer.preferences?.locale || 'en';
         } else {
           // Guest user
           customerEmail = order.guestInfo.email;
           customerName = `${order.guestInfo.firstName} ${order.guestInfo.lastName}`;
+          userLocale = 'en'; // Default for guest users
         }
 
         if (shouldSendEmail) {
@@ -299,7 +301,7 @@ router.post('/webhook', async (req, res) => {
             paidAt: order.payment.paidAt
           };
 
-          const emailResult = await sendPaymentReceipt(customerEmail, paymentData);
+          const emailResult = await sendPaymentReceipt(customerEmail, paymentData, userLocale);
           if (!emailResult.success) {
             console.error('Failed to send payment receipt email:', emailResult.error);
           }

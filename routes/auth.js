@@ -105,12 +105,15 @@ router.post('/register', validateRegistration, async (req, res) => {
       if (user.wantsEmail('welcomeEmails')) {
         const { sendWelcomeEmail } = require('../utils/emailService');
         
+        // Get user's locale from request headers or user preferences
+        const userLocale = req.headers['x-locale'] || user.preferences?.locale || 'en';
+        
         const welcomeData = {
           firstName: user.firstName,
           email: user.email
         };
 
-        const emailResult = await sendWelcomeEmail(user.email, welcomeData);
+        const emailResult = await sendWelcomeEmail(user.email, welcomeData, userLocale);
         if (!emailResult.success) {
           console.error('Failed to send welcome email:', emailResult.error);
         }
@@ -242,11 +245,14 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
         const { sendPasswordResetEmail } = require('../utils/emailService');
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
         
+        // Get user's locale from request headers or user preferences
+        const userLocale = req.headers['x-locale'] || user.preferences?.locale || 'en';
+        
         const emailResult = await sendPasswordResetEmail(user.email, {
           firstName: user.firstName,
           resetToken,
           resetUrl
-        });
+        }, userLocale);
         
         if (!emailResult.success) {
           console.error('Failed to send reset email:', emailResult.error);
