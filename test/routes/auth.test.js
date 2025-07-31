@@ -1,10 +1,16 @@
+// Import mocks before other modules
+require('../helpers/mockServices');
+
 const request = require('supertest');
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../../models/User');
 const authRoutes = require('../../routes/auth');
 const { generateCSRFToken } = require('../../middleware/sessionCSRF');
+const { errorResponse } = require('../../utils/errorHandler');
+const { globalErrorHandler } = require('../../middleware/errorHandler');
 
 // Create test app
 const createTestApp = () => {
@@ -19,17 +25,16 @@ const createTestApp = () => {
     cookie: { secure: false, httpOnly: true }
   }));
   // Add CSRF token generation middleware
-  app.use((req, res, next) => {
-    if (!req.session.csrfToken) {
-      req.session.csrfToken = generateCSRFToken();
-    }
-    next();
-  });
+  app.use(generateCSRFToken);
   // Add endpoint to get CSRF token
   app.get('/api/csrf-token', (req, res) => {
     res.json({ csrfToken: req.session.csrfToken });
   });
+  // Add error response middleware
+  app.use(errorResponse);
   app.use('/api/auth', authRoutes);
+  // Add global error handler
+  app.use(globalErrorHandler);
   return app;
 };
 

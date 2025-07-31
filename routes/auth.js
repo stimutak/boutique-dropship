@@ -7,10 +7,7 @@ const User = require('../models/User');
 const { requireAuth, authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { AppError } = require('../middleware/errorHandler');
-const { ErrorCodes, errorResponse } = require('../utils/errorHandler');
-
-// Apply error response middleware
-router.use(errorResponse);
+const { ErrorCodes } = require('../utils/errorHandler');
 
 // Generate JWT token
 const generateToken = (userId) => {
