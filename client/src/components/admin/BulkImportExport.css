@@ -1,0 +1,171 @@
+.bulk-import-export {
+  margin: 2rem 0;
+}
+
+.bulk-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .bulk-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.import-section,
+.export-section {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.import-section h3,
+.export-section h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.import-section p,
+.export-section p {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.import-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.template-button,
+.import-button,
+.export-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.template-button {
+  background-color: #6c757d;
+  color: white;
+}
+
+.template-button:hover {
+  background-color: #5a6268;
+}
+
+.import-button {
+  background-color: #007bff;
+  color: white;
+  display: inline-block;
+}
+
+.import-button:hover {
+  background-color: #0056b3;
+}
+
+.export-button {
+  background-color: #28a745;
+  color: white;
+}
+
+.export-button:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.export-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.import-results {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #d4edda;
+  border-radius: 4px;
+}
+
+.import-results h4 {
+  margin-top: 0;
+  color: #155724;
+}
+
+.results-summary {
+  display: flex;
+  gap: 2rem;
+  margin: 1rem 0;
+}
+
+.results-summary p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.success-count {
+  color: #28a745;
+}
+
+.error-count {
+  color: #dc3545;
+}
+
+.import-errors {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
+
+.import-errors h5 {
+  margin: 0 0 0.5rem 0;
+  color: #721c24;
+}
+
+.import-errors ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.import-errors li {
+  color: #721c24;
+  font-size: 0.875rem;
+  margin: 0.25rem 0;
+}
+
+.error-messages {
+  margin-top: 1rem;
+}
+
+.error-message {
+  padding: 0.75rem;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  color: #721c24;
+  margin-bottom: 0.5rem;
+}
+
+/* RTL Support */
+[dir="rtl"] .import-actions {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .results-summary {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .import-errors ul {
+  padding-right: 1.5rem;
+  padding-left: 0;
+}
