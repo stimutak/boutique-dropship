@@ -51,6 +51,7 @@ const mockProduct = {
   description: 'A beautiful set of healing crystals',
   price: 29.99,
   category: 'crystals',
+  tags: ['crystal', 'healing', 'meditation', 'spiritual'],
   isActive: true,
   inStock: true,
   images: ['image1.jpg'],
@@ -404,6 +405,183 @@ describe('AdminProductForm Component', () => {
       // Form should be ready for input
       expect(screen.getByLabelText(/products.title/i)).toBeInTheDocument()
       expect(screen.getByText('common.save')).toBeInTheDocument()
+    })
+  })
+
+  // TDD: Tags functionality tests - These should FAIL initially
+  describe('Tags functionality', () => {
+    test('should display tags input field', () => {
+      renderWithProviders(<AdminProductForm />, defaultState)
+      
+      // Should have a tags input field with proper label
+      expect(screen.getByLabelText(/tags/i)).toBeInTheDocument()
+    })
+
+    test('should display existing tags in edit mode', () => {
+      renderWithProviders(
+        <AdminProductForm product={mockProduct} />, 
+        defaultState
+      )
+      
+      // Should show existing tags as comma-separated values
+      const tagsInput = screen.getByLabelText(/tags/i)
+      expect(tagsInput.value).toBe('crystal, healing, meditation, spiritual')
+    })
+
+    test('should allow entering tags as comma-separated values', () => {
+      renderWithProviders(<AdminProductForm />, defaultState)
+      
+      const tagsInput = screen.getByLabelText(/tags/i)
+      fireEvent.change(tagsInput, { target: { value: 'crystal, healing, meditation' } })
+      
+      expect(tagsInput.value).toBe('crystal, healing, meditation')
+    })
+
+    test('should handle empty tags field', () => {
+      renderWithProviders(<AdminProductForm />, defaultState)
+      
+      const tagsInput = screen.getByLabelText(/tags/i)
+      fireEvent.change(tagsInput, { target: { value: '' } })
+      
+      expect(tagsInput.value).toBe('')
+    })
+
+    test('should convert comma-separated tags to array on form submission', async () => {
+      const mockOnSave = vi.fn()
+      const mockDispatch = vi.fn().mockResolvedValue({ 
+        type: 'adminProducts/createProduct/fulfilled',
+        payload: { data: { product: mockProduct } },
+        unwrap: vi.fn().mockResolvedValue({ data: { product: mockProduct } })
+      })
+      
+      const storeWithMockDispatch = {
+        ...createTestStore(defaultState),
+        dispatch: mockDispatch
+      }
+      
+      render(
+        <Provider store={storeWithMockDispatch}>
+          <BrowserRouter>
+            <AdminProductForm onSave={mockOnSave} />
+          </BrowserRouter>
+        </Provider>
+      )
+      
+      // Fill in required fields including tags
+      fireEvent.change(screen.getByLabelText(/products.title/i), { target: { value: 'Test Product' } })
+      fireEvent.change(screen.getByRole('textbox', { name: /^description \*/i }), { target: { value: 'Test description' } })
+      fireEvent.change(screen.getByLabelText(/short description/i), { target: { value: 'Short desc' } })
+      fireEvent.change(screen.getByLabelText(/products.price/i), { target: { value: '25.99' } })
+      fireEvent.change(screen.getByLabelText(/category/i), { target: { value: 'crystals' } })
+      fireEvent.change(screen.getByLabelText(/tags/i), { target: { value: 'crystal, healing, test' } })
+      
+      // Fill in wholesaler fields
+      fireEvent.change(screen.getByLabelText(/wholesaler name/i), { target: { value: 'Test Wholesaler' } })
+      fireEvent.change(screen.getByLabelText(/wholesaler email/i), { target: { value: 'test@wholesaler.com' } })
+      fireEvent.change(screen.getByLabelText(/product code/i), { target: { value: 'TEST-001' } })
+      fireEvent.change(screen.getByLabelText(/wholesale cost/i), { target: { value: '15.00' } })
+      
+      // Submit the form
+      fireEvent.click(screen.getByText('common.save'))
+      
+      // Should call onSave with tags as array
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith(expect.objectContaining({
+          tags: ['crystal', 'healing', 'test']
+        }))
+      })
+    })
+
+    test('should trim whitespace from individual tags', async () => {
+      const mockOnSave = vi.fn()
+      const mockDispatch = vi.fn().mockResolvedValue({ 
+        type: 'adminProducts/createProduct/fulfilled',
+        payload: { data: { product: mockProduct } },
+        unwrap: vi.fn().mockResolvedValue({ data: { product: mockProduct } })
+      })
+      
+      const storeWithMockDispatch = {
+        ...createTestStore(defaultState),
+        dispatch: mockDispatch
+      }
+      
+      render(
+        <Provider store={storeWithMockDispatch}>
+          <BrowserRouter>
+            <AdminProductForm onSave={mockOnSave} />
+          </BrowserRouter>
+        </Provider>
+      )
+      
+      // Fill in required fields with tags that have extra whitespace
+      fireEvent.change(screen.getByLabelText(/products.title/i), { target: { value: 'Test Product' } })
+      fireEvent.change(screen.getByRole('textbox', { name: /^description \*/i }), { target: { value: 'Test description' } })
+      fireEvent.change(screen.getByLabelText(/short description/i), { target: { value: 'Short desc' } })
+      fireEvent.change(screen.getByLabelText(/products.price/i), { target: { value: '25.99' } })
+      fireEvent.change(screen.getByLabelText(/category/i), { target: { value: 'crystals' } })
+      fireEvent.change(screen.getByLabelText(/tags/i), { target: { value: ' crystal , healing , test ' } })
+      
+      // Fill in wholesaler fields
+      fireEvent.change(screen.getByLabelText(/wholesaler name/i), { target: { value: 'Test Wholesaler' } })
+      fireEvent.change(screen.getByLabelText(/wholesaler email/i), { target: { value: 'test@wholesaler.com' } })
+      fireEvent.change(screen.getByLabelText(/product code/i), { target: { value: 'TEST-001' } })
+      fireEvent.change(screen.getByLabelText(/wholesale cost/i), { target: { value: '15.00' } })
+      
+      // Submit the form
+      fireEvent.click(screen.getByText('common.save'))
+      
+      // Should call onSave with trimmed tags
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith(expect.objectContaining({
+          tags: ['crystal', 'healing', 'test']
+        }))
+      })
+    })
+
+    test('should handle empty string tags by providing empty array', async () => {
+      const mockOnSave = vi.fn()
+      const mockDispatch = vi.fn().mockResolvedValue({ 
+        type: 'adminProducts/createProduct/fulfilled',
+        payload: { data: { product: mockProduct } },
+        unwrap: vi.fn().mockResolvedValue({ data: { product: mockProduct } })
+      })
+      
+      const storeWithMockDispatch = {
+        ...createTestStore(defaultState),
+        dispatch: mockDispatch
+      }
+      
+      render(
+        <Provider store={storeWithMockDispatch}>
+          <BrowserRouter>
+            <AdminProductForm onSave={mockOnSave} />
+          </BrowserRouter>
+        </Provider>
+      )
+      
+      // Fill in required fields with empty tags
+      fireEvent.change(screen.getByLabelText(/products.title/i), { target: { value: 'Test Product' } })
+      fireEvent.change(screen.getByRole('textbox', { name: /^description \*/i }), { target: { value: 'Test description' } })
+      fireEvent.change(screen.getByLabelText(/short description/i), { target: { value: 'Short desc' } })
+      fireEvent.change(screen.getByLabelText(/products.price/i), { target: { value: '25.99' } })
+      fireEvent.change(screen.getByLabelText(/category/i), { target: { value: 'crystals' } })
+      fireEvent.change(screen.getByLabelText(/tags/i), { target: { value: '' } })
+      
+      // Fill in wholesaler fields
+      fireEvent.change(screen.getByLabelText(/wholesaler name/i), { target: { value: 'Test Wholesaler' } })
+      fireEvent.change(screen.getByLabelText(/wholesaler email/i), { target: { value: 'test@wholesaler.com' } })
+      fireEvent.change(screen.getByLabelText(/product code/i), { target: { value: 'TEST-001' } })
+      fireEvent.change(screen.getByLabelText(/wholesale cost/i), { target: { value: '15.00' } })
+      
+      // Submit the form
+      fireEvent.click(screen.getByText('common.save'))
+      
+      // Should call onSave with empty tags array
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith(expect.objectContaining({
+          tags: []
+        }))
+      })
     })
   })
 })

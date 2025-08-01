@@ -26,6 +26,7 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
     shortDescription: '',
     price: '',
     category: '',
+    tags: '',
     wholesaler: {
       name: '',
       email: '',
@@ -50,6 +51,7 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
         shortDescription: product.shortDescription || '',
         price: product.price?.toString() || '',
         category: product.category || '',
+        tags: product.tags ? product.tags.join(', ') : '',
         wholesaler: {
           name: product.wholesaler?.name || '',
           email: product.wholesaler?.email || '',
@@ -90,6 +92,17 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .trim()
+  }
+
+  // Parse tags from comma-separated string to array
+  const parseTags = (tagsString) => {
+    if (!tagsString || typeof tagsString !== 'string') {
+      return []
+    }
+    return tagsString
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0)
   }
 
   // Handle form field changes
@@ -254,6 +267,7 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
     const submitData = {
       ...formData,
       price: parseFloat(formData.price),
+      tags: parseTags(formData.tags),
       wholesaler: {
         ...formData.wholesaler,
         cost: parseFloat(formData.wholesaler.cost)
@@ -461,6 +475,22 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
               <option value="accessories">{t('products.categories.accessories')}</option>
             </select>
             {errors.category && <span className="error-text">{errors.category}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="product-tags">
+              Tags
+            </label>
+            <input
+              id="product-tags"
+              type="text"
+              value={formData.tags}
+              onChange={(e) => handleInputChange('tags', e.target.value)}
+              placeholder="Enter tags separated by commas (e.g. crystal, healing, meditation)"
+            />
+            <small className="form-help-text">
+              Separate multiple tags with commas
+            </small>
           </div>
         </div>
 
