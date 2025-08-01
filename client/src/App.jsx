@@ -36,6 +36,9 @@ import AdminRoute from './components/Auth/AdminRoute'
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminProducts from './pages/admin/AdminProducts'
+import AdminOrders from './pages/admin/AdminOrders'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminSettings from './pages/admin/AdminSettings'
 
 
 function App() {
@@ -138,6 +141,30 @@ function App() {
             element={
               <AdminRoute>
                 <AdminProducts />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/orders" 
+            element={
+              <AdminRoute>
+                <AdminOrders />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/users" 
+            element={
+              <AdminRoute>
+                <AdminUsers />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/settings" 
+            element={
+              <AdminRoute>
+                <AdminSettings />
               </AdminRoute>
             } 
           />
