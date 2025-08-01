@@ -209,6 +209,8 @@ userSchema.methods.toPublicJSON = function() {
     phone: this.phone,
     addresses: this.addresses,
     preferences: this.preferences,
+    isAdmin: this.isAdmin,
+    isActive: this.isActive,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
   };
