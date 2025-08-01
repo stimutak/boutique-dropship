@@ -4,20 +4,32 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import PriceDisplay from '../PriceDisplay'
 import { setFilters, setSortBy, setCurrentPageNumber } from '../../store/slices/adminSlice'
+import { fetchAdminProducts, deleteProduct } from '../../store/slices/adminProductsSlice'
 
 const AdminProductList = () => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   
-  const { items: products, totalItems, isLoading, error } = useSelector(state => state.products)
+  const { items: products, totalItems, isLoading, error, pagination } = useSelector(state => state.adminProducts)
   const { filters, sortBy, sortOrder, currentPage, itemsPerPage } = useSelector(state => state.admin.products)
   
   const [localFilters, setLocalFilters] = useState(filters)
 
   // Calculate pagination
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const totalPages = pagination?.totalPages || Math.ceil(totalItems / itemsPerPage)
   const startItem = (currentPage - 1) * itemsPerPage + 1
   const endItem = Math.min(currentPage * itemsPerPage, totalItems)
+
+  // Fetch products when filters or pagination change
+  useEffect(() => {
+    const fetchParams = {
+      page: currentPage,
+      limit: itemsPerPage,
+      ...localFilters,
+      sort: sortBy
+    }
+    dispatch(fetchAdminProducts(fetchParams))
+  }, [dispatch, currentPage, itemsPerPage, localFilters, sortBy])
 
   // Handle filter changes
   const handleFilterChange = (filterKey, value) => {
@@ -38,6 +50,25 @@ const AdminProductList = () => {
   // Handle pagination
   const handlePageChange = (page) => {
     dispatch(setCurrentPageNumber({ section: 'products', page }))
+  }
+
+  // Handle product deletion
+  const handleDelete = async (productId) => {
+    if (window.confirm(t('admin.products.confirmDelete'))) {
+      try {
+        await dispatch(deleteProduct(productId)).unwrap()
+        // Refresh the product list after deletion
+        const fetchParams = {
+          page: currentPage,
+          limit: itemsPerPage,
+          ...localFilters,
+          sort: sortBy
+        }
+        dispatch(fetchAdminProducts(fetchParams))
+      } catch (error) {
+        console.error('Failed to delete product:', error)
+      }
+    }
   }
 
   if (isLoading) {
@@ -231,11 +262,6 @@ const AdminProductList = () => {
       )}
     </div>
   )
-}
-
-// Placeholder for delete handler (will be implemented with async thunks)
-const handleDelete = (productId) => {
-  console.log('Delete product:', productId)
 }
 
 export default AdminProductList

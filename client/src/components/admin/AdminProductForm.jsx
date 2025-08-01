@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { createProduct, updateProduct, uploadProductImages } from '../../store/slices/adminProductsSlice'
 
 const AdminProductForm = ({ product, onSave, onCancel }) => {
   const { t, i18n } = useTranslation()
-  const { isLoading, error } = useSelector(state => state.products)
+  const dispatch = useDispatch()
+  const { isLoading, error, uploadedImages, uploadProgress } = useSelector(state => state.adminProducts)
   
   // Supported languages for translations
   const supportedLanguages = [
@@ -91,9 +93,18 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
   }
 
   // Handle image upload
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files)
     setUploadedImages(prev => [...prev, ...files])
+    
+    // Immediately upload images to get URLs
+    if (files.length > 0) {
+      try {
+        await dispatch(uploadProductImages(files)).unwrap()
+      } catch (error) {
+        console.error('Failed to upload images:', error)
+      }
+    }
   }
 
   // Remove uploaded image
@@ -125,22 +136,53 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
     return Object.keys(newErrors).length === 0
   }
 
+  // Handle image upload
+  const handleImageUploadToServer = async (files) => {
+    try {
+      await dispatch(uploadProductImages(files)).unwrap()
+    } catch (error) {
+      console.error('Failed to upload images:', error)
+    }
+  }
+
   // Handle form submission
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     
     if (!validateForm()) {
       return
     }
     
+    // Upload any pending images first
+    if (uploadedImages.length > 0) {
+      await handleImageUploadToServer(uploadedImages)
+    }
+    
     const submitData = {
       ...formData,
       price: parseFloat(formData.price),
-      images: [...formData.images, ...uploadedImages]
+      images: [...formData.images, ...uploadedImages.map(file => ({
+        url: `/images/products/${file.name}`,
+        alt: `${formData.name} image`,
+        isPrimary: formData.images.length === 0
+      }))]
     }
     
-    if (onSave) {
-      onSave(submitData)
+    try {
+      if (product) {
+        // Update existing product
+        await dispatch(updateProduct({ id: product._id, data: submitData })).unwrap()
+      } else {
+        // Create new product
+        await dispatch(createProduct(submitData)).unwrap()
+      }
+      
+      // Call parent callback if provided
+      if (onSave) {
+        onSave(submitData)
+      }
+    } catch (error) {
+      console.error('Failed to save product:', error)
     }
   }
 
@@ -292,25 +334,69 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
               onChange={handleImageUpload}
               id="image-upload"
               className="hidden"
+              disabled={isLoading}
             />
             <label htmlFor="image-upload" className="upload-button">
-              {t('Upload Images')}
+              {isLoading ? t('common.uploading') : t('Upload Images')}
             </label>
             
-            <div className="uploaded-images">
-              {uploadedImages.map((file, index) => (
-                <div key={index} className="image-preview">
-                  <span>{file.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="remove-image"
-                  >
-                    ×
-                  </button>
+            {/* Upload Progress */}
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <div className="upload-progress">
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
                 </div>
-              ))}
-            </div>
+                <span>{uploadProgress}%</span>
+              </div>
+            )}
+            
+            {/* Existing Images */}
+            {formData.images.length > 0 && (
+              <div className="existing-images">
+                <h4>{t('Current Images')}</h4>
+                <div className="image-grid">
+                  {formData.images.map((image, index) => (
+                    <div key={index} className="image-preview">
+                      <img src={image.url} alt={image.alt} />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newImages = formData.images.filter((_, i) => i !== index)
+                          handleInputChange('images', newImages)
+                        }}
+                        className="remove-image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Uploaded Images */}
+            {uploadedImages.length > 0 && (
+              <div className="uploaded-images">
+                <h4>{t('Newly Uploaded')}</h4>
+                <div className="image-grid">
+                  {uploadedImages.map((file, index) => (
+                    <div key={index} className="image-preview">
+                      <span>{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="remove-image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

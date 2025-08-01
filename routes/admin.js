@@ -298,6 +298,108 @@ router.post('/products/bulk-import', upload.single('csvFile'), async (req, res) 
   }
 });
 
+// PUT /api/admin/products/:id - Update existing product
+router.put('/products/:id', async (req, res) => {
+  try {
+    const productData = req.body;
+    const productId = req.params.id;
+    
+    const product = await Product.findByIdAndUpdate(
+      productId,
+      productData,
+      { new: true, runValidators: true }
+    );
+    
+    if (!product) {
+      return res.error(404, 'PRODUCT_NOT_FOUND', 'Product not found');
+    }
+    
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      data: {
+        product: product
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error updating product:', error);
+    
+    if (error.code === 11000) {
+      return res.error(400, 'DUPLICATE_SLUG', 'Product with this slug already exists');
+    }
+    
+    res.error(500, 'PRODUCT_UPDATE_ERROR', 'Failed to update product');
+  }
+});
+
+// DELETE /api/admin/products/:id - Delete product
+router.delete('/products/:id', async (req, res) => {
+  try {
+    const productId = req.params.id;
+    
+    const product = await Product.findByIdAndDelete(productId);
+    
+    if (!product) {
+      return res.error(404, 'PRODUCT_NOT_FOUND', 'Product not found');
+    }
+    
+    res.json({
+      success: true,
+      message: 'Product deleted successfully',
+      data: {
+        deletedProductId: productId
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.error(500, 'PRODUCT_DELETE_ERROR', 'Failed to delete product');
+  }
+});
+
+// Configure multer for image uploads
+const imageUpload = multer({
+  dest: 'public/images/products/',
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit per file
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
+
+// POST /api/admin/products/images - Upload product images
+router.post('/products/images', imageUpload.array('images', 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.error(400, 'NO_FILES', 'No image files provided');
+    }
+
+    const images = req.files.map(file => ({
+      url: `/images/products/${file.filename}`,
+      filename: file.filename,
+      originalName: file.originalname,
+      size: file.size,
+      mimeType: file.mimetype
+    }));
+
+    res.json({
+      success: true,
+      message: `${images.length} image(s) uploaded successfully`,
+      images
+    });
+
+  } catch (error) {
+    console.error('Image upload error:', error);
+    res.error(500, 'IMAGE_UPLOAD_ERROR', 'Failed to upload images');
+  }
+});
+
 // GET /api/admin/products/export - Export products to CSV
 router.get('/products/export', async (req, res) => {
   try {
