@@ -147,6 +147,15 @@ const Header = () => {
                     >
                       {t('navigation.profile')}
                     </Link>
+                    {user?.isAdmin && (
+                      <Link
+                        to="/admin"
+                        style={{ display: 'block', padding: '0.5rem 1rem', textDecoration: 'none', color: 'black', borderTop: '1px solid #eee' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Admin Dashboard
+                      </Link>
+                    )}
                     <Link
                       to="/orders"
                       style={{ display: 'block', padding: '0.5rem 1rem', textDecoration: 'none', color: 'black' }}

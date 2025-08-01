@@ -92,6 +92,7 @@ const authSlice = createSlice({
     isLoading: false,
     error: null,
     isAuthenticated: false,
+    authChecked: false, // Track if we've checked auth status
   },
   reducers: {
     logout: (state) => {
@@ -145,12 +146,14 @@ const authSlice = createSlice({
       })
       .addCase(loadUser.fulfilled, (state, action) => {
         state.isLoading = false
+        state.authChecked = true
         // Extract user from the response structure
         state.user = action.payload.data?.user || action.payload.user || action.payload
         state.isAuthenticated = true
       })
       .addCase(loadUser.rejected, (state, action) => {
         state.isLoading = false
+        state.authChecked = true
         state.token = null
         state.isAuthenticated = false
       })

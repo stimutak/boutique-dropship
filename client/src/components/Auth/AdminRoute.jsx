@@ -3,10 +3,11 @@ import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 const AdminRoute = ({ children }) => {
-  const { isAuthenticated, isLoading, user } = useSelector(state => state.auth)
+  const { isAuthenticated, isLoading, user, authChecked } = useSelector(state => state.auth)
   const { t } = useTranslation()
 
-  if (isLoading) {
+  // Wait for auth to be checked before making any decisions
+  if (isLoading || !authChecked) {
     return <div className="loading">{t('common.loading')}</div>
   }
 

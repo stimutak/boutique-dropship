@@ -37,8 +37,6 @@ import AdminRoute from './components/Auth/AdminRoute'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminProducts from './pages/admin/AdminProducts'
 
-// Debug Component (remove in production)
-import AuthDebug from './components/Debug/AuthDebug'
 
 function App() {
   const dispatch = useDispatch()
@@ -81,7 +79,6 @@ function App() {
     <div className="App">
       <Header />
       {process.env.NODE_ENV === 'development' && <CartDebug />}
-      {process.env.NODE_ENV === 'development' && <AuthDebug />}
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
