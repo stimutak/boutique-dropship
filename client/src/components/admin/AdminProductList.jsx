@@ -134,6 +134,7 @@ const AdminProductList = () => {
         <table className="admin-products-table">
           <thead>
             <tr>
+              <th>{t('Image')}</th>
               <th>
                 <button 
                   className="sort-button"
@@ -183,6 +184,35 @@ const AdminProductList = () => {
           <tbody>
             {products.map((product) => (
               <tr key={product._id}>
+                <td>
+                  <div className="product-image">
+                    {product.images && product.images.length > 0 ? (
+                      <img 
+                        src={product.images.find(img => img.isPrimary)?.url || product.images[0].url}
+                        alt={product.images.find(img => img.isPrimary)?.alt || product.name}
+                        className="product-thumbnail"
+                        style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
+                      />
+                    ) : (
+                      <div 
+                        className="no-image-placeholder"
+                        style={{ 
+                          width: '50px', 
+                          height: '50px', 
+                          backgroundColor: '#f5f5f5', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          color: '#999'
+                        }}
+                      >
+                        No Image
+                      </div>
+                    )}
+                  </div>
+                </td>
                 <td>
                   <div className="product-info">
                     <span className="product-name">{product.name}</span>

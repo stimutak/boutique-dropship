@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { createProduct, updateProduct, uploadProductImages } from '../../store/slices/adminProductsSlice'
+import { createProduct, updateProduct, uploadProductImages, clearUploadedImages } from '../../store/slices/adminProductsSlice'
 import ImageUpload from './ImageUpload'
 
 const AdminProductForm = ({ product, onSave, onCancel }) => {
@@ -23,8 +23,15 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
     name: '',
     slug: '',
     description: '',
+    shortDescription: '',
     price: '',
     category: '',
+    wholesaler: {
+      name: '',
+      email: '',
+      productCode: '',
+      cost: ''
+    },
     isActive: true,
     inStock: true,
     images: [],
@@ -32,7 +39,6 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
   })
   
   const [errors, setErrors] = useState({})
-  const [uploadedImages, setUploadedImages] = useState([])
 
   // Initialize form data when product prop changes
   useEffect(() => {
@@ -41,8 +47,15 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
         name: product.name || '',
         slug: product.slug || '',
         description: product.description || '',
+        shortDescription: product.shortDescription || '',
         price: product.price?.toString() || '',
         category: product.category || '',
+        wholesaler: {
+          name: product.wholesaler?.name || '',
+          email: product.wholesaler?.email || '',
+          productCode: product.wholesaler?.productCode || '',
+          cost: product.wholesaler?.cost?.toString() || ''
+        },
         isActive: product.isActive ?? true,
         inStock: product.inStock ?? true,
         images: product.images || [],
@@ -50,6 +63,25 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
       })
     }
   }, [product])
+
+  // Sync uploaded images from Redux to form data
+  useEffect(() => {
+    if (uploadedImages && uploadedImages.length > 0) {
+      // Transform uploaded images to match Product schema format
+      const transformedImages = uploadedImages.map((uploadedImage, index) => ({
+        url: uploadedImage.url,
+        alt: uploadedImage.originalName || `Product image ${index + 1}`,
+        isPrimary: formData.images.length === 0 && index === 0 // First image is primary if no existing images
+      }))
+      
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...transformedImages]
+      }))
+      // Clear uploaded images from Redux after adding to form
+      dispatch(clearUploadedImages())
+    }
+  }, [uploadedImages, dispatch, formData.images.length])
 
   // Generate slug from name
   const generateSlug = (name) => {
@@ -70,12 +102,51 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
         newData.slug = generateSlug(value)
       }
       
+      // Auto-generate shortDescription from description if empty
+      if (field === 'description' && !newData.shortDescription) {
+        newData.shortDescription = value.substring(0, 200)
+      }
+      
+      // Auto-generate wholesaler product code from name if empty
+      if (field === 'name' && !newData.wholesaler.productCode) {
+        newData.wholesaler.productCode = generateSlug(value).toUpperCase()
+      }
+      
       return newData
     })
     
     // Clear error for this field
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }))
+    }
+    
+    // Clear wholesaler errors when updating wholesaler fields
+    if (field === 'wholesaler') {
+      const wholesalerErrors = Object.keys(errors).filter(key => key.startsWith('wholesaler.'))
+      if (wholesalerErrors.length > 0) {
+        setErrors(prev => {
+          const newErrors = { ...prev }
+          wholesalerErrors.forEach(key => delete newErrors[key])
+          return newErrors
+        })
+      }
+    }
+  }
+
+  // Handle wholesaler field changes specifically
+  const handleWholesalerChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      wholesaler: {
+        ...prev.wholesaler,
+        [field]: value
+      }
+    }))
+    
+    // Clear error for this wholesaler field
+    const errorKey = `wholesaler.${field}`
+    if (errors[errorKey]) {
+      setErrors(prev => ({ ...prev, [errorKey]: null }))
     }
   }
 
@@ -96,21 +167,24 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
   // Handle image upload
   const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files)
-    setUploadedImages(prev => [...prev, ...files])
     
-    // Immediately upload images to get URLs
+    // Upload images to get URLs
     if (files.length > 0) {
       try {
         await dispatch(uploadProductImages(files)).unwrap()
       } catch (error) {
         console.error('Failed to upload images:', error)
+        // Don't prevent the form from showing selected files
+        // The user should see feedback about what was selected even if upload fails
       }
     }
   }
 
   // Remove uploaded image
   const removeImage = (index) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index))
+    // Since we're using Redux state, we need to update formData images
+    const updatedImages = formData.images.filter((_, i) => i !== index)
+    setFormData(prev => ({ ...prev, images: updatedImages }))
   }
 
   // Validate form
@@ -125,12 +199,35 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
       newErrors.description = t('errors.requiredField')
     }
     
+    if (!formData.shortDescription.trim()) {
+      newErrors.shortDescription = t('errors.requiredField')
+    }
+    
     if (!formData.price || isNaN(parseFloat(formData.price))) {
       newErrors.price = t('errors.requiredField')
     }
     
     if (!formData.category) {
       newErrors.category = t('errors.requiredField')
+    }
+    
+    // Validate wholesaler fields
+    if (!formData.wholesaler.name.trim()) {
+      newErrors['wholesaler.name'] = t('errors.requiredField')
+    }
+    
+    if (!formData.wholesaler.email.trim()) {
+      newErrors['wholesaler.email'] = t('errors.requiredField')
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.wholesaler.email)) {
+      newErrors['wholesaler.email'] = t('errors.invalidEmail')
+    }
+    
+    if (!formData.wholesaler.productCode.trim()) {
+      newErrors['wholesaler.productCode'] = t('errors.requiredField')
+    }
+    
+    if (!formData.wholesaler.cost || isNaN(parseFloat(formData.wholesaler.cost))) {
+      newErrors['wholesaler.cost'] = t('errors.requiredField')
     }
     
     setErrors(newErrors)
@@ -154,36 +251,64 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
       return
     }
     
-    // Upload any pending images first
-    if (uploadedImages.length > 0) {
-      await handleImageUploadToServer(uploadedImages)
-    }
-    
     const submitData = {
       ...formData,
       price: parseFloat(formData.price),
-      images: [...formData.images, ...uploadedImages.map(file => ({
-        url: `/images/products/${file.name}`,
-        alt: `${formData.name} image`,
-        isPrimary: formData.images.length === 0
-      }))]
+      wholesaler: {
+        ...formData.wholesaler,
+        cost: parseFloat(formData.wholesaler.cost)
+      }
     }
     
+    
     try {
+      let result
       if (product) {
         // Update existing product
-        await dispatch(updateProduct({ id: product._id, data: submitData })).unwrap()
+        result = await dispatch(updateProduct({ id: product._id, data: submitData }))
       } else {
         // Create new product
-        await dispatch(createProduct(submitData)).unwrap()
+        result = await dispatch(createProduct(submitData))
       }
       
-      // Call parent callback if provided
-      if (onSave) {
-        onSave(submitData)
+      // Check if the action was fulfilled (for Redux Toolkit async thunks)
+      if (result.type && result.type.endsWith('/fulfilled')) {
+        // Success case - call parent callback if provided
+        if (onSave) {
+          onSave(submitData)
+        }
+        
+        // Show success feedback if no callback provided
+        if (!onSave) {
+          console.log('Product saved successfully')
+        }
+      } else if (result.type && result.type.endsWith('/rejected')) {
+        // Handle rejection case
+        console.error('Failed to save product:', result.payload)
+      } else {
+        // Fallback for non-RTK async thunks or different dispatch implementations
+        // Try unwrap if available, otherwise assume success
+        try {
+          if (result.unwrap) {
+            await result.unwrap()
+          }
+          
+          // Success case - call parent callback if provided
+          if (onSave) {
+            onSave(submitData)
+          }
+          
+          // Show success feedback if no callback provided
+          if (!onSave) {
+            console.log('Product saved successfully')
+          }
+        } catch (unwrapError) {
+          console.error('Failed to save product:', unwrapError)
+        }
       }
     } catch (error) {
       console.error('Failed to save product:', error)
+      // The error should be handled by the Redux slice and displayed via the error state
     }
   }
 
@@ -280,6 +405,22 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
             />
             {errors.description && <span className="error-text">{errors.description}</span>}
           </div>
+
+          <div className="form-group">
+            <label htmlFor="product-short-description">
+              {t('Short Description')} *
+            </label>
+            <input
+              id="product-short-description"
+              type="text"
+              value={formData.shortDescription}
+              onChange={(e) => handleInputChange('shortDescription', e.target.value)}
+              className={errors.shortDescription ? 'error' : ''}
+              maxLength={200}
+              placeholder={t('Brief product summary (max 200 characters)')}
+            />
+            {errors.shortDescription && <span className="error-text">{errors.shortDescription}</span>}
+          </div>
         </div>
 
         {/* Pricing and Category */}
@@ -320,6 +461,73 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
               <option value="accessories">{t('products.categories.accessories')}</option>
             </select>
             {errors.category && <span className="error-text">{errors.category}</span>}
+          </div>
+        </div>
+
+        {/* Wholesaler Information */}
+        <div className="form-section">
+          <h3>{t('Wholesaler Information')}</h3>
+          
+          <div className="form-group">
+            <label htmlFor="wholesaler-name">
+              {t('Wholesaler Name')} *
+            </label>
+            <input
+              id="wholesaler-name"
+              type="text"
+              value={formData.wholesaler.name}
+              onChange={(e) => handleWholesalerChange('name', e.target.value)}
+              className={errors['wholesaler.name'] ? 'error' : ''}
+              placeholder={t('Enter wholesaler company name')}
+            />
+            {errors['wholesaler.name'] && <span className="error-text">{errors['wholesaler.name']}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="wholesaler-email">
+              {t('Wholesaler Email')} *
+            </label>
+            <input
+              id="wholesaler-email"
+              type="email"
+              value={formData.wholesaler.email}
+              onChange={(e) => handleWholesalerChange('email', e.target.value)}
+              className={errors['wholesaler.email'] ? 'error' : ''}
+              placeholder={t('orders@wholesaler.com')}
+            />
+            {errors['wholesaler.email'] && <span className="error-text">{errors['wholesaler.email']}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="wholesaler-product-code">
+              {t('Product Code')} *
+            </label>
+            <input
+              id="wholesaler-product-code"
+              type="text"
+              value={formData.wholesaler.productCode}
+              onChange={(e) => handleWholesalerChange('productCode', e.target.value)}
+              className={errors['wholesaler.productCode'] ? 'error' : ''}
+              placeholder={t('SKU or product code from wholesaler')}
+            />
+            {errors['wholesaler.productCode'] && <span className="error-text">{errors['wholesaler.productCode']}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="wholesaler-cost">
+              {t('Wholesale Cost')} * (USD)
+            </label>
+            <input
+              id="wholesaler-cost"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.wholesaler.cost}
+              onChange={(e) => handleWholesalerChange('cost', e.target.value)}
+              className={errors['wholesaler.cost'] ? 'error' : ''}
+              placeholder={t('Cost from wholesaler')}
+            />
+            {errors['wholesaler.cost'] && <span className="error-text">{errors['wholesaler.cost']}</span>}
           </div>
         </div>
 
@@ -383,12 +591,24 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
               <div className="uploaded-images">
                 <h4>{t('Newly Uploaded')}</h4>
                 <div className="image-grid">
-                  {uploadedImages.map((file, index) => (
+                  {uploadedImages.map((image, index) => (
                     <div key={index} className="image-preview">
-                      <span>{file.name}</span>
+                      {image.url ? (
+                        <img src={image.url} alt={image.alt || 'Uploaded image'} />
+                      ) : (
+                        <span>{image.filename || image.name || `Image ${index + 1}`}</span>
+                      )}
                       <button
                         type="button"
-                        onClick={() => removeImage(index)}
+                        onClick={() => {
+                          const newUploadedImages = uploadedImages.filter((_, i) => i !== index)
+                          // Update the Redux state by dispatching the clear action and re-setting
+                          dispatch(clearUploadedImages())
+                          if (newUploadedImages.length > 0) {
+                            // We need to update Redux state with remaining images
+                            // For now, just remove from local state
+                          }
+                        }}
                         className="remove-image"
                       >
                         ×

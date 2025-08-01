@@ -128,12 +128,25 @@ router.post('/products', async (req, res) => {
   try {
     const productData = req.body;
     
+    
     // Generate slug if not provided
     if (!productData.slug && productData.name) {
       productData.slug = productData.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
+    }
+    
+    // BUGFIX: Ensure images array is properly handled
+    // If images is an empty array, make sure it stays empty and doesn't create invalid documents
+    if (Array.isArray(productData.images)) {
+      // Filter out any invalid image objects (missing url or alt)
+      productData.images = productData.images.filter(img => 
+        img && typeof img === 'object' && img.url && img.alt
+      )
+    } else if (!productData.images) {
+      // If images is undefined or null, set it to empty array
+      productData.images = []
     }
     
     const product = await Product.create(productData);
@@ -298,6 +311,100 @@ router.post('/products/bulk-import', upload.single('csvFile'), async (req, res) 
   }
 });
 
+// GET /api/admin/products/export - Export products to CSV
+router.get('/products/export', async (req, res) => {
+  try {
+    const { category, status = 'all' } = req.query;
+    
+    let query = {};
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+    if (status === 'active') {
+      query.isActive = true;
+    } else if (status === 'inactive') {
+      query.isActive = false;
+    }
+
+    const products = await Product.find(query).sort({ createdAt: -1 });
+
+    // Convert to CSV format
+    const csvHeaders = [
+      'name', 'slug', 'description', 'short_description', 'price', 'compare_at_price',
+      'category', 'tags', 'chakra', 'element', 'zodiac', 'healing', 'origin', 'size', 'weight',
+      'wholesaler_name', 'wholesaler_email', 'wholesaler_product_code', 'wholesaler_cost', 'min_order_qty',
+      'seo_title', 'seo_description', 'seo_keywords', 'images', 'is_active', 'is_featured',
+      'created_at', 'updated_at'
+    ];
+
+    const csvRows = products.map(product => [
+      product.name,
+      product.slug,
+      product.description,
+      product.shortDescription,
+      product.price,
+      product.compareAtPrice || '',
+      product.category,
+      product.tags.join(','),
+      product.properties.chakra.join(','),
+      product.properties.element.join(','),
+      product.properties.zodiac.join(','),
+      product.properties.healing.join(','),
+      product.properties.origin || '',
+      product.properties.size || '',
+      product.properties.weight || '',
+      product.wholesaler.name,
+      product.wholesaler.email,
+      product.wholesaler.productCode,
+      product.wholesaler.cost,
+      product.wholesaler.minOrderQty,
+      product.seo.title || '',
+      product.seo.description || '',
+      product.seo.keywords.join(','),
+      product.images.map(img => img.url).join(','),
+      product.isActive,
+      product.isFeatured,
+      product.createdAt.toISOString(),
+      product.updatedAt.toISOString()
+    ]);
+
+    // Create CSV content
+    const csvContent = [csvHeaders, ...csvRows]
+      .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.csv"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Product export error:', error);
+    res.error(500, 'EXPORT_ERROR', 'Failed to export products');
+  }
+});
+
+// GET /api/admin/products/:id - Get single product for editing
+router.get('/products/:id', async (req, res) => {
+  try {
+    const productId = req.params.id;
+    
+    const product = await Product.findById(productId);
+    
+    if (!product) {
+      return res.error(404, 'PRODUCT_NOT_FOUND', 'Product not found');
+    }
+    
+    res.json({
+      success: true,
+      product: product
+    });
+    
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    res.error(500, 'PRODUCT_FETCH_ERROR', 'Failed to fetch product');
+  }
+});
+
 // PUT /api/admin/products/:id - Update existing product
 router.put('/products/:id', async (req, res) => {
   try {
@@ -374,102 +481,58 @@ const imageUpload = multer({
 });
 
 // POST /api/admin/products/images - Upload product images
-router.post('/products/images', imageUpload.array('images', 10), async (req, res) => {
-  try {
-    if (!req.files || req.files.length === 0) {
-      return res.error(400, 'NO_FILES', 'No image files provided');
+router.post('/products/images', (req, res) => {
+  // Custom multer error handling middleware
+  imageUpload.array('images', 10)(req, res, (err) => {
+    if (err) {
+      console.error('Multer upload error:', err);
+      
+      // Handle specific multer errors
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.error(413, 'FILE_TOO_LARGE', `File size exceeds the 5MB limit`);
+      }
+      
+      if (err.code === 'LIMIT_FILE_COUNT') {
+        return res.error(400, 'TOO_MANY_FILES', 'Maximum 10 files allowed');
+      }
+      
+      if (err.message === 'Only image files are allowed') {
+        return res.error(400, 'INVALID_FILE_TYPE', 'Only image files are allowed');
+      }
+      
+      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+        return res.error(400, 'UNEXPECTED_FILE', 'Unexpected file field');
+      }
+      
+      // Generic multer error
+      return res.error(400, 'UPLOAD_ERROR', err.message || 'File upload failed');
     }
 
-    const images = req.files.map(file => ({
-      url: `/images/products/${file.filename}`,
-      filename: file.filename,
-      originalName: file.originalname,
-      size: file.size,
-      mimeType: file.mimetype
-    }));
+    // No multer errors, proceed with the route handler
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.error(400, 'NO_FILES', 'No image files provided');
+      }
 
-    res.json({
-      success: true,
-      message: `${images.length} image(s) uploaded successfully`,
-      images
-    });
+      const images = req.files.map(file => ({
+        url: `/images/products/${file.filename}`,
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype
+      }));
 
-  } catch (error) {
-    console.error('Image upload error:', error);
-    res.error(500, 'IMAGE_UPLOAD_ERROR', 'Failed to upload images');
-  }
-});
+      res.json({
+        success: true,
+        message: `${images.length} image(s) uploaded successfully`,
+        images
+      });
 
-// GET /api/admin/products/export - Export products to CSV
-router.get('/products/export', async (req, res) => {
-  try {
-    const { category, status = 'all' } = req.query;
-    
-    let query = {};
-    if (category && category !== 'all') {
-      query.category = category;
+    } catch (error) {
+      console.error('Image upload processing error:', error);
+      res.error(500, 'IMAGE_UPLOAD_ERROR', 'Failed to process uploaded images');
     }
-    if (status === 'active') {
-      query.isActive = true;
-    } else if (status === 'inactive') {
-      query.isActive = false;
-    }
-
-    const products = await Product.find(query).sort({ createdAt: -1 });
-
-    // Convert to CSV format
-    const csvHeaders = [
-      'name', 'slug', 'description', 'short_description', 'price', 'compare_at_price',
-      'category', 'tags', 'chakra', 'element', 'zodiac', 'healing', 'origin', 'size', 'weight',
-      'wholesaler_name', 'wholesaler_email', 'wholesaler_product_code', 'wholesaler_cost', 'min_order_qty',
-      'seo_title', 'seo_description', 'seo_keywords', 'images', 'is_active', 'is_featured',
-      'created_at', 'updated_at'
-    ];
-
-    const csvRows = products.map(product => [
-      product.name,
-      product.slug,
-      product.description,
-      product.shortDescription,
-      product.price,
-      product.compareAtPrice || '',
-      product.category,
-      product.tags.join(','),
-      product.properties.chakra.join(','),
-      product.properties.element.join(','),
-      product.properties.zodiac.join(','),
-      product.properties.healing.join(','),
-      product.properties.origin || '',
-      product.properties.size || '',
-      product.properties.weight || '',
-      product.wholesaler.name,
-      product.wholesaler.email,
-      product.wholesaler.productCode,
-      product.wholesaler.cost,
-      product.wholesaler.minOrderQty,
-      product.seo.title || '',
-      product.seo.description || '',
-      product.seo.keywords.join(','),
-      product.images.map(img => img.url).join(','),
-      product.isActive,
-      product.isFeatured,
-      product.createdAt.toISOString(),
-      product.updatedAt.toISOString()
-    ]);
-
-    // Create CSV content
-    const csvContent = [csvHeaders, ...csvRows]
-      .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.csv"`);
-    res.send(csvContent);
-
-  } catch (error) {
-    console.error('Product export error:', error);
-    res.error(500, 'EXPORT_ERROR', 'Failed to export products');
-  }
+  });
 });
 
 // ===== ORDER MANAGEMENT =====

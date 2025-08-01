@@ -213,6 +213,99 @@ describe('Admin Routes', () => {
       expect(response.text).toContain('Test Crystal');
     });
 
+    test('should create new product with admin form data - reproduces current bug', async () => {
+      // This test reproduces the exact bug from the frontend AdminProductForm
+      // The form has all the required fields but they're not being submitted correctly
+      const frontendFormData = {
+        name: 'New Test Crystal',
+        slug: 'new-test-crystal',
+        description: 'A new beautiful crystal for testing',
+        shortDescription: 'New test crystal',
+        price: 45.99,
+        category: 'crystals',
+        wholesaler: {
+          name: 'Test Wholesaler Company',
+          email: 'orders@testwholesaler.com',
+          productCode: 'NEW-TEST-CRYSTAL',
+          cost: 25.00
+        },
+        isActive: true,
+        inStock: true,
+        images: [],
+        translations: {}
+      };
+
+      // This should succeed since all required fields are present
+      const response = await request(app)
+        .post('/api/admin/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(frontendFormData)
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.product.name).toBe('New Test Crystal');
+      expect(response.body.data.product.shortDescription).toBe('New test crystal');
+      expect(response.body.data.product.wholesaler.name).toBe('Test Wholesaler Company');
+    });
+
+    test('should fail when missing required fields - demonstrates the bug', async () => {
+      // This test shows what happens when required fields are missing
+      const incompleteFormData = {
+        name: 'Incomplete Crystal',
+        slug: 'incomplete-crystal',
+        description: 'A crystal missing required fields',
+        price: 45.99,
+        category: 'crystals',
+        isActive: true,
+        inStock: true,
+        images: [],
+        translations: {}
+        // Missing: shortDescription and wholesaler object
+      };
+
+      const response = await request(app)
+        .post('/api/admin/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(incompleteFormData)
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('PRODUCT_CREATION_ERROR');
+    });
+
+    test('should create new product with complete required data', async () => {
+      // This test shows what the API expects
+      const completeProductData = {
+        name: 'Complete Test Crystal',
+        slug: 'complete-test-crystal',
+        description: 'A complete crystal with all required fields',
+        shortDescription: 'Complete test crystal',
+        price: 35.99,
+        category: 'crystals',
+        wholesaler: {
+          name: 'Test Wholesaler Inc',
+          email: 'orders@testwholesaler.com',
+          productCode: 'CTC001',
+          cost: 20.00
+        },
+        isActive: true,
+        inStock: true,
+        images: [],
+        translations: {}
+      };
+
+      const response = await request(app)
+        .post('/api/admin/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(completeProductData)
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.product.name).toBe('Complete Test Crystal');
+      expect(response.body.data.product.shortDescription).toBe('Complete test crystal');
+      expect(response.body.data.product.wholesaler.name).toBe('Test Wholesaler Inc');
+    });
+
     test('should handle bulk import with valid CSV', async () => {
       // Create test CSV content
       const csvContent = `name,price,category,wholesaler_name,wholesaler_email,wholesaler_product_code,description

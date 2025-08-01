@@ -36,6 +36,8 @@ import AdminRoute from './components/Auth/AdminRoute'
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminProducts from './pages/admin/AdminProducts'
+import AdminProductNew from './pages/admin/AdminProductNew'
+import AdminProductEdit from './pages/admin/AdminProductEdit'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminSettings from './pages/admin/AdminSettings'
@@ -141,6 +143,22 @@ function App() {
             element={
               <AdminRoute>
                 <AdminProducts />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/products/new" 
+            element={
+              <AdminRoute>
+                <AdminProductNew />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/products/:id/edit" 
+            element={
+              <AdminRoute>
+                <AdminProductEdit />
               </AdminRoute>
             } 
           />

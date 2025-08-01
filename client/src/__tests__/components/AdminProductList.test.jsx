@@ -55,6 +55,10 @@ const mockProducts = [
     category: 'crystals',
     isActive: true,
     inStock: true,
+    images: [
+      { url: '/images/products/crystal1.jpg', alt: 'Crystal Healing Set', isPrimary: true },
+      { url: '/images/products/crystal2.jpg', alt: 'Crystal Healing Set 2', isPrimary: false }
+    ],
     createdAt: '2025-01-01T00:00:00.000Z'
   },
   {
@@ -67,6 +71,9 @@ const mockProducts = [
     category: 'herbs',
     isActive: false,
     inStock: true,
+    images: [
+      { url: '/images/products/sage1.jpg', alt: 'Sage Bundle', isPrimary: true }
+    ],
     createdAt: '2025-01-02T00:00:00.000Z'
   }
 ]
@@ -557,5 +564,40 @@ describe('AdminProductList Component', () => {
     // Should display international pricing through PriceDisplay component
     expect(screen.getByText('$29.99')).toBeInTheDocument()
     expect(screen.getByText('€25.50')).toBeInTheDocument()
+  })
+
+  // BUG TEST - This test captures the reported bug and should initially fail
+  describe('Bug Test - Should fail initially', () => {
+    test('Bug 3: Product list should display product images', () => {
+      const store = createTestStore(defaultState)
+      const originalDispatch = store.dispatch
+      store.dispatch = vi.fn((action) => {
+        if (typeof action === 'object' && action.type && !action.type.includes('pending')) {
+          return originalDispatch(action)
+        }
+        return Promise.resolve({ unwrap: vi.fn() })
+      })
+
+      render(
+        <Provider store={store}>
+          <BrowserRouter>
+            <AdminProductList />
+          </BrowserRouter>
+        </Provider>
+      )
+      
+      // Should show image column header
+      expect(screen.getByText(/image/i)).toBeInTheDocument()
+      
+      // Should display primary product images for each product
+      // These product images should be visible in the list
+      const crystalImage = screen.getByAltText('Crystal Healing Set')
+      expect(crystalImage).toBeInTheDocument()
+      expect(crystalImage.src).toContain('/images/products/crystal1.jpg')
+      
+      const sageImage = screen.getByAltText('Sage Bundle')
+      expect(sageImage).toBeInTheDocument()
+      expect(sageImage.src).toContain('/images/products/sage1.jpg')
+    })
   })
 })

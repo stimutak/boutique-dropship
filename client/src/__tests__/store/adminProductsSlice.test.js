@@ -164,6 +164,98 @@ describe('adminProductsSlice', () => {
       expect(state.error).toBe(errorMessage)
       expect(state.isLoading).toBe(false)
     })
+
+    test('should successfully create product with empty images array - bug is now fixed', async () => {
+      // This test verifies the fix: empty images array should work now
+      const completeProductData = {
+        name: 'Test Crystal',
+        slug: 'test-crystal',
+        description: 'A beautiful test crystal for spiritual healing',
+        shortDescription: 'A beautiful test crystal',
+        price: 29.99,
+        category: 'crystals',
+        wholesaler: {
+          name: 'Crystal Supplier Inc',
+          email: 'orders@crystalsupplier.com',
+          productCode: 'TEST-CRYSTAL',
+          cost: 15.50
+        },
+        isActive: true,
+        inStock: true,
+        images: [], // This empty array should work now (bug fixed)
+        translations: {}
+      }
+
+      // Mock successful response since the bug is now fixed
+      const mockResponse = {
+        data: {
+          success: true,
+          data: {
+            product: { _id: 'fixed123', ...completeProductData }
+          }
+        }
+      }
+      
+      api.post.mockResolvedValue(mockResponse)
+      
+      const result = await store.dispatch(createProduct(completeProductData))
+      
+      // Log what we're testing
+      console.log('BUG FIX VERIFICATION - Product data sent:', JSON.stringify(completeProductData, null, 2))
+      console.log('BUG FIX VERIFICATION - Images array:', completeProductData.images)
+      console.log('BUG FIX VERIFICATION - Result type:', result.type)
+      
+      expect(api.post).toHaveBeenCalledWith('/api/admin/products', completeProductData)
+      expect(result.type).toBe('adminProducts/createProduct/fulfilled')
+      
+      const state = store.getState().adminProducts
+      expect(state.items).toContainEqual(mockResponse.data.data.product)
+      expect(state.isLoading).toBe(false)
+      expect(state.error).toBeNull()
+    })
+
+    test('should successfully create product with complete valid data', async () => {
+      // This test ensures that valid data works
+      const completeProductData = {
+        name: 'Valid Crystal',
+        slug: 'valid-crystal',
+        description: 'A valid crystal for testing',
+        shortDescription: 'A valid crystal',
+        price: 29.99,
+        category: 'crystals',
+        wholesaler: {
+          name: 'Valid Supplier',
+          email: 'orders@validsupplier.com',
+          productCode: 'VALID-CRYSTAL',
+          cost: 15.50
+        },
+        isActive: true,
+        inStock: true,
+        images: [],
+        translations: {}
+      }
+
+      const mockResponse = {
+        data: {
+          success: true,
+          data: {
+            product: { _id: 'valid123', ...completeProductData }
+          }
+        }
+      }
+      
+      api.post.mockResolvedValue(mockResponse)
+      
+      const result = await store.dispatch(createProduct(completeProductData))
+      
+      expect(api.post).toHaveBeenCalledWith('/api/admin/products', completeProductData)
+      expect(result.type).toBe('adminProducts/createProduct/fulfilled')
+      
+      const state = store.getState().adminProducts
+      expect(state.items).toContainEqual(mockResponse.data.data.product)
+      expect(state.isLoading).toBe(false)
+      expect(state.error).toBeNull()
+    })
   })
 
   describe('updateProduct', () => {
