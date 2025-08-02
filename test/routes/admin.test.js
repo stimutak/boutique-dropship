@@ -169,6 +169,147 @@ describe('Admin Routes', () => {
   });
 
   describe('Product Management', () => {
+    describe('Internationalization Support', () => {
+      test('should create product with i18n descriptions (TDD - RED)', async () => {
+        const productDataWithI18n = {
+          name: 'International Crystal',
+          slug: 'international-crystal',
+          description: 'A beautiful crystal for testing internationalization',
+          shortDescription: 'International test crystal',
+          translations: {
+            es: {
+              name: 'Cristal Internacional',
+              description: 'Un hermoso cristal para probar la internacionalización',
+              shortDescription: 'Cristal de prueba internacional'
+            },
+            ar: {
+              name: 'كريستال دولي',
+              description: 'كريستال جميل لاختبار التدويل',
+              shortDescription: 'كريستال اختبار دولي'
+            },
+            ja: {
+              name: '国際クリスタル',
+              description: '国際化テスト用の美しいクリスタル',
+              shortDescription: '国際テストクリスタル'
+            }
+          },
+          price: 45.99,
+          baseCurrency: 'USD',
+          prices: {
+            USD: 45.99,
+            EUR: 42.50,
+            JPY: 6800
+          },
+          category: 'crystals',
+          wholesaler: {
+            name: 'International Wholesaler',
+            email: 'international@wholesaler.com',
+            productCode: 'INT-CRYSTAL-001',
+            cost: 25.00
+          },
+          isActive: true
+        };
+
+        const response = await request(app)
+          .post('/api/admin/products')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send(productDataWithI18n)
+          .expect(201);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.product.translations).toBeDefined();
+        expect(response.body.data.product.translations.es.name).toBe('Cristal Internacional');
+        expect(response.body.data.product.translations.ar.name).toBe('كريستال دولي');
+        expect(response.body.data.product.translations.ja.name).toBe('国際クリスタル');
+        expect(response.body.data.product.prices.EUR).toBe(42.50);
+        expect(response.body.data.product.prices.JPY).toBe(6800);
+      });
+
+      test('should get products with locale parameter (TDD - RED)', async () => {
+        // First create a product with translations
+        await Product.create({
+          name: 'Test Localized Product',
+          slug: 'test-localized-product',
+          description: 'English description',
+          shortDescription: 'English short description',
+          translations: {
+            es: {
+              name: 'Producto Localizado de Prueba',
+              description: 'Descripción en español',
+              shortDescription: 'Descripción corta en español'
+            }
+          },
+          price: 29.99,
+          category: 'crystals',
+          wholesaler: {
+            name: 'Test Wholesaler',
+            email: 'test@wholesaler.com',
+            productCode: 'TEST-001',
+            cost: 15.00
+          }
+        });
+
+        const response = await request(app)
+          .get('/api/admin/products?locale=es')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        const localizedProduct = response.body.data.products.find(p => p.slug === 'test-localized-product');
+        expect(localizedProduct).toBeDefined();
+        expect(localizedProduct.localizedName).toBe('Producto Localizado de Prueba');
+        expect(localizedProduct.localizedDescription).toBe('Descripción en español');
+      });
+
+      test('should support soft delete instead of hard delete (TDD - RED)', async () => {
+        const response = await request(app)
+          .delete(`/api/admin/products/${testProduct._id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('Product archived successfully');
+
+        // Product should still exist in database but marked as deleted
+        const archivedProduct = await Product.findById(testProduct._id);
+        expect(archivedProduct).toBeTruthy();
+        expect(archivedProduct.isDeleted).toBe(true);
+        expect(archivedProduct.deletedAt).toBeDefined();
+        expect(archivedProduct.isActive).toBe(false);
+
+        // Should not appear in normal listings
+        const listResponse = await request(app)
+          .get('/api/admin/products')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        const foundProduct = listResponse.body.data.products.find(p => p._id === testProduct._id.toString());
+        expect(foundProduct).toBeUndefined();
+      });
+
+      test('should restore soft-deleted products (TDD - RED)', async () => {
+        // First soft delete the product
+        await request(app)
+          .delete(`/api/admin/products/${testProduct._id}`)
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        // Then restore it
+        const response = await request(app)
+          .put(`/api/admin/products/${testProduct._id}/restore`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('Product restored successfully');
+
+        // Product should be active again
+        const restoredProduct = await Product.findById(testProduct._id);
+        expect(restoredProduct.isDeleted).toBe(false);
+        expect(restoredProduct.deletedAt).toBeNull();
+        expect(restoredProduct.isActive).toBe(true);
+      });
+    });
+
     test('should get all products with admin data', async () => {
       const response = await request(app)
         .get('/api/admin/products')
@@ -364,6 +505,81 @@ Invalid Product`; // Missing required fields
   });
 
   describe('Order Management', () => {
+    describe('Multi-currency Support', () => {
+      test('should filter orders by currency (TDD - RED)', async () => {
+        // Create an order in EUR
+        const eurOrder = await Order.create({
+          customer: regularUser._id,
+          items: [{
+            product: testProduct._id,
+            quantity: 1,
+            price: 42.50,
+            wholesaler: {
+              name: testProduct.wholesaler.name,
+              email: testProduct.wholesaler.email,
+              productCode: testProduct.wholesaler.productCode,
+              notified: false
+            }
+          }],
+          shippingAddress: {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            street: '123 Rue de Test',
+            city: 'Paris',
+            state: 'IDF',
+            zipCode: '75001',
+            country: 'FR'
+          },
+          billingAddress: {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            street: '123 Rue de Test',
+            city: 'Paris',
+            state: 'IDF',
+            zipCode: '75001',
+            country: 'FR'
+          },
+          subtotal: 42.50,
+          tax: 8.50,
+          shipping: 0,
+          total: 51.00,
+          currency: 'EUR',
+          exchangeRate: 0.92,
+          payment: {
+            method: 'card',
+            status: 'paid'
+          },
+          status: 'processing'
+        });
+
+        const response = await request(app)
+          .get('/api/admin/orders?currency=EUR')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.orders.length).toBeGreaterThan(0);
+        const eurOrders = response.body.data.orders.filter(o => o.currency === 'EUR');
+        expect(eurOrders.length).toBeGreaterThan(0);
+        expect(eurOrders[0].total).toBe(51.00);
+        expect(eurOrders[0].currency).toBe('EUR');
+      });
+
+      test('should show currency conversion info in order details (TDD - RED)', async () => {
+        const response = await request(app)
+          .get(`/api/admin/orders/${testOrder._id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.order.currency).toBeDefined();
+        expect(response.body.order.exchangeRate).toBeDefined();
+        expect(response.body.order.currencyInfo).toBeDefined();
+        expect(response.body.order.currencyInfo.displayTotal).toBeDefined();
+        expect(response.body.order.currencyInfo.baseTotal).toBeDefined();
+      });
+    });
+
     test('should get all orders with admin data', async () => {
       const response = await request(app)
         .get('/api/admin/orders')
@@ -580,6 +796,422 @@ Invalid Product`; // Missing required fields
     });
   });
 
+  describe('Extended Product Management - Missing Endpoints (TDD)', () => {
+    describe('Product Image Management', () => {
+      test('should upload images to specific product - POST /products/:id/images (TDD - RED)', async () => {
+        // Create mock image file
+        const mockImage = Buffer.from('fake-image-data');
+        
+        const response = await request(app)
+          .post(`/api/admin/products/${testProduct._id}/images`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .attach('images', mockImage, 'test-image.jpg')
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toContain('uploaded successfully');
+        expect(response.body.images).toBeDefined();
+        expect(response.body.images).toHaveLength(1);
+        expect(response.body.images[0].url).toContain('/images/products/');
+        
+        // Verify product was updated with new images
+        const updatedProduct = await Product.findById(testProduct._id);
+        expect(updatedProduct.images).toHaveLength(1);
+      });
+
+      test('should delete specific product image - DELETE /products/:id/images/:imageId (TDD - RED)', async () => {
+        // First add an image to the product
+        const imageId = new mongoose.Types.ObjectId();
+        await Product.findByIdAndUpdate(testProduct._id, {
+          $push: { 
+            images: { 
+              _id: imageId,
+              url: '/images/products/test-image.jpg',
+              alt: 'Test image',
+              isPrimary: false 
+            } 
+          }
+        });
+
+        const response = await request(app)
+          .delete(`/api/admin/products/${testProduct._id}/images/${imageId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('Image deleted successfully');
+        
+        // Verify image was removed from product
+        const updatedProduct = await Product.findById(testProduct._id);
+        const imageExists = updatedProduct.images.some(img => img._id.toString() === imageId);
+        expect(imageExists).toBe(false);
+      });
+    });
+
+    describe('Category Management', () => {
+      test('should get all product categories - GET /categories (TDD - RED)', async () => {
+        const response = await request(app)
+          .get('/api/admin/categories')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.categories).toBeDefined();
+        expect(Array.isArray(response.body.categories)).toBe(true);
+        expect(response.body.categories.length).toBeGreaterThan(0);
+        
+        // Should include the test product's category
+        const crystalsCategory = response.body.categories.find(cat => cat.name === 'crystals');
+        expect(crystalsCategory).toBeDefined();
+        expect(crystalsCategory.count).toBeGreaterThan(0);
+      });
+
+      test('should create new category with i18n support - POST /categories (TDD - RED)', async () => {
+        const categoryData = {
+          name: 'herbs',
+          slug: 'herbs',
+          description: 'Healing herbs and botanicals',
+          translations: {
+            es: {
+              name: 'hierbas',
+              description: 'Hierbas curativas y productos botánicos'
+            },
+            fr: {
+              name: 'herbes',
+              description: 'Herbes de guérison et produits botaniques'
+            }
+          },
+          isActive: true,
+          sortOrder: 2
+        };
+
+        const response = await request(app)
+          .post('/api/admin/categories')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send(categoryData)
+          .expect(201);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.category.name).toBe('herbs');
+        expect(response.body.category.translations.es.name).toBe('hierbas');
+        expect(response.body.category.translations.fr.name).toBe('herbes');
+        expect(response.body.category.isActive).toBe(true);
+      });
+    });
+
+    describe('Inventory Management', () => {
+      test('should update product inventory - PUT /products/:id/inventory (TDD - RED)', async () => {
+        const inventoryData = {
+          stock: 50,
+          lowStockThreshold: 10,
+          trackInventory: true,
+          allowBackorder: false,
+          sku: 'TC-001-NEW'
+        };
+
+        const response = await request(app)
+          .put(`/api/admin/products/${testProduct._id}/inventory`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send(inventoryData)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('Inventory updated successfully');
+        expect(response.body.product.inventory.stock).toBe(50);
+        expect(response.body.product.inventory.trackInventory).toBe(true);
+        expect(response.body.product.inventory.sku).toBe('TC-001-NEW');
+        
+        // Verify in database
+        const updatedProduct = await Product.findById(testProduct._id);
+        expect(updatedProduct.inventory.stock).toBe(50);
+        expect(updatedProduct.inventory.lowStockThreshold).toBe(10);
+      });
+    });
+  });
+
+  describe('Extended Order Management - Missing Endpoints (TDD)', () => {
+    describe('Refund Processing', () => {
+      test('should process refund via Mollie - POST /orders/:id/refund (TDD - RED)', async () => {
+        const refundData = {
+          amount: 30.00,
+          reason: 'Customer request',
+          notifyCustomer: true
+        };
+
+        const response = await request(app)
+          .post(`/api/admin/orders/${testOrder._id}/refund`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send(refundData)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.refund).toBeDefined();
+        expect(response.body.refund.amount).toBe(30.00);
+        expect(response.body.refund.status).toBeDefined();
+        expect(response.body.refund.mollieRefundId).toBeDefined();
+        
+        // Verify order was updated
+        const updatedOrder = await Order.findById(testOrder._id);
+        expect(updatedOrder.refunds).toHaveLength(1);
+        expect(updatedOrder.refunds[0].amount).toBe(30.00);
+      });
+
+      test('should handle partial refunds (TDD - RED)', async () => {
+        const refundData = {
+          amount: 20.00,
+          reason: 'Partial refund for damaged item',
+          items: [{ productId: testProduct._id, quantity: 1 }]
+        };
+
+        const response = await request(app)
+          .post(`/api/admin/orders/${testOrder._id}/refund`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send(refundData)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.refund.amount).toBe(20.00);
+        expect(response.body.refund.type).toBe('partial');
+      });
+    });
+
+    describe('Shipping Labels', () => {
+      test('should generate shipping label - GET /orders/:id/shipping-label (TDD - RED)', async () => {
+        const response = await request(app)
+          .get(`/api/admin/orders/${testOrder._id}/shipping-label`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.shippingLabel).toBeDefined();
+        expect(response.body.shippingLabel.trackingNumber).toBeDefined();
+        expect(response.body.shippingLabel.labelUrl).toBeDefined();
+        expect(response.body.shippingLabel.carrier).toBeDefined();
+        
+        // Verify order was updated with shipping info
+        const updatedOrder = await Order.findById(testOrder._id);
+        expect(updatedOrder.shipping.trackingNumber).toBeDefined();
+        expect(updatedOrder.shipping.labelUrl).toBeDefined();
+      });
+    });
+  });
+
+  describe('Extended User Management - Missing Endpoints (TDD)', () => {
+    describe('User Details and History', () => {
+      test('should get user details with order history - GET /users/:id (TDD - RED)', async () => {
+        const response = await request(app)
+          .get(`/api/admin/users/${regularUser._id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.user).toBeDefined();
+        expect(response.body.user._id).toBe(regularUser._id.toString());
+        expect(response.body.user.email).toBe(regularUser.email);
+        expect(response.body.user.password).toBeUndefined(); // Should not include password
+        
+        // Should include order history
+        expect(response.body.user.orderHistory).toBeDefined();
+        expect(response.body.user.orderHistory.orders).toBeDefined();
+        expect(response.body.user.orderHistory.totalOrders).toBeGreaterThan(0);
+        expect(response.body.user.orderHistory.totalSpent).toBeGreaterThan(0);
+        expect(response.body.user.orderHistory.averageOrderValue).toBeGreaterThan(0);
+      });
+
+      test('should get user activity logs - GET /users/:id/activity (TDD - RED)', async () => {
+        const response = await request(app)
+          .get(`/api/admin/users/${regularUser._id}/activity`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.activity).toBeDefined();
+        expect(response.body.activity.logs).toBeDefined();
+        expect(Array.isArray(response.body.activity.logs)).toBe(true);
+        expect(response.body.activity.summary).toBeDefined();
+        expect(response.body.activity.summary.lastLogin).toBeDefined();
+        expect(response.body.activity.summary.totalSessions).toBeDefined();
+      });
+    });
+
+    describe('User Information Updates', () => {
+      test('should update user information - PUT /users/:id (TDD - RED)', async () => {
+        const updateData = {
+          firstName: 'Updated',
+          lastName: 'Name',
+          phone: '+1-555-0123',
+          preferences: {
+            newsletter: true,
+            language: 'es',
+            currency: 'EUR'
+          }
+        };
+
+        const response = await request(app)
+          .put(`/api/admin/users/${regularUser._id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send(updateData)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.user.firstName).toBe('Updated');
+        expect(response.body.user.lastName).toBe('Name');
+        expect(response.body.user.phone).toBe('+1-555-0123');
+        expect(response.body.user.preferences.language).toBe('es');
+        
+        // Verify in database
+        const updatedUser = await User.findById(regularUser._id);
+        expect(updatedUser.firstName).toBe('Updated');
+        expect(updatedUser.preferences.currency).toBe('EUR');
+      });
+
+      test('should change user role - PUT /users/:id/role (TDD - RED)', async () => {
+        const roleData = {
+          role: 'admin',
+          permissions: ['products.manage', 'orders.manage', 'users.view']
+        };
+
+        const response = await request(app)
+          .put(`/api/admin/users/${regularUser._id}/role`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send(roleData)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.user.isAdmin).toBe(true);
+        expect(response.body.user.permissions).toEqual(['products.manage', 'orders.manage', 'users.view']);
+        
+        // Verify in database
+        const updatedUser = await User.findById(regularUser._id);
+        expect(updatedUser.isAdmin).toBe(true);
+        expect(updatedUser.permissions).toEqual(['products.manage', 'orders.manage', 'users.view']);
+      });
+    });
+  });
+
+  describe('Extended Analytics - Missing Endpoints (TDD)', () => {
+    describe('Sales Analytics', () => {
+      test('should get sales analytics with multi-currency support - GET /analytics/sales (TDD - RED)', async () => {
+        const response = await request(app)
+          .get('/api/admin/analytics/sales?period=30d&groupBy=day&currency=all')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.salesAnalytics).toBeDefined();
+        expect(response.body.salesAnalytics.period).toBe('30d');
+        expect(response.body.salesAnalytics.groupBy).toBe('day');
+        expect(response.body.salesAnalytics.data).toBeDefined();
+        expect(response.body.salesAnalytics.summary).toBeDefined();
+        expect(response.body.salesAnalytics.summary.totalRevenue).toBeDefined();
+        expect(response.body.salesAnalytics.summary.totalOrders).toBeDefined();
+        expect(response.body.salesAnalytics.summary.averageOrderValue).toBeDefined();
+        expect(response.body.salesAnalytics.byCurrency).toBeDefined();
+      });
+
+      test('should filter sales analytics by currency (TDD - RED)', async () => {
+        const response = await request(app)
+          .get('/api/admin/analytics/sales?currency=USD&period=7d')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.salesAnalytics.filters.currency).toBe('USD');
+        expect(response.body.salesAnalytics.byCurrency.USD).toBeDefined();
+      });
+    });
+
+    describe('Product Performance Analytics', () => {
+      test('should get product performance metrics - GET /analytics/products (TDD - RED)', async () => {
+        const response = await request(app)
+          .get('/api/admin/analytics/products?period=30d&sort=revenue&limit=10')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.productAnalytics).toBeDefined();
+        expect(response.body.productAnalytics.topProducts).toBeDefined();
+        expect(response.body.productAnalytics.categoryPerformance).toBeDefined();
+        expect(response.body.productAnalytics.summary).toBeDefined();
+        expect(response.body.productAnalytics.summary.totalProducts).toBeDefined();
+        expect(response.body.productAnalytics.summary.activeProducts).toBeDefined();
+        expect(response.body.productAnalytics.lowStockAlerts).toBeDefined();
+      });
+    });
+
+    describe('Customer Analytics', () => {
+      test('should get customer insights by country - GET /analytics/customers (TDD - RED)', async () => {
+        const response = await request(app)
+          .get('/api/admin/analytics/customers?period=30d&groupBy=country')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.customerAnalytics).toBeDefined();
+        expect(response.body.customerAnalytics.byCountry).toBeDefined();
+        expect(response.body.customerAnalytics.summary).toBeDefined();
+        expect(response.body.customerAnalytics.summary.totalCustomers).toBeDefined();
+        expect(response.body.customerAnalytics.summary.newCustomers).toBeDefined();
+        expect(response.body.customerAnalytics.summary.returningCustomers).toBeDefined();
+        expect(response.body.customerAnalytics.topCountries).toBeDefined();
+      });
+
+      test('should support different customer groupings (TDD - RED)', async () => {
+        const response = await request(app)
+          .get('/api/admin/analytics/customers?groupBy=language&period=7d')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.customerAnalytics.byLanguage).toBeDefined();
+      });
+    });
+
+    describe('Revenue Analytics', () => {
+      test('should get revenue analytics by currency - GET /analytics/revenue (TDD - RED)', async () => {
+        const response = await request(app)
+          .get('/api/admin/analytics/revenue?period=30d&groupBy=currency')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.revenueAnalytics).toBeDefined();
+        expect(response.body.revenueAnalytics.byCurrency).toBeDefined();
+        expect(response.body.revenueAnalytics.summary).toBeDefined();
+        expect(response.body.revenueAnalytics.summary.totalRevenue).toBeDefined();
+        expect(response.body.revenueAnalytics.summary.projectedRevenue).toBeDefined();
+        expect(response.body.revenueAnalytics.trends).toBeDefined();
+      });
+    });
+
+    describe('Analytics Export', () => {
+      test('should export analytics data as CSV - GET /analytics/export (TDD - RED)', async () => {
+        const response = await request(app)
+          .get('/api/admin/analytics/export?type=sales&format=csv&period=30d')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.headers['content-type']).toBe('text/csv; charset=utf-8');
+        expect(response.headers['content-disposition']).toContain('attachment');
+        expect(response.text).toContain('Date,Revenue,Orders,Average Order Value');
+      });
+
+      test('should export analytics data as JSON - GET /analytics/export (TDD - RED)', async () => {
+        const response = await request(app)
+          .get('/api/admin/analytics/export?type=products&format=json&period=7d')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.headers['content-type']).toBe('application/json; charset=utf-8');
+        expect(response.headers['content-disposition']).toContain('attachment');
+        expect(response.body.exportData).toBeDefined();
+        expect(response.body.exportType).toBe('products');
+        expect(response.body.period).toBe('7d');
+        expect(response.body.generatedAt).toBeDefined();
+      });
+    });
+  });
+
   describe('Error Handling', () => {
     test('should handle non-existent order', async () => {
       const fakeId = new mongoose.Types.ObjectId();
@@ -612,6 +1244,42 @@ Invalid Product`; // Missing required fields
 
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('NO_FILE');
+    });
+
+    test('should handle non-existent product for image upload (TDD - RED)', async () => {
+      const fakeId = new mongoose.Types.ObjectId();
+      const mockImage = Buffer.from('fake-image-data');
+      
+      const response = await request(app)
+        .post(`/api/admin/products/${fakeId}/images`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .attach('images', mockImage, 'test-image.jpg')
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('PRODUCT_NOT_FOUND');
+    });
+
+    test('should handle invalid refund amount (TDD - RED)', async () => {
+      const response = await request(app)
+        .post(`/api/admin/orders/${testOrder._id}/refund`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: -10, reason: 'Invalid amount' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    test('should handle refund amount exceeding order total (TDD - RED)', async () => {
+      const response = await request(app)
+        .post(`/api/admin/orders/${testOrder._id}/refund`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ amount: 1000, reason: 'Too much' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('REFUND_AMOUNT_EXCEEDS_TOTAL');
     });
   });
 });

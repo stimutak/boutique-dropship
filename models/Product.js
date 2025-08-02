@@ -90,6 +90,38 @@ const productSchema = new mongoose.Schema({
     enabled: { type: Boolean, default: true },
     referenceKey: String, // For linking from sister sites
     relatedContent: [String] // URLs or content IDs from sister sites
+  },
+  // Inventory management
+  inventory: {
+    stock: { type: Number, default: 0 },
+    lowStockThreshold: { type: Number, default: 5 },
+    trackInventory: { type: Boolean, default: false },
+    allowBackorder: { type: Boolean, default: false },
+    sku: { type: String, trim: true }
+  },
+  // Internationalization support
+  translations: {
+    type: Map,
+    of: {
+      name: String,
+      description: String,
+      shortDescription: String,
+      seo: {
+        title: String,
+        description: String,
+        keywords: [String]
+      }
+    },
+    default: new Map()
+  },
+  // Soft delete support
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true
@@ -113,9 +145,48 @@ productSchema.methods.toPublicJSON = function() {
   return product;
 };
 
+// Method to get localized content
+productSchema.methods.getLocalizedContent = function(locale = 'en') {
+  if (locale === 'en' || !this.translations || !this.translations.get(locale)) {
+    return {
+      localizedName: this.name,
+      localizedDescription: this.description,
+      localizedShortDescription: this.shortDescription
+    };
+  }
+
+  const translation = this.translations.get(locale);
+  return {
+    localizedName: translation.name || this.name,
+    localizedDescription: translation.description || this.description,
+    localizedShortDescription: translation.shortDescription || this.shortDescription
+  };
+};
+
+// Method for soft delete
+productSchema.methods.softDelete = function() {
+  this.isDeleted = true;
+  this.deletedAt = new Date();
+  this.isActive = false;
+  return this.save();
+};
+
+// Method to restore soft-deleted product
+productSchema.methods.restore = function() {
+  this.isDeleted = false;
+  this.deletedAt = null;
+  this.isActive = true;
+  return this.save();
+};
+
 // Static method to get products for public API
 productSchema.statics.findPublic = function(query = {}) {
-  return this.find({ ...query, isActive: true }).select('-wholesaler');
+  return this.find({ ...query, isActive: true, isDeleted: { $ne: true } }).select('-wholesaler');
+};
+
+// Static method to find active products (excludes soft-deleted)
+productSchema.statics.findActive = function(query = {}) {
+  return this.find({ ...query, isDeleted: { $ne: true } });
 };
 
 // Method to get cross-site integration data

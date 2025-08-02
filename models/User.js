@@ -52,6 +52,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  permissions: {
+    type: [String],
+    default: []
+  },
   lastLogin: Date,
   passwordResetToken: String,
   passwordResetExpiry: Date,
@@ -62,6 +66,8 @@ const userSchema = new mongoose.Schema({
   preferences: {
     newsletter: { type: Boolean, default: false },
     notifications: { type: Boolean, default: true },
+    language: { type: String, default: 'en' },
+    currency: { type: String, default: 'USD' },
     emailPreferences: {
       orderConfirmations: { type: Boolean, default: true },
       paymentReceipts: { type: Boolean, default: true },

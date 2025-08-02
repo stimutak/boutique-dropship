@@ -112,8 +112,6 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
-  trackingNumber: String,
-  shippingCarrier: String,
   shipDate: Date,
   estimatedDeliveryDate: Date,
   statusHistory: [{
@@ -137,6 +135,27 @@ const orderSchema = new mongoose.Schema({
   }],
   notes: String,
   referralSource: String, // Track which sister site referred this order
+  // Refunds support
+  refunds: [{
+    _id: mongoose.Schema.Types.ObjectId,
+    amount: { type: Number, required: true },
+    reason: { type: String, required: true },
+    status: { type: String, enum: ['pending', 'processed', 'failed'], default: 'pending' },
+    mollieRefundId: String,
+    processedAt: Date,
+    processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    type: { type: String, enum: ['full', 'partial'], default: 'full' },
+    items: [{ productId: mongoose.Schema.Types.ObjectId, quantity: Number }],
+    notifyCustomer: { type: Boolean, default: true }
+  }],
+  // Enhanced shipping support
+  shipping: {
+    trackingNumber: String,
+    labelUrl: String,
+    carrier: String,
+    labelGeneratedAt: Date,
+    cost: { type: Number, default: 0 }
+  },
   // Multi-currency support
   currency: {
     type: String,
