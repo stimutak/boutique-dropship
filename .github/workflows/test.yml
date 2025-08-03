@@ -68,6 +68,14 @@ jobs:
     - name: Run security tests
       run: npm test -- --testPathPattern="test/security"
 
+    - name: Publish Jest JUnit Test Report
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: jest
+        path: test-results/jest-junit.xml
+        reporter: junit
+
     - name: Generate combined coverage report
       run: |
         npx nyc merge coverage/unit coverage/integration

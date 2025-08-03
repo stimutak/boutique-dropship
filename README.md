@@ -1,5 +1,6 @@
 # Holistic Dropship Store
 
+[![CI](https://github.com/ORG/REPO/actions/workflows/test.yml/badge.svg)](https://github.com/ORG/REPO/actions/workflows/test.yml) [![Coverage](https://img.shields.io/codecov/c/github/ORG/REPO.svg)](https://codecov.io/gh/ORG/REPO) [![Dependencies](https://img.shields.io/librariesio/release/npm/holistic-dropship-store)](https://github.com/ORG/REPO/pulls?q=is%3Apr+is%3Aopen+label%3A%22dependencies%22)
 A full-stack e-commerce application for spiritual and wellness products with dropshipping functionality, built with React and Node.js.
 
 ## 🌟 Features

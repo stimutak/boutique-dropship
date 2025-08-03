@@ -93,8 +93,11 @@ module.exports = {
     'node'
   ],
   
-  // Reporters
-  reporters: ['default'],
+  // Reporters (add JUnit reporter for CI)
+  reporters: [
+    'default',
+    ['jest-junit', { outputDirectory: 'test-results', outputName: 'jest-junit.xml' }]
+  ],
   
   // Error handling
   errorOnDeprecated: false,
