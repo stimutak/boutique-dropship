@@ -17,16 +17,20 @@
     "test:ci": "jest --ci --coverage --watchAll=false --passWithNoTests",
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "lint": "eslint . --ext .js --fix",
-    "lint:check": "eslint . --ext .js",
+    "lint:check": "eslint . --ext .js --max-warnings=0",
     "audit": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
     "docs:api": "node scripts/generateApiDocs.js",
     "validate": "npm run lint:check && npm run test:ci && npm run audit"
   },
+  "husky": {
+    "hooks": {
+      "pre-push": "npm run validate && npm run build"
+    }
+  },
   "dependencies": {
     "@mollie/api-client": "^3.7.0",
     "@reduxjs/toolkit": "^2.8.2",
-    "axios": "^1.10.0",
     "axios-cookiejar-support": "^6.0.4",
     "bcryptjs": "^2.4.3",
     "connect-mongo": "^5.0.0",
@@ -58,7 +62,9 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.6.0",
+    "axios": "^1.11.0",
     "babel-jest": "^29.6.2",
+    "colors": "^1.4.0",
     "eslint": "^8.57.0",
     "eslint-config-node": "^4.1.0",
     "eslint-plugin-jest": "^27.2.3",
@@ -72,8 +78,19 @@
     "mongodb-memory-server": "^8.16.1",
     "nodemon": "^3.0.1",
     "nyc": "^15.1.0",
+    "husky": "^4.3.8",
     "supertest": "^6.3.3",
     "vite": "^7.0.5",
     "vitest": "^3.2.4"
+  },
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ],
+    "branches": 90,
+    "functions": 90,
+    "lines": 95,
+    "statements": 95
   }
 }
