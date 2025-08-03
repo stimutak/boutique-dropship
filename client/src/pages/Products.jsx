@@ -133,12 +133,20 @@ const Products = () => {
                     {/* Spiritual Properties */}
                     {product.properties && (
                       <div className="spiritual-properties">
-                        {product.properties.chakra && product.properties.chakra.length > 0 && (
-                          <span className="property">Chakra: {product.properties.chakra.join(', ')}</span>
-                        )}
-                        {product.properties.element && product.properties.element.length > 0 && (
-                          <span className="property">Element: {product.properties.element.join(', ')}</span>
-                        )}
+                        {product.properties.chakra && product.properties.chakra.length > 0 && 
+                          product.properties.chakra.map((chakra, index) => (
+                            <span key={`chakra-${index}`} className="property">
+                              {chakra}
+                            </span>
+                          ))
+                        }
+                        {product.properties.element && product.properties.element.length > 0 && 
+                          product.properties.element.map((element, index) => (
+                            <span key={`element-${index}`} className="property">
+                              {element}
+                            </span>
+                          ))
+                        }
                       </div>
                     )}
                     

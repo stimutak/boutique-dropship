@@ -7,6 +7,7 @@ import { clearAfterMerge } from '../../store/slices/cartSlice'
 import { searchProducts } from '../../store/slices/productsSlice'
 import LanguageSelector from '../LanguageSelector'
 import { supportedLanguages } from '../../i18n/i18n'
+import './Header.css'
 
 const Header = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -47,155 +48,185 @@ const Header = () => {
   }
 
   return (
-    <header style={{ backgroundColor: '#7c3aed', color: 'white', padding: '1rem 0' }}>
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          {/* Logo */}
-          <Link to="/" style={{ color: 'white', textDecoration: 'none', fontSize: '1.5rem', fontWeight: 'bold' }}>
-            Holistic Store
+    <header className={`header ${isRTL ? 'rtl' : ''}`}>
+      <div className="header-content">
+        {/* Logo */}
+        <Link to="/" className="logo">
+          Holistic Store
+        </Link>
+
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="search-form">
+          <input
+            type="text"
+            placeholder={t('common.search')}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          <button type="submit" className="search-button">
+            {t('common.search')}
+          </button>
+        </form>
+
+        {/* Mobile Menu Toggle */}
+        <button 
+          className="mobile-menu-toggle"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          ☰
+        </button>
+
+        {/* Navigation */}
+        <nav className="nav-menu">
+          <Link to="/products" className="nav-link">
+            {t('navigation.products')}
+          </Link>
+          
+          <Link to="/cart" className="nav-link cart-link">
+            {t('navigation.cart')}
+            {totalItems > 0 && (
+              <span className="cart-badge">
+                {totalItems}
+              </span>
+            )}
           </Link>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} style={{ display: 'flex', flex: '1', maxWidth: '400px', margin: '0 2rem' }}>
-            <input
-              type="text"
-              placeholder={t('common.search')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                flex: '1',
-                padding: '0.5rem',
-                border: 'none',
-                borderRadius: isRTL ? '0 4px 4px 0' : '4px 0 0 4px',
-                fontSize: '1rem'
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#6d28d9',
-                color: 'white',
-                border: 'none',
-                borderRadius: isRTL ? '4px 0 0 4px' : '0 4px 4px 0',
-                cursor: 'pointer'
-              }}
-            >
-              {t('common.search')}
-            </button>
-          </form>
+          {isAuthenticated ? (
+            <div className="user-menu">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="user-menu-toggle"
+              >
+                {user?.firstName || 'Account'} {isRTL ? '▲' : '▼'}
+              </button>
+              
+              {isMenuOpen && (
+                <div className="user-dropdown">
+                  <Link
+                    to="/profile"
+                    className="dropdown-link"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {t('navigation.profile')}
+                  </Link>
+                  {user?.isAdmin && (
+                    <Link
+                      to="/admin"
+                      className="dropdown-link admin-link"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  <Link
+                    to="/orders"
+                    className="dropdown-link"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {t('navigation.orders')}
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleLogout()
+                      setIsMenuOpen(false)
+                    }}
+                    className="dropdown-link logout-button"
+                  >
+                    {t('navigation.logout')}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <Link to="/login" className="nav-link">
+                {t('navigation.login')}
+              </Link>
+              <Link to="/register" className="nav-link">
+                {t('navigation.register')}
+              </Link>
+            </>
+          )}
+          
+          {/* Language Selector */}
+          <LanguageSelector />
+        </nav>
 
-          {/* Navigation */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <Link to="/products" style={{ color: 'white', textDecoration: 'none' }}>
+        {/* Mobile Menu */}
+        <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
+          <div className="mobile-menu-content">
+            <Link 
+              to="/products" 
+              className="mobile-nav-link"
+              onClick={() => setIsMenuOpen(false)}
+            >
               {t('navigation.products')}
             </Link>
             
-            <Link to="/cart" style={{ color: 'white', textDecoration: 'none', position: 'relative' }}>
-              {t('navigation.cart')}
-              {totalItems > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-8px',
-                  [isRTL ? 'left' : 'right']: '-8px',
-                  backgroundColor: '#dc2626',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem'
-                }}>
-                  {totalItems}
-                </span>
-              )}
+            <Link 
+              to="/cart" 
+              className="mobile-nav-link"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {t('navigation.cart')} ({totalItems})
             </Link>
 
             {isAuthenticated ? (
-              <div style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: '1rem'
-                  }}
+              <>
+                <Link
+                  to="/profile"
+                  className="mobile-nav-link"
+                  onClick={() => setIsMenuOpen(false)}
                 >
-                  {user?.firstName || 'Account'} {isRTL ? '▲' : '▼'}
-                </button>
-                
-                {isMenuOpen && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    [isRTL ? 'left' : 'right']: '0',
-                    backgroundColor: 'white',
-                    color: 'black',
-                    minWidth: '150px',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                    borderRadius: '4px',
-                    zIndex: 1000
-                  }}>
-                    <Link
-                      to="/profile"
-                      style={{ display: 'block', padding: '0.5rem 1rem', textDecoration: 'none', color: 'black' }}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {t('navigation.profile')}
-                    </Link>
-                    {user?.isAdmin && (
-                      <Link
-                        to="/admin"
-                        style={{ display: 'block', padding: '0.5rem 1rem', textDecoration: 'none', color: 'black', borderTop: '1px solid #eee' }}
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        Admin Dashboard
-                      </Link>
-                    )}
-                    <Link
-                      to="/orders"
-                      style={{ display: 'block', padding: '0.5rem 1rem', textDecoration: 'none', color: 'black' }}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {t('navigation.orders')}
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout()
-                        setIsMenuOpen(false)
-                      }}
-                      style={{
-                        width: '100%',
-                        textAlign: 'start',
-                        padding: '0.5rem 1rem',
-                        border: 'none',
-                        background: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {t('navigation.logout')}
-                    </button>
-                  </div>
+                  {t('navigation.profile')}
+                </Link>
+                {user?.isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="mobile-nav-link"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Admin Dashboard
+                  </Link>
                 )}
-              </div>
+                <Link
+                  to="/orders"
+                  className="mobile-nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {t('navigation.orders')}
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout()
+                    setIsMenuOpen(false)
+                  }}
+                  className="mobile-nav-link logout-button"
+                >
+                  {t('navigation.logout')}
+                </button>
+              </>
             ) : (
               <>
-                <Link to="/login" style={{ color: 'white', textDecoration: 'none' }}>
+                <Link 
+                  to="/login" 
+                  className="mobile-nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   {t('navigation.login')}
                 </Link>
-                <Link to="/register" style={{ color: 'white', textDecoration: 'none' }}>
+                <Link 
+                  to="/register" 
+                  className="mobile-nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   {t('navigation.register')}
                 </Link>
               </>
             )}
-            
-            {/* Language Selector */}
-            <LanguageSelector />
-          </nav>
+          </div>
         </div>
       </div>
     </header>

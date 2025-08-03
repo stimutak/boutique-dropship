@@ -29,9 +29,9 @@ const Home = () => {
       <section className="hero">
         <div className="container">
           <div className="hero-content">
-            <h1>Welcome to Holistic Store</h1>
-            <p>Discover spiritual and wellness products to enhance your journey</p>
-            <Link to="/products" className="btn btn-primary">
+            <h1>Your Gateway to Authentic Wellness</h1>
+            <p>Where ancient wisdom meets modern quality, delivered with care and integrity</p>
+            <Link to="/products" className="btn btn-primary btn-luxury">
               Shop Now
             </Link>
           </div>
@@ -41,7 +41,7 @@ const Home = () => {
       {/* Categories Section */}
       <section className="categories">
         <div className="container">
-          <h2>Shop by Category</h2>
+          <h2 className="luxury-title">Shop by Category</h2>
           <div className="grid grid-3">
             {categories.map(category => (
               <Link 

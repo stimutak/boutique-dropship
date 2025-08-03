@@ -120,18 +120,48 @@ const ProductDetail = () => {
             {product.properties && (
               <div className="spiritual-properties">
                 <h3>Spiritual Properties</h3>
-                {product.properties.chakra && product.properties.chakra.length > 0 && (
-                  <p><strong>Chakra:</strong> {product.properties.chakra.join(', ')}</p>
-                )}
-                {product.properties.element && product.properties.element.length > 0 && (
-                  <p><strong>Element:</strong> {product.properties.element.join(', ')}</p>
-                )}
-                {product.properties.zodiac && product.properties.zodiac.length > 0 && (
-                  <p><strong>Zodiac:</strong> {product.properties.zodiac.join(', ')}</p>
-                )}
-                {product.properties.healing && product.properties.healing.length > 0 && (
-                  <p><strong>Healing Properties:</strong> {product.properties.healing.join(', ')}</p>
-                )}
+                <div className="properties-tags">
+                  {product.properties.chakra && product.properties.chakra.length > 0 && (
+                    <div className="property-group">
+                      <strong>Chakra:</strong>
+                      {product.properties.chakra.map((chakra, index) => (
+                        <span key={`chakra-${index}`} className="property-tag">
+                          {chakra}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {product.properties.element && product.properties.element.length > 0 && (
+                    <div className="property-group">
+                      <strong>Element:</strong>
+                      {product.properties.element.map((element, index) => (
+                        <span key={`element-${index}`} className="property-tag">
+                          {element}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {product.properties.zodiac && product.properties.zodiac.length > 0 && (
+                    <div className="property-group">
+                      <strong>Zodiac:</strong>
+                      {product.properties.zodiac.map((zodiac, index) => (
+                        <span key={`zodiac-${index}`} className="property-tag">
+                          {zodiac}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {product.properties.healing && product.properties.healing.length > 0 && (
+                    <div className="property-group">
+                      <strong>Healing:</strong>
+                      {product.properties.healing.map((healing, index) => (
+                        <span key={`healing-${index}`} className="property-tag">
+                          {healing}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
