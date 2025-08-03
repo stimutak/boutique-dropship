@@ -8,12 +8,12 @@ export default defineConfig({
     host: true, // Listen on all addresses for Docker
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:5001',
+        target: process.env.VITE_API_URL || 'http://backend:5001',
         changeOrigin: true,
         secure: false
       },
       '/images': {
-        target: process.env.VITE_API_URL || 'http://localhost:5001',
+        target: process.env.VITE_API_URL || 'http://backend:5001',
         changeOrigin: true,
         secure: false
       }
