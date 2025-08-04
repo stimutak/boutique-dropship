@@ -11,7 +11,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const Review = require('../models/Review');
 const { requireAdmin } = require('../middleware/auth');
-const { processOrderNotifications } = require('../utils/wholesalerNotificationService');
+// processOrderNotifications removed - not used in this route
 const { csvValidator, imageValidator, cleanupTempFiles } = require('../middleware/uploadSecurity');
 
 // Configure secure multer for CSV uploads
