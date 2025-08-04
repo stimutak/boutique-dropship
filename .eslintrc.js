@@ -19,6 +19,11 @@ module.exports = {
     ecmaVersion: 2021,
     sourceType: 'module'
   },
+  settings: {
+    node: {
+      version: '>=14.0.0'  // Support spread operator and modern JS features
+    }
+  },
   rules: {
     // Error prevention
     'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
@@ -63,6 +68,10 @@ module.exports = {
     'node/exports-style': ['error', 'module.exports'],
     'node/prefer-global/buffer': ['error', 'always'],
     'node/prefer-global/process': ['error', 'always'],
+    'node/no-unsupported-features/es-syntax': ['error', {
+      version: '>=14.0.0',
+      ignores: []
+    }],
     
     // Security
     'security/detect-object-injection': 'warn',
@@ -102,7 +111,14 @@ module.exports = {
       files: ['scripts/**/*.js'],
       rules: {
         'no-console': 'off',
-        'node/no-unpublished-require': 'off'
+        'node/no-unpublished-require': 'off',
+        'no-process-exit': 'off'
+      }
+    },
+    {
+      files: ['scripts/test-design-system.js'],
+      env: {
+        browser: true
       }
     },
     {
@@ -126,6 +142,7 @@ module.exports = {
     'logs/',
     '*.min.js',
     '.jest-cache/',
-    'public/'
+    'public/',
+    'mongo-init.js'  // MongoDB script, not Node.js
   ]
 };

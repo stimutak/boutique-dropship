@@ -90,8 +90,8 @@ export const fetchReviewStats = createAsyncThunk(
 const initialState = {
   // Product reviews
   productReviews: {},
-  productReviewsLoading: false,
-  productReviewsError: null,
+  productReviewsLoading: {},
+  productReviewsError: {},
   
   // User's reviews
   myReviews: [],
@@ -126,28 +126,37 @@ const reviewsSlice = createSlice({
       state.submitSuccess = false;
     },
     clearErrors: (state) => {
-      state.productReviewsError = null;
+      state.productReviewsError = {};
       state.myReviewsError = null;
       state.allReviewsError = null;
       state.statsError = null;
       state.submitError = null;
     },
+    clearProductError: (state, action) => {
+      const productId = action.payload;
+      if (state.productReviewsError[productId]) {
+        state.productReviewsError[productId] = null;
+      }
+    },
   },
   extraReducers: (builder) => {
     // Fetch product reviews
     builder
-      .addCase(fetchProductReviews.pending, (state) => {
-        state.productReviewsLoading = true;
-        state.productReviewsError = null;
+      .addCase(fetchProductReviews.pending, (state, action) => {
+        const { productId } = action.meta.arg;
+        state.productReviewsLoading[productId] = true;
+        state.productReviewsError[productId] = null;
       })
       .addCase(fetchProductReviews.fulfilled, (state, action) => {
-        state.productReviewsLoading = false;
         const { productId } = action.meta.arg;
+        state.productReviewsLoading[productId] = false;
         state.productReviews[productId] = action.payload;
+        state.productReviewsError[productId] = null;
       })
       .addCase(fetchProductReviews.rejected, (state, action) => {
-        state.productReviewsLoading = false;
-        state.productReviewsError = action.error.message;
+        const { productId } = action.meta.arg;
+        state.productReviewsLoading[productId] = false;
+        state.productReviewsError[productId] = action.error.message || 'Failed to load reviews';
       });
 
     // Submit review
@@ -264,6 +273,6 @@ const reviewsSlice = createSlice({
   },
 });
 
-export const { clearSubmitState, clearErrors } = reviewsSlice.actions;
+export const { clearSubmitState, clearErrors, clearProductError } = reviewsSlice.actions;
 
 export default reviewsSlice.reducer;

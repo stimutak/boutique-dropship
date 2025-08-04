@@ -67,10 +67,10 @@ const validateFileMagicNumber = (buffer, fileType) => {
 
   if (fileType === 'image') {
     // Check image magic numbers
-    if (buffer.slice(0, 3).equals(Buffer.from(magicNumbers.image.jpeg))) return true;
-    if (buffer.slice(0, 4).equals(Buffer.from(magicNumbers.image.png))) return true;
-    if (buffer.slice(0, 3).equals(Buffer.from(magicNumbers.image.gif))) return true;
-    if (buffer.slice(0, 4).equals(Buffer.from(magicNumbers.image.webp))) return true;
+    if (buffer.slice(0, 3).equals(Buffer.from(magicNumbers.image.jpeg))) {return true;}
+    if (buffer.slice(0, 4).equals(Buffer.from(magicNumbers.image.png))) {return true;}
+    if (buffer.slice(0, 3).equals(Buffer.from(magicNumbers.image.gif))) {return true;}
+    if (buffer.slice(0, 4).equals(Buffer.from(magicNumbers.image.webp))) {return true;}
     return false;
   }
 
@@ -209,7 +209,7 @@ const createFileValidator = (fileType) => {
 
 // Cleanup function for temporary files
 const cleanupTempFiles = (files) => {
-  if (!files) return;
+  if (!files) { return; }
 
   const fileArray = Array.isArray(files) ? files : [files];
   fileArray.forEach(file => {

@@ -2,19 +2,13 @@ const request = require('supertest');
 const crypto = require('crypto');
 const app = require('../../server');
 const User = require('../../models/User');
-const { connectDB, clearDB, closeDB } = require('../setup/testDb');
+// Test setup is handled by jest.config.js setupFilesAfterEnv
 
 describe('Password Recovery Flow', () => {
   let agent;
   let testUser;
 
-  beforeAll(async () => {
-    await connectDB();
-  });
-
-  afterAll(async () => {
-    await closeDB();
-  });
+  // Database connection handled by test/setup.js
 
   beforeEach(async () => {
     await clearDB();

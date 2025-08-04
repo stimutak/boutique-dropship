@@ -2,20 +2,14 @@ const request = require('supertest');
 const app = require('../../server');
 const Product = require('../../models/Product');
 const Order = require('../../models/Order');
-const { connectDB, clearDB, closeDB } = require('../setup/testDb');
+// Test setup is handled by jest.config.js setupFilesAfterEnv
 
 describe('Checkout Flow Integration Tests', () => {
   let agent;
   let testProduct;
   let csrfToken;
 
-  beforeAll(async () => {
-    await connectDB();
-  });
-
-  afterAll(async () => {
-    await closeDB();
-  });
+  // Database connection handled by test/setup.js
 
   beforeEach(async () => {
     await clearDB();

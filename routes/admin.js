@@ -2345,10 +2345,10 @@ router.get('/reviews', async (req, res) => {
 
     // Build filter query
     const filter = {};
-    if (status) filter.status = status;
-    if (productId) filter.product = productId;
-    if (userId) filter.user = userId;
-    if (rating) filter.rating = parseInt(rating);
+    if (status) {filter.status = status;}
+    if (productId) {filter.product = productId;}
+    if (userId) {filter.user = userId;}
+    if (rating) {filter.rating = parseInt(rating);}
 
     // Parse pagination
     const pageNum = parseInt(page);
@@ -2641,8 +2641,8 @@ router.get('/reviews/stats', async (req, res) => {
     const dateFilter = {};
     if (startDate || endDate) {
       dateFilter.createdAt = {};
-      if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
-      if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+      if (startDate) {dateFilter.createdAt.$gte = new Date(startDate);}
+      if (endDate) {dateFilter.createdAt.$lte = new Date(endDate);}
     }
 
     // Get basic counts

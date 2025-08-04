@@ -1,6 +1,6 @@
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
+const _mongoose = require('mongoose');
 const User = require('../../models/User');
 const Product = require('../../models/Product');
 const Order = require('../../models/Order');

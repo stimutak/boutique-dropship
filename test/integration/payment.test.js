@@ -2,20 +2,14 @@ const request = require('supertest');
 const app = require('../../server');
 const Order = require('../../models/Order');
 const Product = require('../../models/Product');
-const { connectDB, clearDB, closeDB } = require('../setup/testDb');
+// Test setup is handled by jest.config.js setupFilesAfterEnv
 
 describe('Payment Integration Tests', () => {
   let agent;
   let testOrder;
   let csrfToken;
 
-  beforeAll(async () => {
-    await connectDB();
-  });
-
-  afterAll(async () => {
-    await closeDB();
-  });
+  // Database connection handled by test/setup.js
 
   beforeEach(async () => {
     await clearDB();

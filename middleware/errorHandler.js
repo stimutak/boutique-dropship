@@ -161,7 +161,13 @@ process.on('unhandledRejection', (err, promise) => {
   });
   
   // Close server gracefully
-  process.exit(1);
+  if (global.server) {
+    global.server.close(() => {
+      throw err; // Let Node.js handle the exit
+    });
+  } else {
+    throw err; // Let Node.js handle the exit
+  }
 });
 
 // Handle uncaught exceptions
@@ -172,7 +178,13 @@ process.on('uncaughtException', (err) => {
   });
   
   // Close server gracefully
-  process.exit(1);
+  if (global.server) {
+    global.server.close(() => {
+      throw err; // Let Node.js handle the exit
+    });
+  } else {
+    throw err; // Let Node.js handle the exit
+  }
 });
 
 module.exports = {

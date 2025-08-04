@@ -189,8 +189,8 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
     // Subtotal is already in user's currency
     const subtotalInCurrency = subtotal;
     const tax = Math.round(subtotalInCurrency * 0.08 * 100) / 100; // 8% tax rate
-    const shipping = subtotalInCurrency > 50 ? 0 : 5.99; // Free shipping threshold in user currency
-    const total = Math.round((subtotalInCurrency + tax + shipping) * 100) / 100;
+    const shippingCost = subtotalInCurrency > 50 ? 0 : 5.99; // Free shipping threshold in user currency
+    const total = Math.round((subtotalInCurrency + tax + shippingCost) * 100) / 100;
 
     // Create order
     const orderData = {
@@ -199,7 +199,7 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
       billingAddress,
       subtotal: Math.round(subtotalInCurrency * 100) / 100,
       tax,
-      shipping,
+      shippingCost,
       total,
       payment: {
         method: 'other', // Will be updated when payment is processed
@@ -367,8 +367,8 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
     // Subtotal is already in user's currency
     const subtotalInCurrency = subtotal;
     const tax = Math.round(subtotalInCurrency * 0.08 * 100) / 100; // 8% tax rate
-    const shipping = subtotalInCurrency > 50 ? 0 : 5.99; // Free shipping threshold in user currency
-    const total = Math.round((subtotalInCurrency + tax + shipping) * 100) / 100;
+    const shippingCost = subtotalInCurrency > 50 ? 0 : 5.99; // Free shipping threshold in user currency
+    const total = Math.round((subtotalInCurrency + tax + shippingCost) * 100) / 100;
 
     // Create order
     const orderData = {
@@ -378,7 +378,7 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
       billingAddress: billingAddress || shippingAddress,
       subtotal: Math.round(subtotalInCurrency * 100) / 100,
       tax,
-      shipping,
+      shippingCost,
       total,
       payment: {
         method: 'card',
@@ -557,8 +557,8 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
     // Subtotal is already in user's currency
     const subtotalInCurrency = subtotal;
     const tax = Math.round(subtotalInCurrency * 0.08 * 100) / 100; // 8% tax rate
-    const shipping = subtotalInCurrency > 50 ? 0 : 5.99; // Free shipping threshold in user currency
-    const total = Math.round((subtotalInCurrency + tax + shipping) * 100) / 100;
+    const shippingCost = subtotalInCurrency > 50 ? 0 : 5.99; // Free shipping threshold in user currency
+    const total = Math.round((subtotalInCurrency + tax + shippingCost) * 100) / 100;
 
     // Create order for registered user
     const orderData = {
@@ -568,7 +568,7 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
       billingAddress: finalBillingAddress,
       subtotal: Math.round(subtotalInCurrency * 100) / 100,
       tax,
-      shipping,
+      shippingCost,
       total,
       payment: {
         method: 'other',

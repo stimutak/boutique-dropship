@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { fetchProductReviews, markReviewHelpful } from '../../store/slices/reviewsSlice';
+import { fetchProductReviews, markReviewHelpful, clearProductError } from '../../store/slices/reviewsSlice';
 import StarRating from './StarRating';
 import './ReviewList.css';
 
@@ -11,11 +11,13 @@ const ReviewList = ({ productId }) => {
   const { user } = useSelector(state => state.auth);
   
   const reviewData = useSelector(state => state.reviews.productReviews[productId]);
-  const loading = useSelector(state => state.reviews.productReviewsLoading);
-  const error = useSelector(state => state.reviews.productReviewsError);
+  const loading = useSelector(state => state.reviews.productReviewsLoading[productId] || false);
+  const error = useSelector(state => state.reviews.productReviewsError[productId] || null);
 
   useEffect(() => {
     if (productId) {
+      // Clear the specific product error instead of all errors
+      dispatch(clearProductError(productId));
       dispatch(fetchProductReviews({ productId }));
     }
   }, [dispatch, productId]);
