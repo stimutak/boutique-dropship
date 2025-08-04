@@ -57,7 +57,7 @@ const ReviewList = ({ productId }) => {
             <div className="review-list__count">
               {stats.totalReviews} {t('reviews.reviews', { count: stats.totalReviews })}
             </div>
-            {stats.distribution && (
+            {stats.ratingDistribution && (
               <div className="review-list__distribution">
                 {[5, 4, 3, 2, 1].map(rating => (
                   <div key={rating} className="review-list__distribution-row">
@@ -67,11 +67,11 @@ const ReviewList = ({ productId }) => {
                     <div className="review-list__distribution-bar">
                       <div 
                         className="review-list__distribution-fill"
-                        style={{ width: `${(stats.distribution[rating] || 0) / stats.totalReviews * 100}%` }}
+                        style={{ width: stats.totalReviews > 0 ? `${(stats.ratingDistribution[rating] || 0) / stats.totalReviews * 100}%` : '0%' }}
                       />
                     </div>
                     <span className="review-list__distribution-count">
-                      {stats.distribution[rating] || 0}
+                      {stats.ratingDistribution[rating] || 0}
                     </span>
                   </div>
                 ))}
@@ -119,28 +119,28 @@ const ReviewList = ({ productId }) => {
             </div>
           ))}
           
-          {pagination && pagination.totalPages > 1 && (
+          {pagination && pagination.pages > 1 && (
             <div className="review-list__pagination">
               <button
-                disabled={pagination.currentPage === 1}
+                disabled={pagination.page === 1}
                 onClick={() => dispatch(fetchProductReviews({ 
                   productId, 
-                  page: pagination.currentPage - 1 
+                  page: pagination.page - 1 
                 }))}
               >
                 {t('common.previous')}
               </button>
               <span>
                 {t('common.pageOf', { 
-                  current: pagination.currentPage, 
-                  total: pagination.totalPages 
+                  current: pagination.page, 
+                  total: pagination.pages 
                 })}
               </span>
               <button
-                disabled={pagination.currentPage === pagination.totalPages}
+                disabled={pagination.page === pagination.pages}
                 onClick={() => dispatch(fetchProductReviews({ 
                   productId, 
-                  page: pagination.currentPage + 1 
+                  page: pagination.page + 1 
                 }))}
               >
                 {t('common.next')}
