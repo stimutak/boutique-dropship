@@ -72,33 +72,57 @@ const getOrCreateCart = async (req) => {
       }
     }
     
-    // Get or create the cart - use findOneAndUpdate for atomic operation with fallback
+    // Get or create the cart - use atomic operation with proper retry logic
     let cart;
-    try {
-      cart = await Cart.findOneAndUpdate(
-        { sessionId },
-        { 
-          $setOnInsert: { sessionId, items: [] },
-          $set: { lastAccessed: new Date() }
-        },
-        { 
-          new: true, 
-          upsert: true
+    let retries = 3;
+    
+    while (retries > 0) {
+      try {
+        // Use findOneAndUpdate for atomic operation
+        cart = await Cart.findOneAndUpdate(
+          { sessionId },
+          { 
+            $setOnInsert: { sessionId, items: [] },
+            $set: { lastAccessed: new Date() }
+          },
+          { 
+            new: true, 
+            upsert: true,
+            setDefaultsOnInsert: true
+          }
+        );
+        
+        if (cart) {
+          break; // Success, exit retry loop
         }
-      );
-    } catch (error) {
-      console.warn('findOneAndUpdate failed, using fallback:', error.message);
-      cart = null;
+      } catch (error) {
+        // Handle duplicate key error specifically
+        if (error.code === 11000) {
+          // Cart was created by another request, just find it
+          cart = await Cart.findOne({ sessionId });
+          if (cart) {
+            // Update lastAccessed atomically
+            await Cart.updateOne(
+              { _id: cart._id },
+              { $set: { lastAccessed: new Date() } }
+            );
+            break;
+          }
+        }
+        
+        retries--;
+        if (retries === 0) {
+          console.error('Failed to create/find cart after retries:', error);
+          throw new Error('Unable to access cart. Please try again.');
+        }
+        
+        // Brief delay before retry
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
     
     if (!cart) {
-      // Fallback: try to find existing cart or create new one
-      cart = await Cart.findOne({ sessionId });
-      if (!cart) {
-        cart = new Cart({ sessionId, items: [] });
-        await cart.save();
-        secureSessionLog('Created new guest cart for session (fallback):', sessionId);
-      }
+      throw new Error('Unable to create or find cart');
     }
     
     return { type: 'guest', cart, sessionId };
@@ -274,18 +298,35 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
         item.product.toString() === productId.toString()
       );
 
+      // Use atomic operations to prevent race conditions
       if (existingItemIndex >= 0) {
-        cartData.cart.items[existingItemIndex].quantity += quantity;
-        cartData.cart.items[existingItemIndex].addedAt = new Date();
+        // Update existing item atomically
+        await Cart.findOneAndUpdate(
+          { 
+            _id: cartData.cart._id,
+            'items.product': productId
+          },
+          { 
+            $inc: { 'items.$.quantity': quantity },
+            $set: { 'items.$.addedAt': new Date() }
+          }
+        );
       } else {
-        cartData.cart.items.push({
-          product: productId,
-          quantity,
-          price: product.price,
-          addedAt: new Date()
-        });
+        // Add new item atomically
+        await Cart.findByIdAndUpdate(
+          cartData.cart._id,
+          {
+            $push: {
+              items: {
+                product: productId,
+                quantity,
+                price: product.price,
+                addedAt: new Date()
+              }
+            }
+          }
+        );
       }
-      await cartData.cart.save();
     }
 
     // Return updated cart

@@ -6,6 +6,7 @@ const path = require('path');
 const User = require('../../models/User');
 const Product = require('../../models/Product');
 const Order = require('../../models/Order');
+const Review = require('../../models/Review');
 
 const { createTestApp } = require('../helpers/testApp');
 
@@ -1208,6 +1209,394 @@ Invalid Product`; // Missing required fields
         expect(response.body.exportType).toBe('products');
         expect(response.body.period).toBe('7d');
         expect(response.body.generatedAt).toBeDefined();
+      });
+    });
+  });
+
+  describe('Review Management', () => {
+    let testReviews;
+    let testProduct2;
+    let testUser2;
+
+    beforeEach(async () => {
+      // Clear reviews collection
+      await Review.deleteMany({});
+
+      // Create additional test product for reviews
+      testProduct2 = await Product.create({
+        name: 'Another Test Crystal',
+        slug: 'another-test-crystal',
+        description: 'Another beautiful test crystal',
+        shortDescription: 'Another test crystal for testing',
+        price: 39.99,
+        category: 'crystals',
+        properties: {
+          chakra: ['throat'],
+          element: ['water'],
+          healing: ['communication', 'truth']
+        },
+        wholesaler: {
+          name: 'Another Test Wholesaler',
+          email: 'wholesaler2@test.com',
+          productCode: 'ATC001',
+          cost: 20.00
+        }
+      });
+
+      // Create additional test user
+      testUser2 = await User.create({
+        email: 'user2@test.com',
+        password: 'password123',
+        firstName: 'Test2',
+        lastName: 'User2',
+        isAdmin: false
+      });
+
+      // Create test reviews with different statuses (avoiding duplicate user-product combinations)
+      testReviews = [
+        await Review.create({
+          product: testProduct._id,
+          user: regularUser._id,
+          rating: 5,
+          comment: 'This is an excellent product! I love it and would recommend it to anyone looking for high quality.',
+          status: 'pending'
+        }),
+        await Review.create({
+          product: testProduct2._id,
+          user: adminUser._id,
+          rating: 4,
+          comment: 'Good product overall. The quality is decent and it arrived quickly. Worth the price.',
+          status: 'approved',
+          approvedBy: adminUser._id,
+          approvedAt: new Date()
+        }),
+        await Review.create({
+          product: testProduct2._id,
+          user: testUser2._id,
+          rating: 2,
+          comment: 'This product was not what I expected. Poor quality and overpriced.',
+          status: 'rejected',
+          rejectedBy: adminUser._id,
+          rejectedAt: new Date(),
+          adminNotes: 'Contains inappropriate language'
+        })
+      ];
+    });
+
+    describe('GET /api/admin/reviews', () => {
+      test('should get all reviews with filtering options', async () => {
+        const response = await request(app)
+          .get('/api/admin/reviews')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.reviews).toHaveLength(3);
+        
+        // Check structure of first review (any product is fine)
+        expect(response.body.reviews[0]).toMatchObject({
+          _id: expect.any(String),
+          product: expect.objectContaining({
+            name: expect.any(String),
+            slug: expect.any(String)
+          }),
+          user: expect.objectContaining({
+            firstName: expect.any(String),
+            lastName: expect.any(String),
+            email: expect.any(String)
+          }),
+          rating: expect.any(Number),
+          comment: expect.any(String),
+          status: expect.any(String),
+          createdAt: expect.any(String)
+        });
+        
+        // Check that reviews contain our test products
+        const productNames = response.body.reviews.map(r => r.product.name);
+        expect(productNames).toContain(testProduct.name);
+        expect(productNames).toContain(testProduct2.name);
+      });
+
+      test('should filter reviews by status', async () => {
+        const response = await request(app)
+          .get('/api/admin/reviews?status=pending')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.reviews).toHaveLength(1);
+        expect(response.body.reviews[0].status).toBe('pending');
+      });
+
+      test('should filter reviews by product', async () => {
+        const response = await request(app)
+          .get(`/api/admin/reviews?productId=${testProduct._id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.reviews).toHaveLength(1); // Only one review for testProduct
+        expect(response.body.reviews.every(review => 
+          review.product._id === testProduct._id.toString()
+        )).toBe(true);
+      });
+
+      test('should support pagination', async () => {
+        const response = await request(app)
+          .get('/api/admin/reviews?page=1&limit=2')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.reviews).toHaveLength(2);
+        expect(response.body.pagination).toMatchObject({
+          page: 1,
+          limit: 2,
+          total: 3,
+          pages: 2
+        });
+      });
+
+      test('should require admin authentication', async () => {
+        await request(app)
+          .get('/api/admin/reviews')
+          .set('Authorization', `Bearer ${regularUserToken}`)
+          .expect(403);
+      });
+
+      test('should require authentication', async () => {
+        await request(app)
+          .get('/api/admin/reviews')
+          .expect(401);
+      });
+    });
+
+    describe('PUT /api/admin/reviews/:id/approve', () => {
+      test('should approve a pending review', async () => {
+        const pendingReview = testReviews[0];
+        
+        const response = await request(app)
+          .put(`/api/admin/reviews/${pendingReview._id}/approve`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ adminNotes: 'Approved after review' })
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.review.status).toBe('approved');
+        expect(response.body.review.approvedBy).toBe(adminUser._id.toString());
+        expect(response.body.review.approvedAt).toBeDefined();
+        expect(response.body.review.adminNotes).toBe('Approved after review');
+
+        // Verify in database
+        const updatedReview = await Review.findById(pendingReview._id);
+        expect(updatedReview.status).toBe('approved');
+        expect(updatedReview.approvedBy.toString()).toBe(adminUser._id.toString());
+      });
+
+      test('should handle approving already approved review', async () => {
+        const approvedReview = testReviews[1];
+        
+        const response = await request(app)
+          .put(`/api/admin/reviews/${approvedReview._id}/approve`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ adminNotes: 'Already approved' })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error.message).toContain('already approved');
+      });
+
+      test('should require admin authentication', async () => {
+        const pendingReview = testReviews[0];
+        
+        await request(app)
+          .put(`/api/admin/reviews/${pendingReview._id}/approve`)
+          .set('Authorization', `Bearer ${regularUserToken}`)
+          .send({ adminNotes: 'Trying to approve' })
+          .expect(403);
+      });
+
+      test('should handle non-existent review', async () => {
+        const fakeId = new mongoose.Types.ObjectId();
+        
+        const response = await request(app)
+          .put(`/api/admin/reviews/${fakeId}/approve`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ adminNotes: 'Approving fake review' })
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error.message).toContain('Review not found');
+      });
+
+      test('should validate admin notes length', async () => {
+        const pendingReview = testReviews[0];
+        const longNote = 'x'.repeat(1001); // Exceeds 1000 character limit
+        
+        const response = await request(app)
+          .put(`/api/admin/reviews/${pendingReview._id}/approve`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ adminNotes: longNote })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.errors).toBeDefined();
+      });
+    });
+
+    describe('PUT /api/admin/reviews/:id/reject', () => {
+      test('should reject a pending review', async () => {
+        const pendingReview = testReviews[0];
+        
+        const response = await request(app)
+          .put(`/api/admin/reviews/${pendingReview._id}/reject`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ adminNotes: 'Contains inappropriate content' })
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.review.status).toBe('rejected');
+        expect(response.body.review.rejectedBy).toBe(adminUser._id.toString());
+        expect(response.body.review.rejectedAt).toBeDefined();
+        expect(response.body.review.adminNotes).toBe('Contains inappropriate content');
+
+        // Verify in database
+        const updatedReview = await Review.findById(pendingReview._id);
+        expect(updatedReview.status).toBe('rejected');
+        expect(updatedReview.rejectedBy.toString()).toBe(adminUser._id.toString());
+      });
+
+      test('should reject an approved review', async () => {
+        const approvedReview = testReviews[1];
+        
+        const response = await request(app)
+          .put(`/api/admin/reviews/${approvedReview._id}/reject`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ adminNotes: 'Content needs review' })
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.review.status).toBe('rejected');
+      });
+
+      test('should handle rejecting already rejected review', async () => {
+        const rejectedReview = testReviews[2];
+        
+        const response = await request(app)
+          .put(`/api/admin/reviews/${rejectedReview._id}/reject`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ adminNotes: 'Already rejected' })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error.message).toContain('already rejected');
+      });
+
+      test('should require admin notes for rejection', async () => {
+        const pendingReview = testReviews[0];
+        
+        const response = await request(app)
+          .put(`/api/admin/reviews/${pendingReview._id}/reject`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({})
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.errors).toBeDefined();
+      });
+
+      test('should require admin authentication', async () => {
+        const pendingReview = testReviews[0];
+        
+        await request(app)
+          .put(`/api/admin/reviews/${pendingReview._id}/reject`)
+          .set('Authorization', `Bearer ${regularUserToken}`)
+          .send({ adminNotes: 'Trying to reject' })
+          .expect(403);
+      });
+    });
+
+    describe('DELETE /api/admin/reviews/:id', () => {
+      test('should delete a review', async () => {
+        const reviewToDelete = testReviews[0];
+        
+        const response = await request(app)
+          .delete(`/api/admin/reviews/${reviewToDelete._id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toContain('deleted');
+
+        // Verify review is deleted from database
+        const deletedReview = await Review.findById(reviewToDelete._id);
+        expect(deletedReview).toBeNull();
+      });
+
+      test('should handle deleting non-existent review', async () => {
+        const fakeId = new mongoose.Types.ObjectId();
+        
+        const response = await request(app)
+          .delete(`/api/admin/reviews/${fakeId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error.message).toContain('Review not found');
+      });
+
+      test('should require admin authentication', async () => {
+        const reviewToDelete = testReviews[0];
+        
+        await request(app)
+          .delete(`/api/admin/reviews/${reviewToDelete._id}`)
+          .set('Authorization', `Bearer ${regularUserToken}`)
+          .expect(403);
+      });
+
+      test('should require authentication', async () => {
+        const reviewToDelete = testReviews[0];
+        
+        await request(app)
+          .delete(`/api/admin/reviews/${reviewToDelete._id}`)
+          .expect(401);
+      });
+    });
+
+    describe('GET /api/admin/reviews/stats', () => {
+      test('should return review statistics', async () => {
+        const response = await request(app)
+          .get('/api/admin/reviews/stats')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.stats).toMatchObject({
+          total: 3,
+          pending: 1,
+          approved: 1,
+          rejected: 1,
+          averageRating: expect.any(Number)
+        });
+      });
+
+      test('should filter stats by date range', async () => {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const response = await request(app)
+          .get(`/api/admin/reviews/stats?startDate=${today}&endDate=${today}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.stats.total).toBeGreaterThanOrEqual(0);
+      });
+
+      test('should require admin authentication', async () => {
+        await request(app)
+          .get('/api/admin/reviews/stats')
+          .set('Authorization', `Bearer ${regularUserToken}`)
+          .expect(403);
       });
     });
   });

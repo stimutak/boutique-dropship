@@ -144,6 +144,7 @@ mongoose.connection.on('disconnected', () => {
 // Routes with specific rate limiting
 app.use('/api/auth', rateLimits.auth, require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', rateLimits.payment, require('./routes/payments'));

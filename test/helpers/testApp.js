@@ -54,6 +54,7 @@ const adminRoutes = require('../../routes/admin');
 const wholesalerRoutes = require('../../routes/wholesalers');
 const integrationRoutes = require('../../routes/integration');
 const monitoringRoutes = require('../../routes/monitoring');
+const reviewRoutes = require('../../routes/reviews');
 
 // Create test app without starting server
 function createTestApp() {
@@ -132,6 +133,7 @@ function createTestApp() {
   app.use('/api/wholesalers', wholesalerRoutes);
   app.use('/api/integration', integrationRoutes);
   app.use('/api/monitoring', monitoringRoutes);
+  app.use('/api/reviews', reviewRoutes);
 
   // Error handling middleware
   app.use(globalErrorHandler);

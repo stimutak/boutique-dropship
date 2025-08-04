@@ -9,22 +9,17 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const User = require('../models/User');
+const Review = require('../models/Review');
 const { requireAdmin } = require('../middleware/auth');
 const { processOrderNotifications } = require('../utils/wholesalerNotificationService');
+const { csvValidator, imageValidator, cleanupTempFiles } = require('../middleware/uploadSecurity');
 
-// Configure multer for file uploads
+// Configure secure multer for CSV uploads
 const upload = multer({
   dest: 'uploads/temp/',
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'text/csv' || file.mimetype === 'application/vnd.ms-excel') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only CSV files are allowed'), false);
-    }
-  }
+  limits: csvValidator.limits,
+  fileFilter: csvValidator.fileFilter,
+  filename: csvValidator.generateFilename
 });
 
 // All admin routes require admin authentication
@@ -290,6 +285,13 @@ router.post('/products/bulk-import', upload.single('csvFile'), async (req, res) 
   try {
     if (!req.file) {
       return res.error(400, 'NO_FILE', 'CSV file is required');
+    }
+
+    // Validate uploaded file content
+    try {
+      await csvValidator.validateUploadedFile(req.file.path, 'csv');
+    } catch (validationError) {
+      return res.error(400, 'INVALID_FILE', validationError.message);
     }
 
     const results = [];
@@ -615,19 +617,12 @@ router.put('/products/:id/restore', async (req, res) => {
   }
 });
 
-// Configure multer for image uploads
+// Configure secure multer for image uploads
 const imageUpload = multer({
   dest: 'public/images/products/',
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit per file
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed'), false);
-    }
-  }
+  limits: imageValidator.limits,
+  fileFilter: imageValidator.fileFilter,
+  filename: imageValidator.generateFilename
 });
 
 // POST /api/admin/products/images - Upload product images (generic)
@@ -664,7 +659,20 @@ router.post('/products/images', (req, res) => {
         return res.error(400, 'NO_FILES', 'No image files provided');
       }
 
-      const images = req.files.map(file => ({
+      // Validate each uploaded file
+      const validatedImages = [];
+      for (const file of req.files) {
+        try {
+          await imageValidator.validateUploadedFile(file.path, 'image');
+          validatedImages.push(file);
+        } catch (validationError) {
+          // Clean up all files if any validation fails
+          cleanupTempFiles(req.files);
+          return res.error(400, 'INVALID_IMAGE', `Invalid image file: ${validationError.message}`);
+        }
+      }
+
+      const images = validatedImages.map(file => ({
         url: `/images/products/${file.filename}`,
         filename: file.filename,
         originalName: file.originalname,
@@ -2317,6 +2325,363 @@ router.put('/users/:id/status', [
   } catch (error) {
     console.error('User status update error:', error);
     res.error(500, 'USER_UPDATE_ERROR', 'Failed to update user status');
+  }
+});
+
+// ===== REVIEW MANAGEMENT =====
+
+// GET /api/admin/reviews - Get all reviews with filtering and pagination
+router.get('/reviews', async (req, res) => {
+  try {
+    const {
+      status,
+      productId,
+      userId,
+      rating,
+      page = 1,
+      limit = 20,
+      sort = '-createdAt'
+    } = req.query;
+
+    // Build filter query
+    const filter = {};
+    if (status) filter.status = status;
+    if (productId) filter.product = productId;
+    if (userId) filter.user = userId;
+    if (rating) filter.rating = parseInt(rating);
+
+    // Parse pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get reviews with populated user and product info
+    const reviews = await Review.find(filter)
+      .populate('user', 'firstName lastName email')
+      .populate('product', 'name slug images price')
+      .populate('approvedBy', 'firstName lastName')
+      .populate('rejectedBy', 'firstName lastName')
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum);
+
+    // Get total count for pagination
+    const totalReviews = await Review.countDocuments(filter);
+
+    res.json({
+      success: true,
+      reviews: reviews.map(review => ({
+        _id: review._id,
+        product: {
+          _id: review.product._id,
+          name: review.product.name,
+          slug: review.product.slug,
+          images: review.product.images,
+          price: review.product.price
+        },
+        user: {
+          _id: review.user._id,
+          firstName: review.user.firstName,
+          lastName: review.user.lastName,
+          email: review.user.email
+        },
+        rating: review.rating,
+        comment: review.comment,
+        status: review.status,
+        adminNotes: review.adminNotes,
+        helpful: review.helpful,
+        createdAt: review.createdAt,
+        updatedAt: review.updatedAt,
+        approvedBy: review.approvedBy ? {
+          _id: review.approvedBy._id,
+          firstName: review.approvedBy.firstName,
+          lastName: review.approvedBy.lastName
+        } : null,
+        approvedAt: review.approvedAt,
+        rejectedBy: review.rejectedBy ? {
+          _id: review.rejectedBy._id,
+          firstName: review.rejectedBy.firstName,
+          lastName: review.rejectedBy.lastName
+        } : null,
+        rejectedAt: review.rejectedAt
+      })),
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalReviews,
+        pages: Math.ceil(totalReviews / limitNum)
+      }
+    });
+
+  } catch (error) {
+    console.error('Admin reviews fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'REVIEWS_FETCH_ERROR',
+        message: 'Failed to fetch reviews'
+      }
+    });
+  }
+});
+
+// PUT /api/admin/reviews/:id/approve - Approve a review
+router.put('/reviews/:id/approve', [
+  body('adminNotes')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Admin notes must be less than 1000 characters')
+], async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed'
+        },
+        errors: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const { adminNotes } = req.body;
+    const adminId = req.user._id;
+
+    // Find the review
+    const review = await Review.findById(id);
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'REVIEW_NOT_FOUND',
+          message: 'Review not found'
+        }
+      });
+    }
+
+    // Check if already approved
+    if (review.status === 'approved') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'ALREADY_APPROVED',
+          message: 'Review is already approved'
+        }
+      });
+    }
+
+    // Approve the review
+    await review.approve(adminId, adminNotes);
+
+    // Populate for response
+    await review.populate('user', 'firstName lastName email');
+    await review.populate('product', 'name slug');
+    await review.populate('approvedBy', 'firstName lastName');
+
+    res.json({
+      success: true,
+      message: 'Review approved successfully',
+      review: {
+        _id: review._id,
+        product: review.product,
+        user: review.user,
+        rating: review.rating,
+        comment: review.comment,
+        status: review.status,
+        adminNotes: review.adminNotes,
+        approvedBy: review.approvedBy._id,
+        approvedAt: review.approvedAt,
+        createdAt: review.createdAt,
+        updatedAt: review.updatedAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Review approval error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'REVIEW_APPROVAL_ERROR',
+        message: 'Failed to approve review'
+      }
+    });
+  }
+});
+
+// PUT /api/admin/reviews/:id/reject - Reject a review
+router.put('/reviews/:id/reject', [
+  body('adminNotes')
+    .notEmpty()
+    .withMessage('Admin notes are required for rejection')
+    .isLength({ max: 1000 })
+    .withMessage('Admin notes must be less than 1000 characters')
+], async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed'
+        },
+        errors: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const { adminNotes } = req.body;
+    const adminId = req.user._id;
+
+    // Find the review
+    const review = await Review.findById(id);
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'REVIEW_NOT_FOUND',
+          message: 'Review not found'
+        }
+      });
+    }
+
+    // Check if already rejected
+    if (review.status === 'rejected') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'ALREADY_REJECTED',
+          message: 'Review is already rejected'
+        }
+      });
+    }
+
+    // Reject the review
+    await review.reject(adminId, adminNotes);
+
+    // Populate for response
+    await review.populate('user', 'firstName lastName email');
+    await review.populate('product', 'name slug');
+    await review.populate('rejectedBy', 'firstName lastName');
+
+    res.json({
+      success: true,
+      message: 'Review rejected successfully',
+      review: {
+        _id: review._id,
+        product: review.product,
+        user: review.user,
+        rating: review.rating,
+        comment: review.comment,
+        status: review.status,
+        adminNotes: review.adminNotes,
+        rejectedBy: review.rejectedBy._id,
+        rejectedAt: review.rejectedAt,
+        createdAt: review.createdAt,
+        updatedAt: review.updatedAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Review rejection error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'REVIEW_REJECTION_ERROR',
+        message: 'Failed to reject review'
+      }
+    });
+  }
+});
+
+// DELETE /api/admin/reviews/:id - Delete a review
+router.delete('/reviews/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find and delete the review
+    const review = await Review.findByIdAndDelete(id);
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'REVIEW_NOT_FOUND',
+          message: 'Review not found'
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Review deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Review deletion error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'REVIEW_DELETION_ERROR',
+        message: 'Failed to delete review'
+      }
+    });
+  }
+});
+
+// GET /api/admin/reviews/stats - Get review statistics
+router.get('/reviews/stats', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // Build date filter
+    const dateFilter = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
+      if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+    }
+
+    // Get basic counts
+    const [total, pending, approved, rejected] = await Promise.all([
+      Review.countDocuments(dateFilter),
+      Review.countDocuments({ ...dateFilter, status: 'pending' }),
+      Review.countDocuments({ ...dateFilter, status: 'approved' }),
+      Review.countDocuments({ ...dateFilter, status: 'rejected' })
+    ]);
+
+    // Get average rating for approved reviews
+    const ratingStats = await Review.aggregate([
+      { $match: { ...dateFilter, status: 'approved' } },
+      { $group: { _id: null, averageRating: { $avg: '$rating' } } }
+    ]);
+
+    const averageRating = ratingStats.length > 0 ? 
+      Math.round(ratingStats[0].averageRating * 10) / 10 : 0;
+
+    res.json({
+      success: true,
+      stats: {
+        total,
+        pending,
+        approved,
+        rejected,
+        averageRating
+      }
+    });
+
+  } catch (error) {
+    console.error('Review stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'REVIEW_STATS_ERROR',
+        message: 'Failed to fetch review statistics'
+      }
+    });
   }
 });
 

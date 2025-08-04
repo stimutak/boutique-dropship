@@ -42,6 +42,11 @@ This file provides critical guidance to Claude Code (claude.ai/code) when workin
 - **USE EXISTING MIDDLEWARE**: Don't create new auth middleware - `authenticateToken`, `requireAuth`, and `requireAdmin` already exist
 - **KEEP IT SIMPLE**: This is a standard e-commerce app, not a distributed system
 
+### Route Ordering - CRITICAL:
+- ⚠️ **ROUTE ORDER MATTERS**: In admin.js, specific routes MUST come before parameterized routes
+- Example: `/users/stats` must be defined BEFORE `/users/:id`
+- This prevents "stats" from being interpreted as a MongoDB ObjectId
+
 ### 3. **Security Issues - ✅ MOSTLY FIXED**
 - **JWT Storage**: ✅ FIXED - Now using httpOnly cookies
 - **localStorage references**: ✅ REDUCED - JWT removed from localStorage, only UI preferences remain
@@ -52,6 +57,7 @@ This file provides critical guidance to Claude Code (claude.ai/code) when workin
 - **N+1 Queries**: ✅ FIXED - Order routes now use batch queries
 - **Missing Indexes**: ✅ ADDED - Database indexes on email, customer+date, price+active
 - **Code Splitting**: ⚠️ TODO - Frontend still loads everything at once
+- **CSS Performance**: ✅ OPTIMIZED - Admin dashboard uses CSS custom properties for theming
 
 ## 📁 Project Structure - WHERE THINGS BELONG
 
@@ -81,6 +87,12 @@ client/
 - ❌ New test files with "-fixed" or "-new" suffixes
 - ❌ Debug components in production directories
 
+### CSS Architecture:
+- **Admin Dashboard**: Uses CSS custom properties for theming
+- **Variables**: Defined in :root for consistent spacing, colors, typography
+- **Mobile-First**: All admin CSS includes responsive breakpoints
+- **Accessibility**: Focus states, ARIA labels, keyboard navigation
+
 ## 🔧 Development Commands
 
 ### Docker Development (RECOMMENDED)
@@ -108,32 +120,43 @@ npm run build     # Production build
 npm test          # Run Vitest tests
 ```
 
+### Test Credentials:
+- **Admin**: john@example.com / Password123!
+- **Customer**: jane@example.com / Password123!
+- **Note**: The exclamation mark (!) is part of the password
+
 ### Database
 - MongoDB: `mongodb://localhost:27017/holistic-store` (or `mongodb://mongodb:27017/holistic-store` in Docker)
 - Populate: `docker-compose exec backend node populate-simple.js`
-- Test users: john@example.com / Password123! (admin), jane@example.com / Password123!
 
 ## 🐛 Current Bugs to Be Aware Of
 
-1. **Port Configuration**: ✅ FIXED - Properly reads from .env
-2. **Cart Logic**: ✅ FIXED - Session handling works correctly with atomic operations
-3. **React Version**: ✅ FIXED - Both using React 19 now
-4. **Unused Dependencies**: ⚠️ Still present - webpack, nyc, multiple eslint configs
+1. **Unused Dependencies**: ⚠️ Still present - webpack, nyc, multiple eslint configs
+2. **Nginx Container**: May restart occasionally - doesn't affect functionality
+3. **Mobile Safari**: Some CSS animations may be janky - use -webkit prefixes
 
-## 📊 Current Project Status: ~87% Complete (28/32 tasks)
+## 📊 Current Project Status: ~95% Complete (31/32 tasks)
 
 ### ✅ What's Completed:
 - **Security**: JWT in httpOnly cookies, CSRF protection, secure sessions
-- **Internationalization**: Full i18n with 7 languages, multi-currency support, RTL layouts
+- **Internationalization**: Full i18n with 10+ languages, multi-currency support, RTL layouts
 - **E-commerce Core**: Cart persistence, guest checkout, order creation, payment integration
 - **Infrastructure**: Docker setup, nginx configuration, production-ready deployment
 - **Performance**: Database indexes, batch queries, optimized API responses
+- **Admin Dashboard**: ✅ COMPLETED - Full admin panel with products, orders, and user management
+- **Order Fulfillment**: ✅ COMPLETED - Admin can process, ship, and track orders
+- **Error Handling**: ✅ COMPLETED - Standardized error responses with i18n support
 
-### 🚧 Remaining Tasks (4):
-1. **Error Handling Standardization** - Consistent error responses across the app
-2. **Order Fulfillment Workflow** - Admin can process and ship orders
-3. **Email Notifications** - Order confirmations, shipping updates
-4. **Admin Dashboard** - Manage products, orders, and users
+### Recently Added Features:
+- **Admin Analytics Dashboard**: Real-time sales, product, and customer metrics
+- **Bulk Operations**: Import/export products via CSV
+- **Shipping Labels**: Generate and track shipping labels
+- **Refund Processing**: Full and partial refunds through Mollie
+- **User Activity Tracking**: Login history and order analytics
+- **Multi-Currency Analytics**: Revenue tracking by currency
+
+### 🚧 Remaining Tasks (1):
+1. **Email Notifications** - Order confirmations, shipping updates (Mollie webhooks ready)
 
 ## ✅ Best Practices for This Codebase
 

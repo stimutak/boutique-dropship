@@ -6,6 +6,9 @@ import { addToCart } from '../store/slices/cartSlice'
 import PriceDisplay from '../components/PriceDisplay'
 import { localeCurrencies } from '../i18n/i18n'
 import { useTranslation } from 'react-i18next'
+import ReviewList from '../components/reviews/ReviewList'
+import ReviewForm from '../components/reviews/ReviewForm'
+import { fetchProductReviews } from '../store/slices/reviewsSlice'
 
 // Helper function to format price
 function formatPrice(amount, currency, locale) {
@@ -199,6 +202,15 @@ const ProductDetail = () => {
               {product.origin && <p><strong>Origin:</strong> {product.origin}</p>}
             </div>
           </div>
+        </div>
+        
+        {/* Reviews Section */}
+        <div className="product-reviews-section">
+          <ReviewForm 
+            productId={product._id} 
+            onSuccess={() => dispatch(fetchProductReviews({ productId: product._id }))}
+          />
+          <ReviewList productId={product._id} />
         </div>
       </div>
     </div>
