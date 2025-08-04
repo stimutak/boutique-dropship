@@ -1,5 +1,5 @@
 const Order = require('../models/Order');
-const Product = require('../models/Product');
+const _Product = require('../models/Product');
 const { sendWholesalerNotification } = require('./emailService');
 
 // Process pending wholesaler notifications

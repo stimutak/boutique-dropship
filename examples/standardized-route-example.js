@@ -19,7 +19,7 @@ router.post('/products',
     body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
     body('category').isIn(['crystals', 'herbs', 'oils']).withMessage('Invalid category')
   ],
-  async (req, res, next) => {
+  async (req, res, _next) => {
     try {
       // Handle validation errors
       const errors = validationResult(req);
@@ -54,14 +54,14 @@ router.post('/products',
       // Option 1: Use res.error (simpler)
       res.error(500, ErrorCodes.PRODUCT_CREATION_ERROR, 'Failed to create product');
       
-      // Option 2: Use next() with AppError (better for middleware chain)
-      // next(new AppError('Failed to create product', 500, ErrorCodes.PRODUCT_CREATION_ERROR));
+      // Option 2: Use _next() with AppError (better for middleware chain)
+      // _next(new AppError('Failed to create product', 500, ErrorCodes.PRODUCT_CREATION_ERROR));
     }
   }
 );
 
 // Example 2: Simple GET route with error handling
-router.get('/products/:id', async (req, res, next) => {
+router.get('/products/:id', async (req, res, _next) => {
   try {
     const { id } = req.params;
 
@@ -84,12 +84,12 @@ router.get('/products/:id', async (req, res, next) => {
 
   } catch (error) {
     // Let global error handler catch it
-    next(error);
+    _next(error);
   }
 });
 
 // Example 3: Route with multiple error scenarios
-router.put('/products/:id/stock', requireAuth, async (req, res, next) => {
+router.put('/products/:id/stock', requireAuth, async (req, res, _next) => {
   try {
     const { id } = req.params;
     const { quantity, operation } = req.body;
@@ -146,7 +146,7 @@ router.put('/products/:id/stock', requireAuth, async (req, res, next) => {
   } catch (error) {
     // Database errors or unexpected errors
     console.error('Stock update error:', error);
-    next(new AppError('Failed to update stock', 500, 'STOCK_UPDATE_ERROR'));
+    _next(new AppError('Failed to update stock', 500, 'STOCK_UPDATE_ERROR'));
   }
 });
 
@@ -174,7 +174,7 @@ router.post('/webhook/payment', async (req, res) => {
 });
 
 // Example 5: Using try-catch with async/await
-router.delete('/products/:id', requireAuth, async (req, res, next) => {
+router.delete('/products/:id', requireAuth, async (req, res, _next) => {
   try {
     const { id } = req.params;
     
@@ -194,7 +194,7 @@ router.delete('/products/:id', requireAuth, async (req, res, next) => {
 
   } catch (error) {
     // Using AppError for consistency with middleware
-    next(new AppError(
+    _next(new AppError(
       'Failed to delete product', 
       500, 
       ErrorCodes.PRODUCT_DELETE_ERROR
