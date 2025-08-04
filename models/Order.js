@@ -13,18 +13,18 @@ const orderSchema = new mongoose.Schema({
   guestInfo: {
     email: {
       type: String,
-      required: function() { return !this.customer; },
+      required: function () { return !this.customer; },
       lowercase: true,
       trim: true
     },
     firstName: {
       type: String,
-      required: function() { return !this.customer; },
+      required: function () { return !this.customer; },
       trim: true
     },
     lastName: {
       type: String,
-      required: function() { return !this.customer; },
+      required: function () { return !this.customer; },
       trim: true
     },
     phone: {
@@ -183,7 +183,7 @@ orderSchema.index({ createdAt: -1 });
 orderSchema.index({ 'items.wholesaler.notified': 1 });
 
 // Pre-save middleware
-orderSchema.pre('save', function(next) {
+orderSchema.pre('save', function (next) {
   if (!this.orderNumber) {
     this.orderNumber = 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5).toUpperCase();
   }
@@ -201,7 +201,7 @@ orderSchema.pre('save', function(next) {
 });
 
 // Method to get customer email (works for both guest and registered users)
-orderSchema.methods.getCustomerEmail = function() {
+orderSchema.methods.getCustomerEmail = function () {
   if (this.customer && this.populated('customer')) {
     return this.customer.email;
   }
@@ -209,7 +209,7 @@ orderSchema.methods.getCustomerEmail = function() {
 };
 
 // Method to get customer name
-orderSchema.methods.getCustomerName = function() {
+orderSchema.methods.getCustomerName = function () {
   if (this.customer && this.populated('customer')) {
     return `${this.customer.firstName} ${this.customer.lastName}`;
   }
@@ -217,17 +217,17 @@ orderSchema.methods.getCustomerName = function() {
 };
 
 // Method to check if all wholesalers have been notified
-orderSchema.methods.allWholesalersNotified = function() {
+orderSchema.methods.allWholesalersNotified = function () {
   return this.items.every(item => item.wholesaler.notified);
 };
 
 // Method to get pending wholesaler notifications
-orderSchema.methods.getPendingNotifications = function() {
+orderSchema.methods.getPendingNotifications = function () {
   return this.items.filter(item => !item.wholesaler.notified);
 };
 
 // Method to update wholesaler notification status
-orderSchema.methods.updateWholesalerNotification = function(itemId, success, error = null) {
+orderSchema.methods.updateWholesalerNotification = function (itemId, success, error = null) {
   const item = this.items.id(itemId);
   if (item) {
     item.wholesaler.notificationAttempts += 1;
@@ -243,7 +243,7 @@ orderSchema.methods.updateWholesalerNotification = function(itemId, success, err
 };
 
 // Static method to find orders needing wholesaler notification
-orderSchema.statics.findPendingNotifications = function() {
+orderSchema.statics.findPendingNotifications = function () {
   return this.find({
     'payment.status': 'paid',
     'items.wholesaler.notified': false
@@ -251,7 +251,7 @@ orderSchema.statics.findPendingNotifications = function() {
 };
 
 // Method to validate status transitions
-orderSchema.methods.canTransitionTo = function(newStatus) {
+orderSchema.methods.canTransitionTo = function (newStatus) {
   const validTransitions = {
     'pending': ['processing', 'cancelled'],
     'processing': ['shipped', 'cancelled'],
@@ -264,7 +264,7 @@ orderSchema.methods.canTransitionTo = function(newStatus) {
 };
 
 // Method to add status history entry
-orderSchema.methods.addStatusHistory = function(newStatus, options = {}) {
+orderSchema.methods.addStatusHistory = function (newStatus, options = {}) {
   const { notes, trackingNumber, shippingCarrier, admin } = options;
   
   // Validate transition
@@ -286,8 +286,8 @@ orderSchema.methods.addStatusHistory = function(newStatus, options = {}) {
   this.status = newStatus;
   
   // Update main order fields if provided
-  if (trackingNumber) this.trackingNumber = trackingNumber;
-  if (shippingCarrier) this.shippingCarrier = shippingCarrier;
+  if (trackingNumber) {this.trackingNumber = trackingNumber;}
+  if (shippingCarrier) {this.shippingCarrier = shippingCarrier;}
   
   // Set dates based on status
   if (newStatus === 'shipped' && !this.shipDate) {
@@ -296,7 +296,7 @@ orderSchema.methods.addStatusHistory = function(newStatus, options = {}) {
 };
 
 // Method to get public order data (excludes sensitive wholesaler info)
-orderSchema.methods.toPublicJSON = function() {
+orderSchema.methods.toPublicJSON = function () {
   const order = this.toObject();
   
   // Remove sensitive wholesaler information from items

@@ -7,7 +7,7 @@ const levels = {
   warn: 1,
   info: 2,
   http: 3,
-  debug: 4,
+  debug: 4
 };
 
 // Define colors for each level
@@ -16,7 +16,7 @@ const colors = {
   warn: 'yellow',
   info: 'green',
   http: 'magenta',
-  debug: 'white',
+  debug: 'white'
 };
 
 // Tell winston that you want to link the colors
@@ -27,8 +27,8 @@ const format = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.colorize({ all: true }),
   winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-  ),
+    (info) => `${info.timestamp} ${info.level}: ${info.message}`
+  )
 );
 
 // Define which transports the logger must use
@@ -56,7 +56,7 @@ const transports = [
       winston.format.timestamp(),
       winston.format.json()
     )
-  }),
+  })
 ];
 
 // Create the logger
@@ -64,7 +64,7 @@ const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   levels,
   format,
-  transports,
+  transports
 });
 
 // Create specialized loggers for different contexts
@@ -77,7 +77,7 @@ const paymentLogger = winston.createLogger({
   ),
   transports: [
     new winston.transports.File({
-      filename: 'logs/payment.log',
+      filename: 'logs/payment.log'
     }),
     new winston.transports.Console({
       format: winston.format.combine(
@@ -85,7 +85,7 @@ const paymentLogger = winston.createLogger({
         winston.format.simple()
       )
     })
-  ],
+  ]
 });
 
 const wholesalerLogger = winston.createLogger({
@@ -97,7 +97,7 @@ const wholesalerLogger = winston.createLogger({
   ),
   transports: [
     new winston.transports.File({
-      filename: 'logs/wholesaler.log',
+      filename: 'logs/wholesaler.log'
     }),
     new winston.transports.Console({
       format: winston.format.combine(
@@ -105,7 +105,7 @@ const wholesalerLogger = winston.createLogger({
         winston.format.simple()
       )
     })
-  ],
+  ]
 });
 
 const securityLogger = winston.createLogger({
@@ -117,7 +117,7 @@ const securityLogger = winston.createLogger({
   ),
   transports: [
     new winston.transports.File({
-      filename: 'logs/security.log',
+      filename: 'logs/security.log'
     }),
     new winston.transports.Console({
       format: winston.format.combine(
@@ -125,7 +125,7 @@ const securityLogger = winston.createLogger({
         winston.format.simple()
       )
     })
-  ],
+  ]
 });
 
 module.exports = {

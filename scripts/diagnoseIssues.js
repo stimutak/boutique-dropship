@@ -28,8 +28,8 @@ async function diagnoseIssues() {
     products.forEach(product => {
       if (product.images && product.images.length > 0) {
         product.images.forEach(img => {
-          if (img.url) validImages++;
-          else missingImages++;
+          if (img.url) {validImages++;}
+          else {missingImages++;}
         });
       } else {
         missingImages++;

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * Test script to verify the holistic design system implementation
@@ -61,7 +60,7 @@ async function testDesignSystem() {
     console.log('\n2️⃣ Checking Header Design...');
     const headerStyles = await page.evaluate(() => {
       const header = document.querySelector('.header');
-      if (!header) return null;
+      if (!header) {return null;}
       const styles = getComputedStyle(header);
       return {
         background: styles.background,
@@ -75,7 +74,7 @@ async function testDesignSystem() {
     console.log('\n3️⃣ Checking Button Styles...');
     const buttonStyles = await page.evaluate(() => {
       const btn = document.querySelector('.btn-primary');
-      if (!btn) return null;
+      if (!btn) {return null;}
       const styles = getComputedStyle(btn);
       return {
         background: styles.background,
@@ -113,7 +112,7 @@ async function testDesignSystem() {
     
     const productCardStyles = await page.evaluate(() => {
       const card = document.querySelector('.product-card');
-      if (!card) return null;
+      if (!card) {return null;}
       const styles = getComputedStyle(card);
       return {
         borderRadius: styles.borderRadius,
@@ -133,7 +132,7 @@ async function testDesignSystem() {
     
     const rtlLayout = await page.evaluate(() => {
       const header = document.querySelector('.header');
-      if (!header) return false;
+      if (!header) {return false;}
       const styles = getComputedStyle(header);
       return styles.direction === 'rtl';
     });

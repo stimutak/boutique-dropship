@@ -4,13 +4,12 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { logoutUser } from '../../store/slices/authSlice'
 import { clearAfterMerge } from '../../store/slices/cartSlice'
-import { searchProducts } from '../../store/slices/productsSlice'
+import SearchAutocomplete from '../SearchAutocomplete'
 import LanguageSelector from '../LanguageSelector'
 import { supportedLanguages } from '../../i18n/i18n'
 import './Header.css'
 
 const Header = () => {
-  const [searchTerm, setSearchTerm] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   
   const { t, i18n } = useTranslation()
@@ -21,15 +20,6 @@ const Header = () => {
   const { totalItems } = useSelector(state => state.cart)
   
   const isRTL = supportedLanguages[i18n.language]?.dir === 'rtl'
-
-  const handleSearch = (e) => {
-    e.preventDefault()
-    if (searchTerm.trim()) {
-      dispatch(searchProducts(searchTerm))
-      navigate(`/products?search=${encodeURIComponent(searchTerm)}`)
-      setSearchTerm('')
-    }
-  }
 
   const handleLogout = async () => {
     // Call backend logout endpoint to clear httpOnly cookie
@@ -55,19 +45,8 @@ const Header = () => {
           Holistic Store
         </Link>
 
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            placeholder={t('common.search')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          <button type="submit" className="search-button">
-            {t('common.search')}
-          </button>
-        </form>
+        {/* Search Bar with Autocomplete */}
+        <SearchAutocomplete />
 
         {/* Mobile Menu Toggle */}
         <button 

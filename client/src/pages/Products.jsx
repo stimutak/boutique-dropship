@@ -102,7 +102,6 @@ const Products = () => {
         ) : products.length === 0 ? (
           <div className="no-products">
             <p>No products found.</p>
-            <p>Debug info: {JSON.stringify({ productsLength: products.length, isLoading, error: filters })}</p>
           </div>
         ) : (
           <>

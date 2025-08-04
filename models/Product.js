@@ -139,14 +139,14 @@ productSchema.index({ 'properties.chakra': 1, isActive: 1 });
 productSchema.index({ createdAt: -1, isActive: 1 });
 
 // Method to get public product data (excludes wholesaler info)
-productSchema.methods.toPublicJSON = function() {
+productSchema.methods.toPublicJSON = function () {
   const product = this.toObject();
   delete product.wholesaler;
   return product;
 };
 
 // Method to get localized content
-productSchema.methods.getLocalizedContent = function(locale = 'en') {
+productSchema.methods.getLocalizedContent = function (locale = 'en') {
   if (locale === 'en' || !this.translations || !this.translations.get(locale)) {
     return {
       localizedName: this.name,
@@ -164,7 +164,7 @@ productSchema.methods.getLocalizedContent = function(locale = 'en') {
 };
 
 // Method for soft delete
-productSchema.methods.softDelete = function() {
+productSchema.methods.softDelete = function () {
   this.isDeleted = true;
   this.deletedAt = new Date();
   this.isActive = false;
@@ -172,7 +172,7 @@ productSchema.methods.softDelete = function() {
 };
 
 // Method to restore soft-deleted product
-productSchema.methods.restore = function() {
+productSchema.methods.restore = function () {
   this.isDeleted = false;
   this.deletedAt = null;
   this.isActive = true;
@@ -180,17 +180,17 @@ productSchema.methods.restore = function() {
 };
 
 // Static method to get products for public API
-productSchema.statics.findPublic = function(query = {}) {
+productSchema.statics.findPublic = function (query = {}) {
   return this.find({ ...query, isActive: true, isDeleted: { $ne: true } }).select('-wholesaler');
 };
 
 // Static method to find active products (excludes soft-deleted)
-productSchema.statics.findActive = function(query = {}) {
+productSchema.statics.findActive = function (query = {}) {
   return this.find({ ...query, isDeleted: { $ne: true } });
 };
 
 // Method to get cross-site integration data
-productSchema.methods.getCrossSiteData = function() {
+productSchema.methods.getCrossSiteData = function () {
   return {
     _id: this._id,
     name: this.name,
@@ -207,7 +207,7 @@ productSchema.methods.getCrossSiteData = function() {
 };
 
 // Validation for cross-site integration
-productSchema.pre('save', function(next) {
+productSchema.pre('save', function (next) {
   if (this.crossSiteIntegration.enabled && !this.crossSiteIntegration.referenceKey) {
     this.crossSiteIntegration.referenceKey = this.slug;
   }

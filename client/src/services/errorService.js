@@ -1,59 +1,59 @@
 // Enhanced error handling service with retry mechanisms and user feedback
 class ErrorService {
   constructor() {
-    this.retryQueue = []
-    this.errorHistory = []
-    this.maxRetries = 3
-    this.retryDelays = [1000, 2000, 4000] // exponential backoff
-    this.listeners = []
+    this.retryQueue = [];
+    this.errorHistory = [];
+    this.maxRetries = 3;
+    this.retryDelays = [1000, 2000, 4000]; // exponential backoff
+    this.listeners = [];
   }
 
   // Register error listeners for components
   addListener(callback) {
-    this.listeners.push(callback)
+    this.listeners.push(callback);
     
     // Return unsubscribe function
     return () => {
-      this.listeners = this.listeners.filter(listener => listener !== callback)
-    }
+      this.listeners = this.listeners.filter(listener => listener !== callback);
+    };
   }
 
   // Notify all listeners of errors
   notifyListeners(error) {
     this.listeners.forEach(listener => {
       try {
-        listener(error)
+        listener(error);
       } catch (err) {
-        console.error('Error in error listener:', err)
+        console.error('Error in error listener:', err);
       }
-    })
+    });
   }
 
   // Enhanced error handling with categorization
   handleError(error, context = {}) {
-    const enhancedError = this.categorizeError(error, context)
+    const enhancedError = this.categorizeError(error, context);
     
     // Add to error history
     this.errorHistory.push({
       ...enhancedError,
       timestamp: new Date(),
       context
-    })
+    });
     
     // Keep only last 100 errors
     if (this.errorHistory.length > 100) {
-      this.errorHistory = this.errorHistory.slice(-100)
+      this.errorHistory = this.errorHistory.slice(-100);
     }
     
     // Notify listeners
-    this.notifyListeners(enhancedError)
+    this.notifyListeners(enhancedError);
     
     // Handle retry logic
     if (enhancedError.shouldRetry && enhancedError.retryCount < this.maxRetries) {
-      this.queueRetry(enhancedError, context)
+      this.queueRetry(enhancedError, context);
     }
     
-    return enhancedError
+    return enhancedError;
   }
 
   // Categorize errors for better user experience
@@ -62,7 +62,7 @@ class ErrorService {
       id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       originalError: error,
       retryCount: context.retryCount || 0
-    }
+    };
 
     // Network errors
     if (!navigator.onLine) {
@@ -80,13 +80,13 @@ class ErrorService {
           { label: 'Retry when online', action: 'retry' },
           { label: 'Continue offline', action: 'dismiss' }
         ]
-      }
+      };
     }
 
     // API errors
     if (error.response) {
-      const status = error.response.status
-      const data = error.response.data
+      const status = error.response.status;
+      const data = error.response.data;
       
       switch (status) {
         case 400:
@@ -103,7 +103,7 @@ class ErrorService {
               { label: 'Try again', action: 'retry' },
               { label: 'Dismiss', action: 'dismiss' }
             ]
-          }
+          };
 
         case 401:
           return {
@@ -119,7 +119,7 @@ class ErrorService {
               { label: 'Log in', action: 'login' },
               { label: 'Continue as guest', action: 'guest' }
             ]
-          }
+          };
 
         case 403:
           return {
@@ -135,7 +135,7 @@ class ErrorService {
               { label: 'Go back', action: 'goBack' },
               { label: 'Dismiss', action: 'dismiss' }
             ]
-          }
+          };
 
         case 404:
           return {
@@ -151,10 +151,10 @@ class ErrorService {
               { label: 'Go back', action: 'goBack' },
               { label: 'Refresh page', action: 'refresh' }
             ]
-          }
+          };
 
         case 429:
-          const retryAfter = error.response.headers?.['retry-after'] || 60
+          const retryAfter = error.response.headers?.['retry-after'] || 60;
           return {
             ...baseError,
             type: 'RATE_LIMIT_ERROR',
@@ -169,7 +169,7 @@ class ErrorService {
               { label: `Retry in ${retryAfter}s`, action: 'retryAfter' },
               { label: 'Dismiss', action: 'dismiss' }
             ]
-          }
+          };
 
         case 500:
         case 502:
@@ -188,7 +188,7 @@ class ErrorService {
               { label: 'Retry', action: 'retry' },
               { label: 'Report issue', action: 'report' }
             ]
-          }
+          };
 
         default:
           return {
@@ -204,7 +204,7 @@ class ErrorService {
               { label: 'Retry', action: 'retry' },
               { label: 'Dismiss', action: 'dismiss' }
             ]
-          }
+          };
       }
     }
 
@@ -223,7 +223,7 @@ class ErrorService {
           { label: 'Refresh page', action: 'refresh' },
           { label: 'Report issue', action: 'report' }
         ]
-      }
+      };
     }
 
     // Timeout errors
@@ -241,7 +241,7 @@ class ErrorService {
           { label: 'Retry', action: 'retry' },
           { label: 'Check connection', action: 'checkConnection' }
         ]
-      }
+      };
     }
 
     // Generic error
@@ -258,12 +258,12 @@ class ErrorService {
         { label: 'Try again', action: 'retry' },
         { label: 'Report issue', action: 'report' }
       ]
-    }
+    };
   }
 
   // Queue retry operations with exponential backoff
   queueRetry(error, context) {
-    const retryDelay = this.retryDelays[error.retryCount] || this.retryDelays[this.retryDelays.length - 1]
+    const retryDelay = this.retryDelays[error.retryCount] || this.retryDelays[this.retryDelays.length - 1];
     
     const retryOperation = {
       id: error.id,
@@ -274,43 +274,43 @@ class ErrorService {
       },
       executeAt: Date.now() + retryDelay,
       execute: context.retryFunction
-    }
+    };
     
-    this.retryQueue.push(retryOperation)
+    this.retryQueue.push(retryOperation);
     
     // Schedule retry
     setTimeout(() => {
-      this.processRetryQueue()
-    }, retryDelay)
+      this.processRetryQueue();
+    }, retryDelay);
   }
 
   // Process retry queue
   async processRetryQueue() {
-    const now = Date.now()
-    const readyToRetry = this.retryQueue.filter(op => op.executeAt <= now)
+    const now = Date.now();
+    const readyToRetry = this.retryQueue.filter(op => op.executeAt <= now);
     
     for (const operation of readyToRetry) {
       try {
         if (operation.execute && typeof operation.execute === 'function') {
-          await operation.execute()
+          await operation.execute();
         }
         
         // Remove from queue on success
-        this.retryQueue = this.retryQueue.filter(op => op.id !== operation.id)
+        this.retryQueue = this.retryQueue.filter(op => op.id !== operation.id);
         
         // Notify success
         this.notifyListeners({
           type: 'RETRY_SUCCESS',
           message: 'Operation completed successfully',
           originalError: operation.error
-        })
+        });
       } catch (retryError) {
         // Handle retry failure
-        const enhancedRetryError = this.handleError(retryError, operation.context)
+        const enhancedRetryError = this.handleError(retryError, operation.context);
         
         // Remove from queue if max retries exceeded
         if (enhancedRetryError.retryCount >= this.maxRetries) {
-          this.retryQueue = this.retryQueue.filter(op => op.id !== operation.id)
+          this.retryQueue = this.retryQueue.filter(op => op.id !== operation.id);
         }
       }
     }
@@ -318,10 +318,10 @@ class ErrorService {
 
   // Get error statistics for monitoring
   getErrorStatistics(timeWindow = 3600000) { // 1 hour default
-    const now = Date.now()
+    const now = Date.now();
     const recentErrors = this.errorHistory.filter(
       error => now - error.timestamp.getTime() < timeWindow
-    )
+    );
     
     const stats = {
       total: recentErrors.length,
@@ -329,33 +329,33 @@ class ErrorService {
       byType: {},
       retrySuccess: 0,
       averageRetryTime: 0
-    }
+    };
     
     recentErrors.forEach(error => {
       // Count by category
       if (!stats.byCategory[error.category]) {
-        stats.byCategory[error.category] = 0
+        stats.byCategory[error.category] = 0;
       }
-      stats.byCategory[error.category]++
+      stats.byCategory[error.category]++;
       
       // Count by type
       if (!stats.byType[error.type]) {
-        stats.byType[error.type] = 0
+        stats.byType[error.type] = 0;
       }
-      stats.byType[error.type]++
-    })
+      stats.byType[error.type]++;
+    });
     
-    return stats
+    return stats;
   }
 
   // Clear error history
   clearHistory() {
-    this.errorHistory = []
+    this.errorHistory = [];
   }
 
   // Clear retry queue
   clearRetryQueue() {
-    this.retryQueue = []
+    this.retryQueue = [];
   }
 
   // Format error for user display
@@ -368,7 +368,7 @@ class ErrorService {
       actions: error.actions,
       canRetry: error.shouldRetry,
       retryAfter: error.retryAfter
-    }
+    };
   }
 
   // Progressive enhancement check
@@ -381,9 +381,9 @@ class ErrorService {
       webSockets: typeof WebSocket !== 'undefined',
       serviceWorker: 'serviceWorker' in navigator,
       online: navigator.onLine
-    }
+    };
     
-    return features
+    return features;
   }
 
   // Graceful degradation for missing features
@@ -400,18 +400,18 @@ class ErrorService {
         { label: 'Continue', action: 'dismiss' },
         { label: 'Learn more', action: 'learnMore' }
       ]
-    }
+    };
     
-    this.notifyListeners(degradationError)
+    this.notifyListeners(degradationError);
     
     if (fallback && typeof fallback === 'function') {
-      return fallback()
+      return fallback();
     }
   }
 }
 
 // Export singleton instance
-const errorService = new ErrorService()
+const errorService = new ErrorService();
 
 // Global error handler for unhandled JavaScript errors
 window.addEventListener('error', (event) => {
@@ -419,14 +419,14 @@ window.addEventListener('error', (event) => {
     filename: event.filename,
     lineno: event.lineno,
     colno: event.colno
-  })
-})
+  });
+});
 
 // Global handler for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
   errorService.handleError(event.reason, {
     type: 'unhandled_promise'
-  })
-})
+  });
+});
 
-export default errorService
+export default errorService;

@@ -28,7 +28,7 @@ async function fixBrokenImages() {
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store', {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useUnifiedTopology: true
     });
     
     console.log('✅ Connected to MongoDB');
@@ -53,7 +53,7 @@ async function fixBrokenImages() {
           if (replacementImages[product.name]) {
             product.images[0].url = replacementImages[product.name];
             await product.save();
-            console.log(`✅ Fixed with replacement image`);
+            console.log('✅ Fixed with replacement image');
             fixed++;
           } else {
             // Use a generic placeholder based on category
@@ -77,11 +77,11 @@ async function fixBrokenImages() {
             
             product.images[0].url = placeholder;
             await product.save();
-            console.log(`✅ Fixed with category placeholder`);
+            console.log('✅ Fixed with category placeholder');
             fixed++;
           }
         } else {
-          console.log(`✅ Image is valid`);
+          console.log('✅ Image is valid');
         }
       }
     }

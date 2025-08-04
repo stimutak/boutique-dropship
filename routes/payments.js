@@ -295,8 +295,8 @@ router.post('/webhook', async (req, res) => {
             customerName,
             total: order.total,
             paymentMethod: order.payment.method === 'card' ? 'Credit/Debit Card' : 
-                          order.payment.method === 'crypto' ? 'Cryptocurrency' : 
-                          order.payment.method,
+              order.payment.method === 'crypto' ? 'Cryptocurrency' : 
+                order.payment.method,
             transactionId: order.payment.transactionId,
             paidAt: order.payment.paidAt
           };

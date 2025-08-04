@@ -130,7 +130,7 @@ describe('Complete User Journey Integration Tests', () => {
         .expect(200);
 
       expect(cartResponse.body.success).toBe(true);
-      expect(cartResponse.body.data.cart.items.length).toBe(2);
+      expect(cartResponse.body.data.cart.items).toHaveLength(2);
       expect(cartResponse.body.data.cart.total).toBe(56.97); // 24.99 + (15.99 * 2)
 
       // Step 6: Create order (checkout)
@@ -199,7 +199,7 @@ describe('Complete User Journey Integration Tests', () => {
         .expect(200);
 
       expect(userOrdersResponse.body.success).toBe(true);
-      expect(userOrdersResponse.body.data.orders.length).toBe(1);
+      expect(userOrdersResponse.body.data.orders).toHaveLength(1);
       expect(userOrdersResponse.body.data.orders[0]._id).toBe(orderId);
     });
   });
@@ -317,7 +317,7 @@ describe('Complete User Journey Integration Tests', () => {
         .expect(200);
 
       expect(profileResponse.body.success).toBe(true);
-      expect(profileResponse.body.user.addresses.length).toBe(1);
+      expect(profileResponse.body.user.addresses).toHaveLength(1);
       expect(profileResponse.body.user.addresses[0].isDefault).toBe(true);
 
       // Step 4: Quick checkout with saved address

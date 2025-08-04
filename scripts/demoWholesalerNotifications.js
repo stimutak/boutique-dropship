@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 // Demo script showing wholesaler notification functionality
 // Works without database connection for demonstration purposes

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createProduct, updateProduct, uploadProductImages, clearUploadedImages } from '../../store/slices/adminProductsSlice'
 import ImageUpload from './ImageUpload'
+import TagAutocomplete from './TagAutocomplete'
+import WholesalerDropdown from './WholesalerDropdown'
 
 const AdminProductForm = ({ product, onSave, onCancel }) => {
   const { t, i18n } = useTranslation()
@@ -481,16 +483,11 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
             <label htmlFor="product-tags">
               Tags
             </label>
-            <input
-              id="product-tags"
-              type="text"
+            <TagAutocomplete
               value={formData.tags}
-              onChange={(e) => handleInputChange('tags', e.target.value)}
-              placeholder="Enter tags separated by commas (e.g. crystal, healing, meditation)"
+              onChange={(value) => handleInputChange('tags', value)}
+              placeholder="Type to search tags (e.g. crystal, healing, meditation)"
             />
-            <small className="form-help-text">
-              Separate multiple tags with commas
-            </small>
           </div>
         </div>
 
@@ -499,33 +496,32 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
           <h3>{t('Wholesaler Information')}</h3>
           
           <div className="form-group">
-            <label htmlFor="wholesaler-name">
-              {t('Wholesaler Name')} *
+            <label htmlFor="wholesaler-dropdown">
+              {t('Select Wholesaler')} *
             </label>
-            <input
-              id="wholesaler-name"
-              type="text"
-              value={formData.wholesaler.name}
-              onChange={(e) => handleWholesalerChange('name', e.target.value)}
-              className={errors['wholesaler.name'] ? 'error' : ''}
-              placeholder={t('Enter wholesaler company name')}
+            <WholesalerDropdown
+              value={formData.wholesaler}
+              onChange={(wholesaler) => {
+                setFormData(prev => ({
+                  ...prev,
+                  wholesaler: {
+                    ...prev.wholesaler,
+                    name: wholesaler.name,
+                    email: wholesaler.email
+                  }
+                }))
+                // Clear wholesaler errors
+                setErrors(prev => {
+                  const newErrors = { ...prev }
+                  delete newErrors['wholesaler.name']
+                  delete newErrors['wholesaler.email']
+                  return newErrors
+                })
+              }}
             />
-            {errors['wholesaler.name'] && <span className="error-text">{errors['wholesaler.name']}</span>}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="wholesaler-email">
-              {t('Wholesaler Email')} *
-            </label>
-            <input
-              id="wholesaler-email"
-              type="email"
-              value={formData.wholesaler.email}
-              onChange={(e) => handleWholesalerChange('email', e.target.value)}
-              className={errors['wholesaler.email'] ? 'error' : ''}
-              placeholder={t('orders@wholesaler.com')}
-            />
-            {errors['wholesaler.email'] && <span className="error-text">{errors['wholesaler.email']}</span>}
+            {(errors['wholesaler.name'] || errors['wholesaler.email']) && (
+              <span className="error-text">Please select or add a wholesaler</span>
+            )}
           </div>
 
           <div className="form-group">

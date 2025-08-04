@@ -30,6 +30,106 @@ const upload = multer({
 // All admin routes require admin authentication
 router.use(requireAdmin);
 
+// ===== WHOLESALER MANAGEMENT =====
+
+// GET /api/admin/wholesalers - Get all unique wholesalers
+router.get('/wholesalers', async (req, res) => {
+  try {
+    // Get all unique wholesalers from products
+    const products = await Product.find({ 'wholesaler.name': { $exists: true } })
+      .select('wholesaler')
+      .lean();
+    
+    const wholesalerMap = new Map();
+    
+    products.forEach(product => {
+      if (product.wholesaler && product.wholesaler.name) {
+        const key = product.wholesaler.email || product.wholesaler.name;
+        if (!wholesalerMap.has(key)) {
+          wholesalerMap.set(key, {
+            name: product.wholesaler.name,
+            email: product.wholesaler.email || '',
+            productCodes: []
+          });
+        }
+        if (product.wholesaler.productCode) {
+          wholesalerMap.get(key).productCodes.push(product.wholesaler.productCode);
+        }
+      }
+    });
+    
+    const wholesalers = Array.from(wholesalerMap.values())
+      .map(w => ({
+        ...w,
+        productCount: w.productCodes.length
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    
+    res.json({
+      success: true,
+      data: wholesalers
+    });
+  } catch (error) {
+    console.error('Error fetching wholesalers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch wholesalers'
+    });
+  }
+});
+
+// POST /api/admin/wholesalers - Add a new wholesaler
+router.post('/wholesalers', [
+  body('name').notEmpty().withMessage('Wholesaler name is required'),
+  body('email').isEmail().withMessage('Valid email is required')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      errors: errors.array()
+    });
+  }
+  
+  try {
+    const { name, email, phone, website, notes } = req.body;
+    
+    // Check if wholesaler already exists
+    const existing = await Product.findOne({
+      'wholesaler.email': email
+    });
+    
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: 'Wholesaler with this email already exists'
+      });
+    }
+    
+    // For now, we just return the new wholesaler data
+    // In a real app, you might want to store this in a separate Wholesaler collection
+    const newWholesaler = {
+      name,
+      email,
+      phone: phone || '',
+      website: website || '',
+      notes: notes || '',
+      createdAt: new Date()
+    };
+    
+    res.json({
+      success: true,
+      data: newWholesaler
+    });
+  } catch (error) {
+    console.error('Error creating wholesaler:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create wholesaler'
+    });
+  }
+});
+
 // ===== PRODUCT MANAGEMENT =====
 
 // GET /api/admin/products - Get all products with admin data
@@ -45,7 +145,7 @@ router.get('/products', async (req, res) => {
       locale
     } = req.query;
 
-    let query = { isDeleted: { $ne: true } }; // Exclude soft-deleted products by default
+    const query = { isDeleted: { $ne: true } }; // Exclude soft-deleted products by default
     
     // Status filter
     if (status === 'active') {
@@ -158,10 +258,10 @@ router.post('/products', async (req, res) => {
       // Filter out any invalid image objects (missing url or alt)
       productData.images = productData.images.filter(img => 
         img && typeof img === 'object' && img.url && img.alt
-      )
+      );
     } else if (!productData.images) {
       // If images is undefined or null, set it to empty array
-      productData.images = []
+      productData.images = [];
     }
     
     const product = await Product.create(productData);
@@ -331,7 +431,7 @@ router.get('/products/export', async (req, res) => {
   try {
     const { category, status = 'all' } = req.query;
     
-    let query = {};
+    const query = {};
     if (category && category !== 'all') {
       query.category = category;
     }
@@ -539,7 +639,7 @@ router.post('/products/images', (req, res) => {
       
       // Handle specific multer errors
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.error(413, 'FILE_TOO_LARGE', `File size exceeds the 5MB limit`);
+        return res.error(413, 'FILE_TOO_LARGE', 'File size exceeds the 5MB limit');
       }
       
       if (err.code === 'LIMIT_FILE_COUNT') {
@@ -593,7 +693,7 @@ router.post('/products/:id/images', async (req, res) => {
       
       // Handle specific multer errors (same as above)
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.error(413, 'FILE_TOO_LARGE', `File size exceeds the 5MB limit`);
+        return res.error(413, 'FILE_TOO_LARGE', 'File size exceeds the 5MB limit');
       }
       
       if (err.code === 'LIMIT_FILE_COUNT') {
@@ -831,7 +931,7 @@ router.get('/orders', async (req, res) => {
       currency
     } = req.query;
 
-    let query = {};
+    const query = {};
     
     // Status filters
     if (status !== 'all') {
@@ -849,8 +949,8 @@ router.get('/orders', async (req, res) => {
     // Date range filter
     if (dateFrom || dateTo) {
       query.createdAt = {};
-      if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
-      if (dateTo) query.createdAt.$lte = new Date(dateTo);
+      if (dateFrom) {query.createdAt.$gte = new Date(dateFrom);}
+      if (dateTo) {query.createdAt.$lte = new Date(dateTo);}
     }
     
     // Search filter
@@ -1145,7 +1245,7 @@ router.get('/analytics/dashboard', async (req, res) => {
     const { period = '30d' } = req.query;
     
     // Calculate date range
-    let dateFrom = new Date();
+    const dateFrom = new Date();
     switch (period) {
       case '7d':
         dateFrom.setDate(dateFrom.getDate() - 7);
@@ -1463,7 +1563,7 @@ router.get('/analytics/sales', async (req, res) => {
     } = req.query;
 
     // Calculate date range
-    let dateFrom = new Date();
+    const dateFrom = new Date();
     switch (period) {
       case '7d':
         dateFrom.setDate(dateFrom.getDate() - 7);
@@ -1578,7 +1678,7 @@ router.get('/analytics/products', async (req, res) => {
     } = req.query;
 
     // Calculate date range
-    let dateFrom = new Date();
+    const dateFrom = new Date();
     switch (period) {
       case '7d':
         dateFrom.setDate(dateFrom.getDate() - 7);
@@ -1675,7 +1775,7 @@ router.get('/analytics/products', async (req, res) => {
                 { $and: [
                   { $lt: ['$inventory.stock', '$inventory.lowStockThreshold'] },
                   { $eq: ['$inventory.trackInventory', true] }
-                ]}, 
+                ] }, 
                 1, 
                 0
               ] 
@@ -1736,7 +1836,7 @@ router.get('/analytics/customers', async (req, res) => {
     } = req.query;
 
     // Calculate date range
-    let dateFrom = new Date();
+    const dateFrom = new Date();
     switch (period) {
       case '7d':
         dateFrom.setDate(dateFrom.getDate() - 7);
@@ -1849,7 +1949,7 @@ router.get('/analytics/revenue', async (req, res) => {
     } = req.query;
 
     // Calculate date range
-    let dateFrom = new Date();
+    const dateFrom = new Date();
     switch (period) {
       case '7d':
         dateFrom.setDate(dateFrom.getDate() - 7);
@@ -1944,7 +2044,7 @@ router.get('/analytics/export', async (req, res) => {
     } = req.query;
 
     // Calculate date range
-    let dateFrom = new Date();
+    const dateFrom = new Date();
     switch (period) {
       case '7d':
         dateFrom.setDate(dateFrom.getDate() - 7);
@@ -2093,7 +2193,7 @@ router.get('/users', async (req, res) => {
       sort = 'newest'
     } = req.query;
 
-    let query = {};
+    const query = {};
     
     // Status filter
     if (status === 'active') {

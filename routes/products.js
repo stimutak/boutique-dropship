@@ -9,8 +9,8 @@ const router = express.Router();
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
   // Check for explicit currency in query or header
-  if (req.query.currency) return req.query.currency;
-  if (req.headers['x-currency']) return req.headers['x-currency'];
+  if (req.query.currency) {return req.query.currency;}
+  if (req.headers['x-currency']) {return req.headers['x-currency'];}
   
   // Get from locale header (set by frontend based on i18n)
   const locale = req.headers['x-locale'] || 'en';
@@ -53,7 +53,7 @@ router.get('/', async (req, res) => {
     } = req.query;
     
     // Build base query for active products only
-    let query = { isActive: true };
+    const query = { isActive: true };
     
     // Category filter
     if (category) {
@@ -89,8 +89,8 @@ router.get('/', async (req, res) => {
     // Price range filter
     if (minPrice || maxPrice) {
       query.price = {};
-      if (minPrice) query.price.$gte = parseFloat(minPrice);
-      if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+      if (minPrice) {query.price.$gte = parseFloat(minPrice);}
+      if (maxPrice) {query.price.$lte = parseFloat(maxPrice);}
     }
     
     // Featured products filter
@@ -184,6 +184,159 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/products/tags - Get all unique tags
+router.get('/tags', async (req, res) => {
+  try {
+    // Get all unique tags from products
+    const products = await Product.find({ isActive: true }).select('tags');
+    
+    const tagSet = new Set();
+    products.forEach(product => {
+      if (product.tags && Array.isArray(product.tags)) {
+        product.tags.forEach(tag => {
+          if (tag) {tagSet.add(tag.toLowerCase());}
+        });
+      }
+    });
+    
+    const uniqueTags = Array.from(tagSet).sort();
+    
+    res.json({
+      success: true,
+      data: uniqueTags
+    });
+  } catch (error) {
+    console.error('Error fetching tags:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tags',
+      data: []
+    });
+  }
+});
+
+// GET /api/products/autocomplete - Fast autocomplete for search
+router.get('/autocomplete', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.length < 2) {
+      return res.json({ 
+        success: true, 
+        data: [] 
+      });
+    }
+    
+    const searchRegex = new RegExp(q, 'i');
+    const results = [];
+    const seen = new Set();
+    
+    // Search in product names
+    const nameMatches = await Product.find({
+      name: searchRegex,
+      isActive: true
+    })
+      .select('name slug category')
+      .limit(5);
+    
+    nameMatches.forEach(product => {
+      const key = `product-${product.slug}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        results.push({
+          type: 'product',
+          label: product.name,
+          value: product.slug,
+          category: product.category
+        });
+      }
+    });
+    
+    // Search in tags
+    const tagMatches = await Product.find({
+      tags: searchRegex,
+      isActive: true
+    })
+      .select('tags')
+      .limit(10);
+    
+    const matchedTags = new Set();
+    tagMatches.forEach(product => {
+      product.tags.forEach(tag => {
+        if (searchRegex.test(tag) && !matchedTags.has(tag)) {
+          matchedTags.add(tag);
+          results.push({
+            type: 'tag',
+            label: tag,
+            value: tag
+          });
+        }
+      });
+    });
+    
+    // Search in descriptions
+    const descMatches = await Product.find({
+      description: searchRegex,
+      isActive: true
+    })
+      .select('name slug description')
+      .limit(3);
+    
+    descMatches.forEach(product => {
+      const key = `desc-${product.slug}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        // Extract matching snippet from description
+        const match = product.description.match(new RegExp(`.{0,30}${q}.{0,30}`, 'i'));
+        results.push({
+          type: 'description',
+          label: product.name,
+          value: product.slug,
+          snippet: match ? match[0] : product.description.substring(0, 60)
+        });
+      }
+    });
+    
+    // Search in spiritual properties
+    const propMatches = await Product.find({
+      $or: [
+        { 'properties.chakra': searchRegex },
+        { 'properties.element': searchRegex },
+        { 'properties.zodiac': searchRegex }
+      ],
+      isActive: true
+    })
+      .select('name slug properties')
+      .limit(3);
+    
+    propMatches.forEach(product => {
+      const key = `prop-${product.slug}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        results.push({
+          type: 'property',
+          label: product.name,
+          value: product.slug,
+          properties: product.properties
+        });
+      }
+    });
+    
+    // Limit total results to 10 for performance
+    res.json({ 
+      success: true, 
+      data: results.slice(0, 10) 
+    });
+    
+  } catch (error) {
+    console.error('Autocomplete error:', error);
+    res.json({ 
+      success: true, 
+      data: [] 
+    }); // Return empty array on error for better UX
+  }
+});
+
 // GET /api/products/search - Advanced search with suggestions
 router.get('/search', async (req, res) => {
   try {
@@ -198,9 +351,9 @@ router.get('/search', async (req, res) => {
       $text: { $search: q },
       isActive: true
     })
-    .select('-wholesaler')
-    .sort({ score: { $meta: 'textScore' } })
-    .limit(20);
+      .select('-wholesaler')
+      .sort({ score: { $meta: 'textScore' } })
+      .limit(20);
     
     let suggestions = [];
     
@@ -211,16 +364,16 @@ router.get('/search', async (req, res) => {
         name: { $regex: q, $options: 'i' },
         isActive: true
       })
-      .select('name slug')
-      .limit(5);
+        .select('name slug')
+        .limit(5);
       
       // Find products with matching tags
       const tagSuggestions = await Product.find({
         tags: { $regex: q, $options: 'i' },
         isActive: true
       })
-      .select('name slug tags')
-      .limit(5);
+        .select('name slug tags')
+        .limit(5);
       
       suggestions = [
         ...nameSuggestions.map(p => ({ type: 'product', name: p.name, slug: p.slug })),
@@ -289,7 +442,7 @@ router.get('/filters', async (req, res) => {
   try {
     const { category } = req.query;
     
-    let matchQuery = { isActive: true };
+    const matchQuery = { isActive: true };
     if (category) {
       matchQuery.category = category;
     }
@@ -455,8 +608,8 @@ router.get('/:slug', async (req, res) => {
       ],
       isActive: true
     })
-    .select('-wholesaler')
-    .limit(4);
+      .select('-wholesaler')
+      .limit(4);
     
     // Get user's currency
     const userCurrency = getUserCurrency(req);

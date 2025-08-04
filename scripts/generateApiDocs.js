@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * API Documentation Generator
@@ -29,7 +28,7 @@ function extractRoutes(filePath, content) {
   const routes = [];
   const lines = content.split('\n');
   
-  let currentRoute = null;
+  const currentRoute = null;
   let inComment = false;
   let commentBuffer = '';
   
@@ -68,14 +67,14 @@ function extractRoutes(filePath, content) {
         
         // Extract middleware information
         const middleware = [];
-        if (line.includes('auth')) middleware.push('auth');
-        if (line.includes('admin')) middleware.push('admin');
-        if (line.includes('validate')) middleware.push('validation');
+        if (line.includes('auth')) {middleware.push('auth');}
+        if (line.includes('admin')) {middleware.push('admin');}
+        if (line.includes('validate')) {middleware.push('validation');}
         
         // Parse comment for description
         let description = '';
-        let parameters = [];
-        let responses = [];
+        const parameters = [];
+        const responses = [];
         
         if (commentBuffer) {
           const commentLines = commentBuffer.split('\n');
@@ -212,7 +211,7 @@ All responses follow a consistent format:
 
   // Group routes by file/category
   for (const { file, routes } of routeData) {
-    if (routes.length === 0) continue;
+    if (routes.length === 0) {continue;}
     
     const category = file.replace('.js', '').replace(/([A-Z])/g, ' $1').trim();
     const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
@@ -242,7 +241,7 @@ All responses follow a consistent format:
       
       // Parameters
       if (route.parameters.length > 0) {
-        markdown += `**Parameters:**\n\n`;
+        markdown += '**Parameters:**\n\n';
         for (const param of route.parameters) {
           markdown += `- \`${param.name}\` (${param.type}): ${param.description}\n`;
         }
@@ -261,8 +260,8 @@ All responses follow a consistent format:
       
       // Example response
       if (route.responses.length > 0) {
-        markdown += `**Example Response:**\n\`\`\`json\n`;
-        markdown += `{\n  "success": true,\n  "data": {\n    // Response data\n  }\n}\n`;
+        markdown += '**Example Response:**\n```json\n';
+        markdown += '{\n  "success": true,\n  "data": {\n    // Response data\n  }\n}\n';
         markdown += '```\n\n';
       }
       

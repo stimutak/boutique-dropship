@@ -25,9 +25,9 @@ const captureConsoleOutput = () => {
 };
 
 const restoreConsole = () => {
-  if (consoleLogSpy) consoleLogSpy.mockRestore();
-  if (consoleWarnSpy) consoleWarnSpy.mockRestore();
-  if (consoleErrorSpy) consoleErrorSpy.mockRestore();
+  if (consoleLogSpy) {consoleLogSpy.mockRestore();}
+  if (consoleWarnSpy) {consoleWarnSpy.mockRestore();}
+  if (consoleErrorSpy) {consoleErrorSpy.mockRestore();}
   loggedMessages = [];
 };
 

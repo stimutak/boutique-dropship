@@ -10,7 +10,7 @@ console.log('🚀 Starting database population...');
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store', {
   useNewUrlParser: true,
-  useUnifiedTopology: true,
+  useUnifiedTopology: true
 }).then(() => {
   console.log('✅ Connected to MongoDB');
   return populateData();

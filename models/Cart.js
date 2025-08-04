@@ -44,7 +44,7 @@ cartSchema.index({ expiresAt: 1 });
 cartSchema.index({ updatedAt: 1 }); // For cleanup queries
 
 // Method to calculate cart totals
-cartSchema.methods.calculateTotals = function() {
+cartSchema.methods.calculateTotals = function () {
   const subtotal = this.items.reduce((total, item) => total + (item.price * item.quantity), 0);
   return {
     itemCount: this.items.reduce((total, item) => total + item.quantity, 0),
@@ -54,7 +54,7 @@ cartSchema.methods.calculateTotals = function() {
 };
 
 // Method to add item to cart
-cartSchema.methods.addItem = function(productId, quantity, price) {
+cartSchema.methods.addItem = function (productId, quantity, price) {
   const existingItemIndex = this.items.findIndex(item => 
     item.product.toString() === productId.toString()
   );
@@ -82,7 +82,7 @@ cartSchema.methods.addItem = function(productId, quantity, price) {
 };
 
 // Method to update item quantity
-cartSchema.methods.updateItem = function(productId, quantity) {
+cartSchema.methods.updateItem = function (productId, quantity) {
   const itemIndex = this.items.findIndex(item => 
     item.product.toString() === productId.toString()
   );
@@ -101,7 +101,7 @@ cartSchema.methods.updateItem = function(productId, quantity) {
 };
 
 // Method to remove item
-cartSchema.methods.removeItem = function(productId) {
+cartSchema.methods.removeItem = function (productId) {
   const itemIndex = this.items.findIndex(item => 
     item.product.toString() === productId.toString()
   );
@@ -115,7 +115,7 @@ cartSchema.methods.removeItem = function(productId) {
 };
 
 // Method to clear cart
-cartSchema.methods.clearCart = function() {
+cartSchema.methods.clearCart = function () {
   this.items = [];
   this.updatedAt = new Date();
 };

@@ -92,7 +92,7 @@ export function convertCurrency(amount, fromCurrency, toCurrency) {
     INR: 74.5
   };
   
-  if (fromCurrency === toCurrency) return amount;
+  if (fromCurrency === toCurrency) {return amount;}
   
   // Convert to USD first, then to target currency
   const usdAmount = amount / (exchangeRates[fromCurrency] || 1);

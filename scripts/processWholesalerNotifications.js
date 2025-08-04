@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 // Standalone script to process pending wholesaler notifications
 // Can be run manually or via cron job
@@ -12,7 +11,7 @@ async function main() {
     // Connect to database
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store', {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useUnifiedTopology: true
     });
     
     console.log('Connected to database');
@@ -31,7 +30,7 @@ async function main() {
         result.results.forEach(r => {
           const status = r.status === 'success' ? '✓' : '✗';
           console.log(`${status} Order ${r.orderNumber} - ${r.wholesalerEmail || 'N/A'}`);
-          if (r.error) console.log(`   Error: ${r.error}`);
+          if (r.error) {console.log(`   Error: ${r.error}`);}
         });
       }
     } else {

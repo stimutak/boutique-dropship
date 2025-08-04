@@ -238,7 +238,7 @@ describe('Comprehensive Route Testing', () => {
 
       it('should return 404 for non-existent product', async () => {
         const response = await request(app)
-          .get(`/api/products/non-existent-slug`)
+          .get('/api/products/non-existent-slug')
           .expect(404);
 
         expect(response.body.success).toBe(false);
@@ -259,7 +259,7 @@ describe('Comprehensive Route Testing', () => {
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.cart.items.length).toBe(1);
+        expect(response.body.data.cart.items).toHaveLength(1);
       });
 
       it('should require authentication', async () => {
@@ -295,7 +295,7 @@ describe('Comprehensive Route Testing', () => {
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.cart.items.length).toBe(1);
+        expect(response.body.data.cart.items).toHaveLength(1);
       });
     });
   });

@@ -1,17 +1,17 @@
-import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
-import LanguageDetector from 'i18next-browser-languagedetector'
-import HttpApi from 'i18next-http-backend'
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+import HttpApi from 'i18next-http-backend';
 
 // Import translations directly for now
-import enTranslations from './locales/en/translation.json'
-import esTranslations from './locales/es/translation.json'
-import frTranslations from './locales/fr/translation.json'
-import deTranslations from './locales/de/translation.json'
-import zhTranslations from './locales/zh/translation.json'
-import jaTranslations from './locales/ja/translation.json'
-import arTranslations from './locales/ar/translation.json'
-import heTranslations from './locales/he/translation.json'
+import enTranslations from './locales/en/translation.json';
+import esTranslations from './locales/es/translation.json';
+import frTranslations from './locales/fr/translation.json';
+import deTranslations from './locales/de/translation.json';
+import zhTranslations from './locales/zh/translation.json';
+import jaTranslations from './locales/ja/translation.json';
+import arTranslations from './locales/ar/translation.json';
+import heTranslations from './locales/he/translation.json';
 
 const resources = {
   en: { translation: enTranslations },
@@ -22,7 +22,7 @@ const resources = {
   ja: { translation: jaTranslations },
   ar: { translation: arTranslations },
   he: { translation: heTranslations }
-}
+};
 
 // Supported languages configuration
 export const supportedLanguages = {
@@ -34,7 +34,7 @@ export const supportedLanguages = {
   ja: { name: '日本語', flag: '🇯🇵', dir: 'ltr' },
   ar: { name: 'العربية', flag: '🇸🇦', dir: 'rtl' },
   he: { name: 'עברית', flag: '🇮🇱', dir: 'rtl' }
-}
+};
 
 // Currency configuration per locale
 export const localeCurrencies = {
@@ -46,7 +46,7 @@ export const localeCurrencies = {
   ja: 'JPY',
   ar: 'SAR',
   he: 'ILS'
-}
+};
 
 i18n
   .use(HttpApi) // Load translations using http
@@ -70,6 +70,6 @@ i18n
     react: {
       useSuspense: false // Disable suspense mode for better error handling
     }
-  })
+  });
 
-export default i18n
+export default i18n;

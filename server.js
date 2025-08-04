@@ -59,7 +59,7 @@ const corsOptions = {
     ];
     
     // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin) return callback(null, true);
+    if (!origin) {return callback(null, true);}
     
     // Check if the origin is allowed
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -124,7 +124,7 @@ app.use(express.static('public'));
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store', {
   useNewUrlParser: true,
-  useUnifiedTopology: true,
+  useUnifiedTopology: true
 }).then(() => {
   console.log('Connected to MongoDB');
 }).catch((error) => {

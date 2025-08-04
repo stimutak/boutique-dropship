@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 // Test script to demonstrate wholesaler notification functionality
 // Creates sample orders and processes notifications
@@ -130,7 +129,7 @@ async function testNotificationSystem() {
     // Connect to database
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store', {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useUnifiedTopology: true
     });
     console.log('✓ Connected to database\n');
     
@@ -168,8 +167,8 @@ async function testNotificationSystem() {
         result.results.forEach(r => {
           const status = r.status === 'success' ? '✓' : '✗';
           console.log(`${status} Order ${r.orderNumber} - ${r.wholesalerEmail || 'N/A'}`);
-          if (r.error) console.log(`   Error: ${r.error}`);
-          if (r.messageId) console.log(`   Message ID: ${r.messageId}`);
+          if (r.error) {console.log(`   Error: ${r.error}`);}
+          if (r.messageId) {console.log(`   Message ID: ${r.messageId}`);}
         });
         console.log();
       }

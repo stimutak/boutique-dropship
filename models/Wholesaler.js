@@ -84,7 +84,7 @@ wholesalerSchema.index({ email: 1 });
 wholesalerSchema.index({ isActive: 1 });
 
 // Instance methods
-wholesalerSchema.methods.toJSON = function() {
+wholesalerSchema.methods.toJSON = function () {
   const wholesaler = this.toObject();
   delete wholesaler.__v;
   return wholesaler;

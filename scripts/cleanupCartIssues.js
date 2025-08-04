@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * Cart Cleanup Script
@@ -22,7 +21,7 @@ async function connectDB() {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/boutique', {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useUnifiedTopology: true
     });
     console.log('Connected to MongoDB');
   } catch (error) {
@@ -135,7 +134,7 @@ async function fixUserCartsWithInvalidProducts() {
     let totalFixed = 0;
     
     for (const user of users) {
-      if (!user.cart || !user.cart.items) continue;
+      if (!user.cart || !user.cart.items) {continue;}
       
       const validItems = [];
       let removedItems = 0;

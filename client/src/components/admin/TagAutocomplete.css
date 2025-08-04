@@ -1,0 +1,165 @@
+/* Tag Autocomplete Styles */
+.tag-autocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.tag-input-container {
+  background: var(--pearl-white);
+  border: 2px solid var(--sage-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  min-height: 44px;
+  transition: all var(--transition-luxury-base);
+}
+
+.tag-input-container:focus-within {
+  border-color: var(--sage-primary);
+  box-shadow: var(--shadow-luxury-sm);
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--sage-light), var(--sage-primary));
+  color: var(--pearl-white);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tag-remove {
+  margin-left: var(--space-2);
+  background: none;
+  border: none;
+  color: var(--pearl-white);
+  cursor: pointer;
+  font-size: var(--text-lg);
+  line-height: 1;
+  padding: 0;
+  opacity: 0.8;
+  transition: opacity var(--transition-luxury-base);
+}
+
+.tag-remove:hover {
+  opacity: 1;
+}
+
+.tag-input {
+  flex: 1;
+  min-width: 150px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: var(--text-base);
+  color: var(--earth-deep);
+  padding: var(--space-1) 0;
+}
+
+.tag-input::placeholder {
+  color: var(--sage-light);
+}
+
+/* Suggestions Dropdown */
+.tag-suggestions {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  background: var(--pearl-white);
+  border: 2px solid var(--sage-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-luxury-md);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tag-suggestion {
+  padding: var(--space-3);
+  cursor: pointer;
+  transition: all var(--transition-luxury-base);
+  border-bottom: 1px solid var(--linen-natural);
+  color: var(--earth-deep);
+  font-size: var(--text-sm);
+}
+
+.tag-suggestion:last-child {
+  border-bottom: none;
+}
+
+.tag-suggestion:hover,
+.tag-suggestion.selected {
+  background: linear-gradient(to right, var(--cream-soft), var(--linen-natural));
+  color: var(--sage-deep);
+}
+
+.tag-help-text {
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--sage-deep);
+  opacity: 0.7;
+}
+
+/* Error State */
+.tag-autocomplete.error .tag-input-container {
+  border-color: var(--error-color, #ef4444);
+}
+
+/* Disabled State */
+.tag-autocomplete.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.tag-autocomplete.disabled .tag-input-container {
+  background: var(--linen-natural);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .tag-chip {
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-2);
+  }
+  
+  .tag-input {
+    min-width: 100px;
+  }
+  
+  .tag-suggestions {
+    max-height: 150px;
+  }
+}

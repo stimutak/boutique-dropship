@@ -1,77 +1,77 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import api from '../../api/config'
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import api from '../../api/config';
 
 // Async thunks
 export const createOrder = createAsyncThunk(
   'orders/createOrder',
   async (orderData, { rejectWithValue, getState }) => {
     try {
-      console.log('Sending order data:', JSON.stringify(orderData, null, 2))
+      console.log('Sending order data:', JSON.stringify(orderData, null, 2));
       
       // Both guests and registered users use the same endpoint
-      const response = await api.post('/api/orders', orderData)
-      return response.data
+      const response = await api.post('/api/orders', orderData);
+      return response.data;
     } catch (error) {
-      console.error('Order creation error:', error.response?.data)
+      console.error('Order creation error:', error.response?.data);
       
       // If CSRF token error, try refreshing token and retry once
       if (error.response?.data?.error?.code === 'CSRF_TOKEN_MISMATCH') {
         try {
-          const { default: csrfService } = await import('../../services/csrf.js')
-          await csrfService.fetchToken()
-          console.log('Retrying order creation after CSRF refresh...')
+          const { default: csrfService } = await import('../../services/csrf.js');
+          await csrfService.fetchToken();
+          console.log('Retrying order creation after CSRF refresh...');
           // Retry the request
-          const retryResponse = await api.post('/api/orders', orderData)
-          return retryResponse.data
+          const retryResponse = await api.post('/api/orders', orderData);
+          return retryResponse.data;
         } catch (retryError) {
-          console.error('Order creation retry failed:', retryError.response?.data)
-          return rejectWithValue(retryError.response?.data?.error?.message || retryError.message)
+          console.error('Order creation retry failed:', retryError.response?.data);
+          return rejectWithValue(retryError.response?.data?.error?.message || retryError.message);
         }
       }
       
-      return rejectWithValue(error.response?.data?.error?.message || error.message)
+      return rejectWithValue(error.response?.data?.error?.message || error.message);
     }
   }
-)
+);
 
 export const fetchUserOrders = createAsyncThunk(
   'orders/fetchUserOrders',
   async (_, { rejectWithValue }) => {
     try {
       // Auth is handled via httpOnly cookies automatically
-      const response = await api.get('/api/orders')
-      console.log('Orders API response:', response.data)
-      return response.data
+      const response = await api.get('/api/orders');
+      console.log('Orders API response:', response.data);
+      return response.data;
     } catch (error) {
-      console.error('Fetch orders error:', error)
+      console.error('Fetch orders error:', error);
       return rejectWithValue(
         error.response?.data?.error?.message || 
         error.response?.data?.message || 
         error.message || 
         'Failed to fetch orders'
-      )
+      );
     }
   }
-)
+);
 
 export const fetchOrderById = createAsyncThunk(
   'orders/fetchOrderById',
   async (orderId, { rejectWithValue }) => {
     try {
       // Auth is handled via httpOnly cookies automatically
-      const response = await api.get(`/api/orders/${orderId}`)
-      return response.data
+      const response = await api.get(`/api/orders/${orderId}`);
+      return response.data;
     } catch (error) {
-      console.error('Fetch order error:', error)
+      console.error('Fetch order error:', error);
       return rejectWithValue(
         error.response?.data?.error?.message || 
         error.response?.data?.message || 
         error.message || 
         'Failed to fetch order'
-      )
+      );
     }
   }
-)
+);
 
 const ordersSlice = createSlice({
   name: 'orders',
@@ -79,60 +79,60 @@ const ordersSlice = createSlice({
     orders: [],
     currentOrder: null,
     isLoading: false,
-    error: null,
+    error: null
   },
   reducers: {
     clearError: (state) => {
-      state.error = null
+      state.error = null;
     },
     clearCurrentOrder: (state) => {
-      state.currentOrder = null
+      state.currentOrder = null;
     }
   },
   extraReducers: (builder) => {
     builder
       // Create order
       .addCase(createOrder.pending, (state) => {
-        state.isLoading = true
-        state.error = null
+        state.isLoading = true;
+        state.error = null;
       })
       .addCase(createOrder.fulfilled, (state, action) => {
-        state.isLoading = false
-        state.currentOrder = action.payload.order
-        state.orders.unshift(action.payload.order)
+        state.isLoading = false;
+        state.currentOrder = action.payload.order;
+        state.orders.unshift(action.payload.order);
       })
       .addCase(createOrder.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = action.payload
+        state.isLoading = false;
+        state.error = action.payload;
       })
       // Fetch user orders
       .addCase(fetchUserOrders.pending, (state) => {
-        state.isLoading = true
-        state.error = null
+        state.isLoading = true;
+        state.error = null;
       })
       .addCase(fetchUserOrders.fulfilled, (state, action) => {
-        state.isLoading = false
-        state.orders = action.payload.data.orders
+        state.isLoading = false;
+        state.orders = action.payload.data.orders;
       })
       .addCase(fetchUserOrders.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = action.payload || 'Failed to fetch orders'
+        state.isLoading = false;
+        state.error = action.payload || 'Failed to fetch orders';
       })
       // Fetch order by ID
       .addCase(fetchOrderById.pending, (state) => {
-        state.isLoading = true
-        state.error = null
+        state.isLoading = true;
+        state.error = null;
       })
       .addCase(fetchOrderById.fulfilled, (state, action) => {
-        state.isLoading = false
-        state.currentOrder = action.payload.data.order
+        state.isLoading = false;
+        state.currentOrder = action.payload.data.order;
       })
       .addCase(fetchOrderById.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = action.payload || 'Failed to fetch order'
-      })
+        state.isLoading = false;
+        state.error = action.payload || 'Failed to fetch order';
+      });
   }
-})
+});
 
-export const { clearError, clearCurrentOrder } = ordersSlice.actions
-export default ordersSlice.reducer
+export const { clearError, clearCurrentOrder } = ordersSlice.actions;
+export default ordersSlice.reducer;

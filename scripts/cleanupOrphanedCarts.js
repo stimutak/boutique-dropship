@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * Cleanup script for orphaned guest carts

@@ -13,8 +13,8 @@ const { i18nMiddleware, getErrorMessage } = require('../utils/i18n');
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
   // Check for explicit currency in query or header
-  if (req.query.currency) return req.query.currency;
-  if (req.headers['x-currency']) return req.headers['x-currency'];
+  if (req.query.currency) {return req.query.currency;}
+  if (req.headers['x-currency']) {return req.headers['x-currency'];}
   
   // Get from locale header (set by frontend based on i18n)
   const locale = req.headers['x-locale'] || 'en';
@@ -942,8 +942,8 @@ router.put('/:id/fulfill', requireAdmin, i18nMiddleware, async (req, res) => {
       });
 
       // Set additional dates if provided
-      if (shipDate) order.shipDate = new Date(shipDate);
-      if (estimatedDeliveryDate) order.estimatedDeliveryDate = new Date(estimatedDeliveryDate);
+      if (shipDate) {order.shipDate = new Date(shipDate);}
+      if (estimatedDeliveryDate) {order.estimatedDeliveryDate = new Date(estimatedDeliveryDate);}
 
       await order.save();
 

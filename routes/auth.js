@@ -181,7 +181,7 @@ router.post('/login', validateLogin, async (req, res) => {
     await user.save();
 
     // Cart info (simplified after removing cartService)
-    let cartInfo = { itemCount: 0, mergedItems: 0 };
+    const cartInfo = { itemCount: 0, mergedItems: 0 };
     
     // Guest cart merging would happen on the frontend after login
 
@@ -427,10 +427,10 @@ router.put('/profile', requireAuth, validateCSRFToken, [
     
     // Build update data object
     const updateData = {};
-    if (firstName !== undefined) updateData.firstName = firstName;
-    if (lastName !== undefined) updateData.lastName = lastName;
-    if (phone !== undefined) updateData.phone = phone;
-    if (email !== undefined) updateData.email = email;
+    if (firstName !== undefined) {updateData.firstName = firstName;}
+    if (lastName !== undefined) {updateData.lastName = lastName;}
+    if (phone !== undefined) {updateData.phone = phone;}
+    if (email !== undefined) {updateData.email = email;}
     
     // Handle addresses carefully
     if (addresses !== undefined) {
@@ -442,11 +442,11 @@ router.put('/profile', requireAuth, validateCSRFToken, [
         
         for (const addr of addresses) {
           // Skip if no address data
-          if (!addr) continue;
+          if (!addr) {continue;}
           
           // Skip if all fields are empty
           const hasContent = addr.street || addr.city || addr.state || addr.zipCode;
-          if (!hasContent) continue;
+          if (!hasContent) {continue;}
           
           // Check if address has required fields
           if (addr.street && addr.city && addr.state && addr.zipCode) {

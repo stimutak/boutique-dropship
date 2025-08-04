@@ -80,7 +80,7 @@ describe('Order Routes', () => {
   beforeAll(async () => {
     await mongoose.connect(process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/holistic-store-test', {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useUnifiedTopology: true
     });
     
     // Set JWT secret for testing

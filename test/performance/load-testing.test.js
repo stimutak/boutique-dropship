@@ -246,7 +246,7 @@ describe('Performance and Load Testing', () => {
       results.forEach(result => {
         expect(result.status).toBe(201);
         expect(result.body.success).toBe(true);
-        expect(result.body.data.order.items.length).toBe(1);
+        expect(result.body.data.order.items).toHaveLength(1);
       });
 
       console.log(`Concurrent order creation (5): ${endTime - startTime}ms`);
@@ -360,7 +360,7 @@ describe('Performance and Load Testing', () => {
 
         times.push(endTime - startTime);
         expect(response.body.success).toBe(true);
-        expect(response.body.data.orders.length).toBe(5);
+        expect(response.body.data.orders).toHaveLength(5);
       }
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
@@ -414,7 +414,7 @@ describe('Performance and Load Testing', () => {
       const connectionsAfter = mongoose.connection.readyState;
 
       expect(connectionsBefore).toBe(connectionsAfter);
-      expect(results.length).toBe(50);
+      expect(results).toHaveLength(50);
       expect(endTime - startTime).toBeLessThan(1000);
       
       console.log(`50 concurrent DB operations: ${endTime - startTime}ms`);

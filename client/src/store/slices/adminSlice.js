@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   ui: {
@@ -26,53 +26,53 @@ const initialState = {
     currentPage: 1,
     itemsPerPage: 10
   }
-}
+};
 
 const adminSlice = createSlice({
   name: 'admin',
   initialState,
   reducers: {
     setSidebarCollapsed: (state, action) => {
-      state.ui.sidebarCollapsed = action.payload
+      state.ui.sidebarCollapsed = action.payload;
     },
     setCurrentPage: (state, action) => {
-      state.ui.currentPage = action.payload
+      state.ui.currentPage = action.payload;
     },
     setFilters: (state, action) => {
-      const { section, filters } = action.payload
+      const { section, filters } = action.payload;
       if (state[section]) {
-        state[section].filters = filters
+        state[section].filters = filters;
       }
     },
     setSortBy: (state, action) => {
-      const { section, sortBy, sortOrder = 'desc' } = action.payload
+      const { section, sortBy, sortOrder = 'desc' } = action.payload;
       if (state[section]) {
-        state[section].sortBy = sortBy
-        state[section].sortOrder = sortOrder
+        state[section].sortBy = sortBy;
+        state[section].sortOrder = sortOrder;
       }
     },
     clearFilters: (state, action) => {
-      const { section } = action.payload
+      const { section } = action.payload;
       if (state[section]) {
-        state[section].filters = {}
+        state[section].filters = {};
       }
     },
     setCurrentPageNumber: (state, action) => {
-      const { section, page } = action.payload
+      const { section, page } = action.payload;
       if (state[section]) {
-        state[section].currentPage = page
+        state[section].currentPage = page;
       }
     },
     setItemsPerPage: (state, action) => {
-      const { section, itemsPerPage } = action.payload
+      const { section, itemsPerPage } = action.payload;
       if (state[section]) {
-        state[section].itemsPerPage = itemsPerPage
+        state[section].itemsPerPage = itemsPerPage;
         // Reset to first page when changing items per page
-        state[section].currentPage = 1
+        state[section].currentPage = 1;
       }
     }
   }
-})
+});
 
 export const {
   setSidebarCollapsed,
@@ -82,6 +82,6 @@ export const {
   clearFilters,
   setCurrentPageNumber,
   setItemsPerPage
-} = adminSlice.actions
+} = adminSlice.actions;
 
-export default adminSlice.reducer
+export default adminSlice.reducer;

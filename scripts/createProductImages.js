@@ -59,11 +59,11 @@ const createProductImage = (filename, title, color, description) => {
 };
 
 function getIcon(title) {
-  if (title.includes('Amethyst')) return '💎';
-  if (title.includes('Rose Quartz')) return '💖';
-  if (title.includes('Sage')) return '🌿';
-  if (title.includes('Lavender')) return '🌸';
-  if (title.includes('Chakra')) return '🔮';
+  if (title.includes('Amethyst')) {return '💎';}
+  if (title.includes('Rose Quartz')) {return '💖';}
+  if (title.includes('Sage')) {return '🌿';}
+  if (title.includes('Lavender')) {return '🌸';}
+  if (title.includes('Chakra')) {return '🔮';}
   return '✨';
 }
 

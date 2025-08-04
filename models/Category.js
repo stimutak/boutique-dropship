@@ -57,7 +57,7 @@ categorySchema.virtual('productCount', {
 });
 
 // Instance methods
-categorySchema.methods.toJSON = function() {
+categorySchema.methods.toJSON = function () {
   const category = this.toObject();
   delete category.__v;
   return category;

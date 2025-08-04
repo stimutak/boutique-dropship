@@ -113,32 +113,32 @@ userSchema.index({ isActive: 1 });
 userSchema.index({ lastLogin: -1 });
 
 // Pre-save middleware
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) {return next();}
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 // Authentication method
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
 // Method to get default shipping address
-userSchema.methods.getDefaultShippingAddress = function() {
+userSchema.methods.getDefaultShippingAddress = function () {
   return this.addresses.find(addr => addr.type === 'shipping' && addr.isDefault) ||
          this.addresses.find(addr => addr.type === 'shipping');
 };
 
 // Method to get default billing address
-userSchema.methods.getDefaultBillingAddress = function() {
+userSchema.methods.getDefaultBillingAddress = function () {
   return this.addresses.find(addr => addr.type === 'billing' && addr.isDefault) ||
          this.addresses.find(addr => addr.type === 'billing') ||
          this.getDefaultShippingAddress(); // Fallback to shipping if no billing
 };
 
 // Method to add or update address
-userSchema.methods.addAddress = function(addressData) {
+userSchema.methods.addAddress = function (addressData) {
   // If this is set as default, unset other defaults of the same type
   if (addressData.isDefault) {
     this.addresses.forEach(addr => {
@@ -153,9 +153,9 @@ userSchema.methods.addAddress = function(addressData) {
 };
 
 // Method to update address
-userSchema.methods.updateAddress = function(addressId, updateData) {
+userSchema.methods.updateAddress = function (addressId, updateData) {
   const address = this.addresses.id(addressId);
-  if (!address) return null;
+  if (!address) {return null;}
   
   // If setting as default, unset other defaults of the same type
   if (updateData.isDefault) {
@@ -171,15 +171,15 @@ userSchema.methods.updateAddress = function(addressId, updateData) {
 };
 
 // Method to remove address
-userSchema.methods.removeAddress = function(addressId) {
+userSchema.methods.removeAddress = function (addressId) {
   this.addresses.pull(addressId);
   return this.save();
 };
 
 // Method to set default address
-userSchema.methods.setDefaultAddress = function(addressId) {
+userSchema.methods.setDefaultAddress = function (addressId) {
   const address = this.addresses.id(addressId);
-  if (!address) return null;
+  if (!address) {return null;}
   
   // Unset other defaults of the same type
   this.addresses.forEach(addr => {
@@ -194,19 +194,19 @@ userSchema.methods.setDefaultAddress = function(addressId) {
 };
 
 // Method to update email preferences
-userSchema.methods.updateEmailPreferences = function(preferences) {
+userSchema.methods.updateEmailPreferences = function (preferences) {
   Object.assign(this.preferences.emailPreferences, preferences);
   return this.save();
 };
 
 // Method to check if user wants specific email type
-userSchema.methods.wantsEmail = function(emailType) {
-  if (!this.preferences.notifications) return false;
+userSchema.methods.wantsEmail = function (emailType) {
+  if (!this.preferences.notifications) {return false;}
   return this.preferences.emailPreferences[emailType] !== false;
 };
 
 // Method to get public user data (excludes sensitive info)
-userSchema.methods.toPublicJSON = function() {
+userSchema.methods.toPublicJSON = function () {
   return {
     _id: this._id,
     email: this.email,

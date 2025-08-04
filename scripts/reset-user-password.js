@@ -27,7 +27,7 @@ const resetPassword = async () => {
     console.log(`\n✅ Password reset successful for ${email}`);
     console.log(`📧 Email: ${email}`);
     console.log(`🔑 New Password: ${newPassword}`);
-    console.log(`\n⚠️  Please change this password after logging in!\n`);
+    console.log('\n⚠️  Please change this password after logging in!\n');
 
   } catch (error) {
     console.error('Error resetting password:', error);

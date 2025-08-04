@@ -12,8 +12,8 @@ const { secureSessionLog, secureOperationLog } = require('../utils/secureLogging
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
   // Check for explicit currency in query or header
-  if (req.query.currency) return req.query.currency;
-  if (req.headers['x-currency']) return req.headers['x-currency'];
+  if (req.query.currency) {return req.query.currency;}
+  if (req.headers['x-currency']) {return req.headers['x-currency'];}
   
   // Get from locale header (set by frontend based on i18n)
   const locale = req.headers['x-locale'] || 'en';
@@ -197,7 +197,7 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
       return res.error(400, ErrorCodes.INVALID_QUANTITY, 'Quantity value is too large');
     }
 
-        // Validate product ID format
+    // Validate product ID format
     if (!productId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.error(400, ErrorCodes.INVALID_PRODUCT_ID, 'Invalid product ID format');
     }
@@ -378,7 +378,7 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
       
       if (itemIndex >= 0) {
         // Always use direct database update for consistency
-        let updatedItems = [...cart.items];
+        const updatedItems = [...cart.items];
         
         if (quantity === 0) {
           updatedItems.splice(itemIndex, 1);
@@ -410,7 +410,7 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
     const populatedCart = await Promise.all(
       cartItems.map(async (item) => {
         const product = await Product.findById(item.product).select('-wholesaler');
-        if (!product || !product.isActive) return null;
+        if (!product || !product.isActive) {return null;}
         
         return {
           _id: item.product,
@@ -481,7 +481,7 @@ router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) 
       
       if (itemIndex >= 0) {
         // Always use direct database update for consistency
-        let updatedItems = [...cart.items];
+        const updatedItems = [...cart.items];
         updatedItems.splice(itemIndex, 1);
         
         // Use atomic update to prevent race conditions
@@ -504,7 +504,7 @@ router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) 
     const populatedCart = await Promise.all(
       cartItems.map(async (item) => {
         const product = await Product.findById(item.product).select('-wholesaler');
-        if (!product || !product.isActive) return null;
+        if (!product || !product.isActive) {return null;}
         
         return {
           _id: item.product,

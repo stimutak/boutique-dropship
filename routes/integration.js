@@ -174,7 +174,7 @@ router.get('/products/embed/:slug', [
       seo: product.seo,
       urls: {
         product: `/products/${product.slug}`,
-        addToCart: `/api/cart/add`,
+        addToCart: '/api/cart/add',
         buyNow: `/checkout?product=${product._id}`
       }
     };
@@ -221,7 +221,7 @@ router.get('/products/related/:contentId', [
     const { limit = 6, category, properties } = req.query;
     
     // Build query based on content relationship
-    let query = {
+    const query = {
       isActive: true,
       'crossSiteIntegration.enabled': true
     };
@@ -352,15 +352,15 @@ router.get('/analytics/summary', [
     const { startDate, endDate, source } = req.query;
     
     // Build date filter
-    let dateFilter = {};
+    const dateFilter = {};
     if (startDate || endDate) {
       dateFilter.createdAt = {};
-      if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
-      if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+      if (startDate) {dateFilter.createdAt.$gte = new Date(startDate);}
+      if (endDate) {dateFilter.createdAt.$lte = new Date(endDate);}
     }
     
     // Build source filter
-    let sourceFilter = {};
+    const sourceFilter = {};
     if (source) {
       sourceFilter.referralSource = source;
     }
@@ -458,7 +458,7 @@ router.get('/analytics/summary', [
 
 // HTML escape function to prevent XSS
 function escapeHtml(text) {
-  if (!text) return '';
+  if (!text) {return '';}
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

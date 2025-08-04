@@ -29,7 +29,7 @@ describe('Wholesaler Routes', () => {
   beforeAll(async () => {
     await mongoose.connect(process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/holistic-store-test', {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useUnifiedTopology: true
     });
     
     app = createTestApp();

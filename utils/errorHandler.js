@@ -182,7 +182,7 @@ function errorResponse(req, res, next) {
    * @param {string} field - Optional field name
    * @param {object} additionalData - Additional error data
    */
-  res.error = function(statusCode, errorCode, message, field = null, additionalData = null) {
+  res.error = function (statusCode, errorCode, message, field = null, additionalData = null) {
     const errorData = formatError(errorCode, message, field, additionalData, req.i18n);
     return this.status(statusCode).json(errorData);
   };
@@ -191,7 +191,7 @@ function errorResponse(req, res, next) {
    * Send validation error response
    * @param {object} validationErrors - Express validator errors
    */
-  res.validationError = function(validationErrors) {
+  res.validationError = function (validationErrors) {
     const errorData = createValidationError(validationErrors);
     // Apply i18n to the validation error message
     if (req.i18n && errorData.error) {

@@ -20,7 +20,7 @@ beforeAll(async () => {
   // Connect to the in-memory database
   await mongoose.connect(mongoUri, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
+    useUnifiedTopology: true
   });
 }, 30000);
 

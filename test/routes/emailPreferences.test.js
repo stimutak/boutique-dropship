@@ -1,18 +1,18 @@
-const request = require("supertest");
-const express = require("express");
-const User = require("../../models/User");
-const jwt = require("jsonwebtoken");
-const authRoutes = require("../../routes/auth");
+const request = require('supertest');
+const express = require('express');
+const User = require('../../models/User');
+const jwt = require('jsonwebtoken');
+const authRoutes = require('../../routes/auth');
 
 // Create test app
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  app.use("/api/auth", authRoutes);
+  app.use('/api/auth', authRoutes);
   return app;
 };
 
-describe("Email Preferences Endpoints", () => {
+describe('Email Preferences Endpoints', () => {
   let app;
   let testUser;
   let authToken;
@@ -22,26 +22,26 @@ describe("Email Preferences Endpoints", () => {
     await User.deleteMany({});
 
     testUser = new User({
-      email: "test@example.com",
-      password: "password123",
-      firstName: "Test",
-      lastName: "User",
+      email: 'test@example.com',
+      password: 'password123',
+      firstName: 'Test',
+      lastName: 'User',
       preferences: {
         emailPreferences: {
           orderConfirmations: true,
           paymentReceipts: true,
           orderUpdates: false,
           promotionalEmails: false,
-          welcomeEmails: true,
-        },
-      },
+          welcomeEmails: true
+        }
+      }
     });
     await testUser.save();
 
     authToken = jwt.sign(
       { userId: testUser._id },
-      process.env.JWT_SECRET || "test-secret",
-      { expiresIn: "24h" }
+      process.env.JWT_SECRET || 'test-secret',
+      { expiresIn: '24h' }
     );
   });
 
@@ -49,11 +49,11 @@ describe("Email Preferences Endpoints", () => {
     await User.deleteMany({});
   });
 
-  describe("GET /api/auth/email-preferences", () => {
-    it("should return user email preferences when authenticated", async () => {
+  describe('GET /api/auth/email-preferences', () => {
+    it('should return user email preferences when authenticated', async () => {
       const response = await request(app)
-        .get("/api/auth/email-preferences")
-        .set("Authorization", `Bearer ${authToken}`)
+        .get('/api/auth/email-preferences')
+        .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body).toEqual({
@@ -63,119 +63,119 @@ describe("Email Preferences Endpoints", () => {
           paymentReceipts: true,
           orderUpdates: false,
           promotionalEmails: false,
-          welcomeEmails: true,
-        },
+          welcomeEmails: true
+        }
       });
     });
 
-    it("should return 401 when not authenticated", async () => {
+    it('should return 401 when not authenticated', async () => {
       const response = await request(app)
-        .get("/api/auth/email-preferences")
+        .get('/api/auth/email-preferences')
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe("NO_TOKEN");
+      expect(response.body.error.code).toBe('NO_TOKEN');
     });
   });
 
-  describe("PUT /api/auth/email-preferences", () => {
-    it("should update email preferences successfully", async () => {
+  describe('PUT /api/auth/email-preferences', () => {
+    it('should update email preferences successfully', async () => {
       const newPreferences = {
         orderConfirmations: false,
         paymentReceipts: true,
         orderUpdates: true,
         promotionalEmails: true,
-        welcomeEmails: false,
+        welcomeEmails: false
       };
 
       const response = await request(app)
-        .put("/api/auth/email-preferences")
-        .set("Authorization", `Bearer ${authToken}`)
+        .put('/api/auth/email-preferences')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ emailPreferences: newPreferences })
         .expect(200);
 
       expect(response.body).toEqual({
         success: true,
-        message: "Email preferences updated successfully",
-        preferences: newPreferences,
+        message: 'Email preferences updated successfully',
+        preferences: newPreferences
       });
     });
 
-    it("should return 400 when emailPreferences is missing", async () => {
+    it('should return 400 when emailPreferences is missing', async () => {
       const response = await request(app)
-        .put("/api/auth/email-preferences")
-        .set("Authorization", `Bearer ${authToken}`)
+        .put('/api/auth/email-preferences')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({})
         .expect(400);
 
       expect(response.body).toEqual({
         success: false,
         error: {
-          code: "INVALID_PREFERENCES",
-          message: "Valid email preferences object is required",
-        },
+          code: 'INVALID_PREFERENCES',
+          message: 'Valid email preferences object is required'
+        }
       });
     });
 
-    it("should return 401 when not authenticated", async () => {
+    it('should return 401 when not authenticated', async () => {
       const response = await request(app)
-        .put("/api/auth/email-preferences")
+        .put('/api/auth/email-preferences')
         .send({ emailPreferences: { orderConfirmations: false } })
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe("NO_TOKEN");
+      expect(response.body.error.code).toBe('NO_TOKEN');
     });
   });
 
-  describe("Additional Edge Cases", () => {
-    it("should return 400 with invalid preference keys", async () => {
+  describe('Additional Edge Cases', () => {
+    it('should return 400 with invalid preference keys', async () => {
       const invalidPreferences = {
         orderConfirmations: true,
         invalidKey: true,
-        anotherInvalidKey: false,
+        anotherInvalidKey: false
       };
 
       const response = await request(app)
-        .put("/api/auth/email-preferences")
-        .set("Authorization", `Bearer ${authToken}`)
+        .put('/api/auth/email-preferences')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ emailPreferences: invalidPreferences })
         .expect(400);
 
       expect(response.body).toEqual({
         success: false,
         error: {
-          code: "INVALID_PREFERENCE_KEYS",
-          message: "Invalid preference keys: invalidKey, anotherInvalidKey",
-        },
+          code: 'INVALID_PREFERENCE_KEYS',
+          message: 'Invalid preference keys: invalidKey, anotherInvalidKey'
+        }
       });
     });
 
-    it("should return 400 when emailPreferences is not an object", async () => {
+    it('should return 400 when emailPreferences is not an object', async () => {
       const response = await request(app)
-        .put("/api/auth/email-preferences")
-        .set("Authorization", `Bearer ${authToken}`)
-        .send({ emailPreferences: "invalid" })
+        .put('/api/auth/email-preferences')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ emailPreferences: 'invalid' })
         .expect(400);
 
       expect(response.body).toEqual({
         success: false,
         error: {
-          code: "INVALID_PREFERENCES",
-          message: "Valid email preferences object is required",
-        },
+          code: 'INVALID_PREFERENCES',
+          message: 'Valid email preferences object is required'
+        }
       });
     });
 
-    it("should update partial preferences", async () => {
+    it('should update partial preferences', async () => {
       const partialPreferences = {
         promotionalEmails: true,
-        orderUpdates: true,
+        orderUpdates: true
       };
 
       const response = await request(app)
-        .put("/api/auth/email-preferences")
-        .set("Authorization", `Bearer ${authToken}`)
+        .put('/api/auth/email-preferences')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ emailPreferences: partialPreferences })
         .expect(200);
 
@@ -188,29 +188,29 @@ describe("Email Preferences Endpoints", () => {
       expect(response.body.preferences.welcomeEmails).toBe(true);
     });
 
-    it("should handle empty preferences object", async () => {
+    it('should handle empty preferences object', async () => {
       const response = await request(app)
-        .put("/api/auth/email-preferences")
-        .set("Authorization", `Bearer ${authToken}`)
+        .put('/api/auth/email-preferences')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ emailPreferences: {} });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe(
-        "Email preferences updated successfully"
+        'Email preferences updated successfully'
       );
       // Original preferences should remain unchanged
       expect(response.body.preferences.orderConfirmations).toBe(true);
     });
 
-    it("should return 401 with invalid token", async () => {
+    it('should return 401 with invalid token', async () => {
       const response = await request(app)
-        .get("/api/auth/email-preferences")
-        .set("Authorization", "Bearer invalid-token")
+        .get('/api/auth/email-preferences')
+        .set('Authorization', 'Bearer invalid-token')
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe("INVALID_TOKEN");
+      expect(response.body.error.code).toBe('INVALID_TOKEN');
     });
   });
 });

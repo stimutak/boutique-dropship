@@ -1,0 +1,213 @@
+/* Search Autocomplete Styles */
+.search-autocomplete {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+.search-input-wrapper {
+  display: flex;
+  background: var(--pearl-white);
+  border: 2px solid var(--sage-light);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  transition: all var(--transition-luxury-base);
+}
+
+.search-input-wrapper:focus-within {
+  border-color: var(--sage-primary);
+  box-shadow: var(--shadow-luxury-sm);
+}
+
+.search-input {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  background: transparent;
+  font-size: var(--text-base);
+  color: var(--earth-deep);
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--sage-light);
+}
+
+.search-button {
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  color: var(--sage-primary);
+  cursor: pointer;
+  transition: all var(--transition-luxury-base);
+  font-size: var(--text-lg);
+}
+
+.search-button:hover {
+  color: var(--sage-deep);
+  transform: scale(1.1);
+}
+
+/* Suggestions Dropdown */
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  background: var(--pearl-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-luxury-lg);
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 100;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: all var(--transition-luxury-base);
+  border-bottom: 1px solid var(--linen-natural);
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover,
+.suggestion-item.selected {
+  background: linear-gradient(to right, var(--cream-soft), var(--linen-natural));
+}
+
+.suggestion-item.loading,
+.suggestion-item.no-results {
+  color: var(--sage-deep);
+  font-style: italic;
+  cursor: default;
+}
+
+.suggestion-item.see-all {
+  background: linear-gradient(135deg, var(--sage-light), var(--sage-primary));
+  color: var(--pearl-white);
+  font-weight: 600;
+  justify-content: center;
+}
+
+.suggestion-item.see-all:hover {
+  background: linear-gradient(135deg, var(--sage-primary), var(--sage-deep));
+}
+
+.suggestion-icon {
+  font-size: var(--text-lg);
+  margin-right: var(--space-3);
+  flex-shrink: 0;
+}
+
+.suggestion-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggestion-label {
+  font-weight: 600;
+  color: var(--earth-deep);
+  margin-bottom: var(--space-1);
+}
+
+.suggestion-meta {
+  font-size: var(--text-sm);
+  color: var(--sage-deep);
+  opacity: 0.8;
+}
+
+.suggestion-snippet {
+  font-size: var(--text-sm);
+  color: var(--earth-medium);
+  margin-top: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-properties {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.property-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  background: var(--sage-light);
+  color: var(--pearl-white);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .search-autocomplete {
+    max-width: 100%;
+  }
+  
+  .search-suggestions {
+    left: var(--space-2);
+    right: var(--space-2);
+  }
+  
+  .suggestion-item {
+    padding: var(--space-3);
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .search-input-wrapper {
+    background: var(--earth-deep);
+    border-color: var(--sage-deep);
+  }
+  
+  .search-input {
+    color: var(--pearl-white);
+  }
+  
+  .search-suggestions {
+    background: var(--earth-deep);
+    border: 1px solid var(--sage-deep);
+  }
+  
+  .suggestion-item {
+    border-bottom-color: var(--sage-deep);
+  }
+  
+  .suggestion-item:hover,
+  .suggestion-item.selected {
+    background: var(--earth-medium);
+  }
+  
+  .suggestion-label {
+    color: var(--pearl-white);
+  }
+  
+  .suggestion-meta,
+  .suggestion-snippet {
+    color: var(--linen-natural);
+  }
+}

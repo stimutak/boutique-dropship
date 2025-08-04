@@ -297,7 +297,7 @@ async function seedDatabase() {
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store', {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useUnifiedTopology: true
     });
     
     console.log('Connected to MongoDB');

@@ -100,7 +100,7 @@ const createRateLimit = (windowMs, max, message) => {
       }
     },
     standardHeaders: true,
-    legacyHeaders: false,
+    legacyHeaders: false
   });
 };
 
@@ -158,8 +158,8 @@ const sanitizeInput = [
     replaceWith: '_',
     onSanitize: ({ req, key }) => {
       console.warn(`Sanitized input: ${key} in ${req.method} ${req.path}`);
-    },
-  }),
+    }
+  })
 ];
 
 // Common validation rules
@@ -199,7 +199,7 @@ const validationRules = {
   
   quantity: body('quantity')
     .isInt({ min: 1 })
-    .withMessage('Quantity must be a positive integer'),
+    .withMessage('Quantity must be a positive integer')
 };
 
 // Validation error handler

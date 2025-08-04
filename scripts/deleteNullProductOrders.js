@@ -9,7 +9,7 @@ async function deleteNullProductOrders() {
     // Find all orders
     const allOrders = await Order.find({}).populate('items.product');
     
-    let ordersToDelete = [];
+    const ordersToDelete = [];
     
     for (const order of allOrders) {
       // Check if any item has a null product

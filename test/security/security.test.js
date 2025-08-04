@@ -397,11 +397,11 @@ describe('Security Tests', () => {
       });
 
       const traversalPayloads = [
-        "../../../etc/passwd",
-        "..\\..\\..\\windows\\system32\\config\\sam",
-        "....//....//....//etc/passwd",
-        "%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd",
-        "..%252f..%252f..%252fetc%252fpasswd"
+        '../../../etc/passwd',
+        '..\\..\\..\\windows\\system32\\config\\sam',
+        '....//....//....//etc/passwd',
+        '%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd',
+        '..%252f..%252f..%252fetc%252fpasswd'
       ];
 
       for (const payload of traversalPayloads) {
@@ -420,11 +420,11 @@ describe('Security Tests', () => {
       });
 
       const commandInjectionPayloads = [
-        "google.com; cat /etc/passwd",
-        "google.com && rm -rf /",
-        "google.com | nc -l 4444",
-        "google.com `whoami`",
-        "google.com $(cat /etc/passwd)"
+        'google.com; cat /etc/passwd',
+        'google.com && rm -rf /',
+        'google.com | nc -l 4444',
+        'google.com `whoami`',
+        'google.com $(cat /etc/passwd)'
       ];
 
       for (const payload of commandInjectionPayloads) {
