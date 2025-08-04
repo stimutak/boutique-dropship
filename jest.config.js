@@ -30,6 +30,18 @@ module.exports = {
     'json'
   ],
   
+  // JUnit reporter for CI
+  reporters: [
+    'default',
+    ['jest-junit', {
+      outputDirectory: '.',
+      outputName: 'test-results/jest-junit.xml',
+      classNameTemplate: '{classname}',
+      titleTemplate: '{title}',
+      ancestorSeparator: ' › '
+    }]
+  ],
+  
   // Coverage collection patterns
   collectCoverageFrom: [
     'server.js',

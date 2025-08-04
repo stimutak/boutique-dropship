@@ -30,6 +30,11 @@ const AdminLayout = ({ children }) => {
       icon: '📋'
     },
     {
+      path: '/admin/reviews',
+      label: t('admin.navigation.reviews'),
+      icon: '⭐'
+    },
+    {
       path: '/admin/users',
       label: t('admin.navigation.users'),
       icon: '👥'

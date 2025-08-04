@@ -38,6 +38,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminProducts from './pages/admin/AdminProducts'
 import AdminProductNew from './pages/admin/AdminProductNew'
 import AdminProductEdit from './pages/admin/AdminProductEdit'
+import AdminReviews from './components/admin/AdminReviews'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminSettings from './pages/admin/AdminSettings'
@@ -167,6 +168,14 @@ function App() {
             element={
               <AdminRoute>
                 <AdminOrders />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/reviews" 
+            element={
+              <AdminRoute>
+                <AdminReviews />
               </AdminRoute>
             } 
           />

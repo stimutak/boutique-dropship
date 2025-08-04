@@ -4,6 +4,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { fetchProducts, setFilters } from '../store/slices/productsSlice'
 import { addToCart } from '../store/slices/cartSlice'
 import PriceDisplay from '../components/PriceDisplay'
+import ReviewSummary from '../components/reviews/ReviewSummary'
 
 const Products = () => {
   const dispatch = useDispatch()
@@ -128,6 +129,15 @@ const Products = () => {
                       currency={product.displayCurrency}
                     />
                     <p className="category">{product.category}</p>
+                    
+                    {/* Review Summary */}
+                    {product.reviewStats && (
+                      <ReviewSummary 
+                        averageRating={product.reviewStats.averageRating}
+                        totalReviews={product.reviewStats.totalReviews}
+                        size="small"
+                      />
+                    )}
                     
                     {/* Spiritual Properties */}
                     {product.properties && (

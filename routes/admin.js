@@ -628,7 +628,7 @@ const imageUpload = multer({
 // POST /api/admin/products/images - Upload product images (generic)
 router.post('/products/images', (req, res) => {
   // Custom multer error handling middleware
-  imageUpload.array('images', 10)(req, res, (err) => {
+  imageUpload.array('images', 10)(req, res, async (err) => {
     if (err) {
       console.error('Multer upload error:', err);
       
