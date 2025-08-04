@@ -5,7 +5,7 @@ import api from '../../api/config';
 export const fetchProductReviews = createAsyncThunk(
   'reviews/fetchProductReviews',
   async ({ productId, page = 1, limit = 10 }) => {
-    const response = await api.get(`/reviews/${productId}?page=${page}&limit=${limit}`);
+    const response = await api.get(`/api/reviews/${productId}?page=${page}&limit=${limit}`);
     return response.data;
   }
 );
@@ -14,7 +14,7 @@ export const fetchProductReviews = createAsyncThunk(
 export const submitReview = createAsyncThunk(
   'reviews/submitReview',
   async ({ productId, rating, comment }) => {
-    const response = await api.post('/reviews', { productId, rating, comment });
+    const response = await api.post('/api/reviews', { productId, rating, comment });
     return response.data;
   }
 );
@@ -23,7 +23,7 @@ export const submitReview = createAsyncThunk(
 export const markReviewHelpful = createAsyncThunk(
   'reviews/markHelpful',
   async ({ reviewId, helpful }) => {
-    const response = await api.put(`/reviews/${reviewId}/helpful`, { helpful });
+    const response = await api.put(`/api/reviews/${reviewId}/helpful`, { helpful });
     return response.data;
   }
 );
@@ -32,7 +32,7 @@ export const markReviewHelpful = createAsyncThunk(
 export const fetchMyReviews = createAsyncThunk(
   'reviews/fetchMyReviews',
   async ({ page = 1, limit = 10 }) => {
-    const response = await api.get(`/reviews/user/my-reviews?page=${page}&limit=${limit}`);
+    const response = await api.get(`/api/reviews/user/my-reviews?page=${page}&limit=${limit}`);
     return response.data;
   }
 );
@@ -46,7 +46,7 @@ export const fetchAllReviews = createAsyncThunk(
     if (productId) params.append('productId', productId);
     if (userId) params.append('userId', userId);
     
-    const response = await api.get(`/admin/reviews?${params}`);
+    const response = await api.get(`/api/admin/reviews?${params}`);
     return response.data;
   }
 );
@@ -55,7 +55,7 @@ export const fetchAllReviews = createAsyncThunk(
 export const approveReview = createAsyncThunk(
   'reviews/approveReview',
   async ({ reviewId, adminNotes }) => {
-    const response = await api.put(`/admin/reviews/${reviewId}/approve`, { adminNotes });
+    const response = await api.put(`/api/admin/reviews/${reviewId}/approve`, { adminNotes });
     return response.data;
   }
 );
@@ -64,7 +64,7 @@ export const approveReview = createAsyncThunk(
 export const rejectReview = createAsyncThunk(
   'reviews/rejectReview',
   async ({ reviewId, adminNotes }) => {
-    const response = await api.put(`/admin/reviews/${reviewId}/reject`, { adminNotes });
+    const response = await api.put(`/api/admin/reviews/${reviewId}/reject`, { adminNotes });
     return response.data;
   }
 );
@@ -73,7 +73,7 @@ export const rejectReview = createAsyncThunk(
 export const deleteReview = createAsyncThunk(
   'reviews/deleteReview',
   async (reviewId) => {
-    await api.delete(`/admin/reviews/${reviewId}`);
+    await api.delete(`/api/admin/reviews/${reviewId}`);
     return reviewId;
   }
 );
@@ -82,7 +82,7 @@ export const deleteReview = createAsyncThunk(
 export const fetchReviewStats = createAsyncThunk(
   'reviews/fetchStats',
   async () => {
-    const response = await api.get('/admin/reviews/stats');
+    const response = await api.get('/api/admin/reviews/stats');
     return response.data;
   }
 );

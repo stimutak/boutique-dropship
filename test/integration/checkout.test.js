@@ -12,7 +12,7 @@ describe('Checkout Flow Integration Tests', () => {
   // Database connection handled by test/setup.js
 
   beforeEach(async () => {
-    await clearDB();
+    // Database cleanup handled by test/setup.js afterEach hook
     agent = request.agent(app);
     
     // Create test product
