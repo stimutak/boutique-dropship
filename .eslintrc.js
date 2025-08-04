@@ -121,10 +121,11 @@ module.exports = {
     'build/',
     'coverage/',
     'test-results/',
-    'client/node_modules/',
-    'client/dist/',
+    'client/',  // Client has its own ESLint config
     'uploads/',
     'logs/',
-    '*.min.js'
+    '*.min.js',
+    '.jest-cache/',
+    'public/'
   ]
 };

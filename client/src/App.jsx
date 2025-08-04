@@ -27,6 +27,7 @@ import ResetPassword from './pages/ResetPassword'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import PaymentSuccess from './pages/PaymentSuccess'
+import MyReviews from './pages/MyReviews'
 import NotFound from './pages/NotFound'
 
 // Protected Route Components
@@ -119,6 +120,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <OrderDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/my-reviews" 
+            element={
+              <ProtectedRoute>
+                <MyReviews />
               </ProtectedRoute>
             } 
           />

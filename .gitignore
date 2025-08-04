@@ -4,6 +4,7 @@ node_modules
 .env
 .env.local
 .env.production
+.env.test
 .env.*.local
 
 # Nginx SSL certificates
@@ -11,5 +12,34 @@ docker/nginx/ssl/*.pem
 docker/nginx/ssl/*.key
 docker/nginx/ssl/*.crt
 docker/nginx/ssl/*.csr
+# Testing artifacts
 .jest-cache/
 test-results/
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# CI/CD artifacts
+eslint-results.xml
+junit.xml
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.pid
+*.seed
+*.pid.lock

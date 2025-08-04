@@ -106,6 +106,13 @@ const Header = () => {
                   >
                     {t('navigation.orders')}
                   </Link>
+                  <Link
+                    to="/my-reviews"
+                    className="dropdown-link"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {t('navigation.myReviews')}
+                  </Link>
                   <button
                     onClick={() => {
                       handleLogout()
@@ -176,6 +183,13 @@ const Header = () => {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {t('navigation.orders')}
+                </Link>
+                <Link
+                  to="/my-reviews"
+                  className="mobile-nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {t('navigation.myReviews')}
                 </Link>
                 <button
                   onClick={() => {
