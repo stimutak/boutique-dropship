@@ -277,10 +277,11 @@ router.post('/webhook', async (req, res) => {
       // Populate customer data for email
       await order.populate('customer', 'firstName lastName email preferences');
       
+      // Declare variables at the function scope level
+      let customerEmail, customerName, shouldSendEmail = true, userLocale = 'en';
+      
       try {
         const { sendPaymentReceipt } = require('../utils/emailService');
-        
-        let customerEmail, customerName, shouldSendEmail = true, userLocale = 'en';
         
         if (order.customer) {
           // Registered user
@@ -320,7 +321,7 @@ router.post('/webhook', async (req, res) => {
       try {
         const { sendOrderConfirmation } = require('../utils/emailService');
         
-        if (shouldSendEmail) {
+        if (shouldSendEmail && customerEmail && customerName && userLocale) {
           const orderData = {
             orderNumber: order.orderNumber,
             customerName,

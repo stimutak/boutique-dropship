@@ -8,7 +8,7 @@ const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { getCurrencyForLocale, formatPrice } = require('../utils/currency');
 const { ErrorCodes } = require('../utils/errorHandler');
 const { secureSessionLog, secureOperationLog } = require('../utils/secureLogging');
-const { logger, securityLogger } = require('../utils/logger');
+const { logger, _securityLogger } = require('../utils/logger');
 
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
