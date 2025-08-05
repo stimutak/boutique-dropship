@@ -1,12 +1,11 @@
 const request = require('supertest');
-const express = require('express');
-const session = require('express-session');
+// express and session removed - not used
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const Order = require('../../models/Order');
 const Product = require('../../models/Product');
 const User = require('../../models/User');
-const orderRoutes = require('../../routes/orders');
+// orderRoutes removed - not used
 
 // Import the test app with proper middleware
 const { createTestApp } = require('../helpers/testApp');
@@ -14,10 +13,10 @@ const { createTestApp } = require('../helpers/testApp');
 describe('Order Routes', () => {
   let app;
   let testProduct;
-  let testUser;
+  let _testUser;
   let adminToken;
   let agent;  // For maintaining session cookies
-  let csrfToken;
+  let _csrfToken;
 
   // Helper function to create test order data
   const createTestOrderData = (overrides = {}) => ({
@@ -627,7 +626,7 @@ describe('Order Routes', () => {
         const orderId = order._id;
         
         // Update to processing
-        const processResponse = await request(app)
+        const _processResponse = await request(app)
           .put(`/api/orders/${orderId}/fulfill`)
           .set('Authorization', `Bearer ${adminToken}`)
           .send({ 
@@ -637,7 +636,7 @@ describe('Order Routes', () => {
           .expect(200);
         
         // Update to shipped
-        const shipResponse = await request(app)
+        const _shipResponse = await request(app)
           .put(`/api/orders/${orderId}/fulfill`)
           .set('Authorization', `Bearer ${adminToken}`)
           .send({ 

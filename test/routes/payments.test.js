@@ -497,7 +497,7 @@ describe('Payment Routes', () => {
     it('should filter methods by amount', async () => {
       mockMollieClient.methods.list.mockResolvedValue([]);
       
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/payments/methods?amount=100.00&currency=USD')
         .expect(200);
       

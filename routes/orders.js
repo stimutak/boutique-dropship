@@ -8,7 +8,7 @@ const { authenticateToken, requireAuth, requireAdmin } = require('../middleware/
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { getCurrencyForLocale, getExchangeRates } = require('../utils/currency');
 const { _ErrorCodes } = require('../utils/errorHandler');
-const { i18nMiddleware, getErrorMessage } = require('../utils/i18n');
+const { i18nMiddleware } = require('../utils/i18n');
 
 // Helper function to get user's currency from request
 function getUserCurrency(req) {

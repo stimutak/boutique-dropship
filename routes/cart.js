@@ -135,7 +135,7 @@ router.get('/', authenticateToken, async (req, res) => {
     // Get cart data directly
     const cartData = await getOrCreateCart(req);
     
-    const { type, cart, user } = cartData;
+    const { _type, cart, _user } = cartData;
     
     // Populate product details for cart items
     const populatedCart = await Promise.all(

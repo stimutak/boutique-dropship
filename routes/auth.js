@@ -154,7 +154,7 @@ router.post('/login', validateLogin, async (req, res) => {
       return res.validationError(errors);
     }
 
-    const { email, password, guestCartItems } = req.body;
+    const { email, password, _guestCartItems } = req.body;
 
     // Find user
     const user = await User.findOne({ email });
@@ -221,14 +221,13 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
     const { email } = req.body;
     
     // Always execute the same operations to prevent timing attacks
-    let user, resetToken, resetTokenHash;
     
     // Find user
-    user = await User.findOne({ email });
+    const user = await User.findOne({ email });
     
     // Always generate a token (even if user doesn't exist) to normalize timing
-    resetToken = crypto.randomBytes(32).toString('hex');
-    resetTokenHash = crypto
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');

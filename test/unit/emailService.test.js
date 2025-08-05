@@ -8,7 +8,7 @@ const nodemailer = require('nodemailer');
 const {
   sendOrderConfirmation,
   sendWelcomeEmail,
-  sendPaymentReceipt,
+  _sendPaymentReceipt,
   emailTemplates
 } = require('../../utils/emailService');
 

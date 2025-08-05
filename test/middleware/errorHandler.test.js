@@ -30,7 +30,7 @@ describe('Error Handling Middleware', () => {
 
   describe('catchAsync', () => {
     test('should catch async errors and pass to next', async () => {
-      const asyncRoute = catchAsync(async (req, res, next) => {
+      const asyncRoute = catchAsync(async (_req, _res, _next) => {
         throw new Error('Async error');
       });
 

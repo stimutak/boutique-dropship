@@ -459,7 +459,7 @@ describe('Security Tests', () => {
   describe('Authentication Security', () => {
     test('should prevent timing attacks on login', async () => {
       app.post('/login', async (req, res) => {
-        const { email, password } = req.body;
+        const { _email, _password } = req.body;
         
         // Simulate constant-time comparison
         const startTime = Date.now();

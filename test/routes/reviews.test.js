@@ -14,7 +14,7 @@ describe('Review Routes', () => {
   let userToken;
   let testUser;
   let testProduct;
-  let testOrder;
+  let _testOrder;
 
   beforeAll(async () => {
     app = createTestApp();
@@ -52,7 +52,7 @@ describe('Review Routes', () => {
     });
 
     // Create test order (user purchased the product)
-    testOrder = await Order.create({
+    _testOrder = await Order.create({
       customer: testUser._id,
       items: [{
         product: testProduct._id,
@@ -297,7 +297,7 @@ describe('Review Routes', () => {
       // Add a small delay to ensure different timestamps
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const review2 = await Review.create({
+      const _review2 = await Review.create({
         product: testProduct._id,
         user: user2._id,
         rating: 4,

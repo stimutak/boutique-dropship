@@ -172,7 +172,7 @@ function createValidationError(validationResult) {
  */
 function errorResponse(req, res, next) {
   // Get i18n function if available (will be added when we implement backend i18n)
-  const i18n = req.i18n || null;
+  const _i18n = req.i18n || null;
 
   /**
    * Send standardized error response

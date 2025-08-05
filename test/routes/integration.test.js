@@ -16,7 +16,7 @@ const createTestApp = () => {
 describe('Integration Routes', () => {
   let app;
   let testProduct;
-  let testOrder;
+  let _testOrder;
   
   beforeAll(async () => {
     await mongoose.connect(process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/holistic-store-test', {
@@ -73,7 +73,7 @@ describe('Integration Routes', () => {
     });
     
     // Create test order with referral source
-    testOrder = await Order.create({
+    _testOrder = await Order.create({
       guestInfo: {
         email: 'guest@example.com',
         firstName: 'Jane',

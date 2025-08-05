@@ -3,7 +3,7 @@ const router = express.Router();
 const { createMollieClient } = require('@mollie/api-client');
 const { body, param, validationResult } = require('express-validator');
 const Order = require('../models/Order');
-const { requireAuth, authenticateToken } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 const { ErrorCodes } = require('../utils/errorHandler');
 
 // Initialize Mollie client with fallback

@@ -35,7 +35,7 @@ jest.mock('mongoose', () => ({
           { name: 'products' }
         ])
       }),
-      collection: (name) => ({
+      collection: (_name) => ({
         stats: () => Promise.resolve({
           count: 10,
           size: 1024,

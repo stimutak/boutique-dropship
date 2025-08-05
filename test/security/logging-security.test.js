@@ -4,7 +4,7 @@
 
 const request = require('supertest');
 const express = require('express');
-const session = require('express-session');
+// session removed - not used
 
 // Mock console methods to capture logs
 let consoleLogSpy, consoleWarnSpy, consoleErrorSpy;
@@ -183,7 +183,7 @@ describe('Logging Security Tests', () => {
       const cartRouter = require('../../routes/cart');
       app.use('/cart', cartRouter);
 
-      const response = await request(app)
+      const _response = await request(app)
         .get('/cart')
         .set('x-guest-session-id', testSessionId);
 

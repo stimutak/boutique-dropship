@@ -2,7 +2,7 @@
 // Demo script showing wholesaler notification functionality
 // Works without database connection for demonstration purposes
 
-const { sendWholesalerNotification } = require('../utils/emailService');
+// sendWholesalerNotification removed - demonstration only
 
 // Sample order data for demonstration
 const sampleOrderData = {
