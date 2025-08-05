@@ -171,7 +171,7 @@ const AdminReviews = () => {
                     </td>
                     <td>
                       <span className={`status status--${review.status}`}>
-                        {t(`admin.reviews.status.${review.status}`)}
+                        {t(`admin.reviews.${review.status}`)}
                       </span>
                     </td>
                     <td>
