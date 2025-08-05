@@ -6,6 +6,9 @@ class ErrorService {
     this.maxRetries = 3;
     this.retryDelays = [1000, 2000, 4000]; // exponential backoff
     this.listeners = [];
+    this.globalHandlersInitialized = false;
+    this.globalErrorHandler = null;
+    this.globalRejectionHandler = null;
   }
 
   // Register error listeners for components
@@ -358,6 +361,46 @@ class ErrorService {
     this.retryQueue = [];
   }
 
+  // Initialize global error handlers (call once on app start)
+  initializeGlobalHandlers() {
+    if (this.globalHandlersInitialized) {
+      return; // Prevent duplicate listeners
+    }
+    
+    this.globalErrorHandler = (event) => {
+      this.handleError(new Error(event.message), {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
+    };
+    
+    this.globalRejectionHandler = (event) => {
+      this.handleError(event.reason, {
+        type: 'unhandled_promise'
+      });
+    };
+
+    window.addEventListener('error', this.globalErrorHandler);
+    window.addEventListener('unhandledrejection', this.globalRejectionHandler);
+    
+    this.globalHandlersInitialized = true;
+  }
+
+  // Cleanup global error handlers (call on app shutdown if needed)
+  cleanupGlobalHandlers() {
+    if (!this.globalHandlersInitialized) {
+      return;
+    }
+    
+    window.removeEventListener('error', this.globalErrorHandler);
+    window.removeEventListener('unhandledrejection', this.globalRejectionHandler);
+    
+    this.globalHandlersInitialized = false;
+    this.globalErrorHandler = null;
+    this.globalRejectionHandler = null;
+  }
+
   // Format error for user display
   formatErrorForUser(error) {
     return {
@@ -413,20 +456,8 @@ class ErrorService {
 // Export singleton instance
 const errorService = new ErrorService();
 
-// Global error handler for unhandled JavaScript errors
-window.addEventListener('error', (event) => {
-  errorService.handleError(new Error(event.message), {
-    filename: event.filename,
-    lineno: event.lineno,
-    colno: event.colno
-  });
-});
-
-// Global handler for unhandled promise rejections
-window.addEventListener('unhandledrejection', (event) => {
-  errorService.handleError(event.reason, {
-    type: 'unhandled_promise'
-  });
-});
+// Initialize global handlers once when the module is imported
+// This is acceptable for a singleton service that should persist for the app lifetime
+errorService.initializeGlobalHandlers();
 
 export default errorService;

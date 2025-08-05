@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { registerUser, clearError } from '../store/slices/authSlice'
@@ -9,6 +9,7 @@ const Register = () => {
   const navigate = useNavigate()
   const { isLoading, error, isAuthenticated } = useSelector(state => state.auth)
   const { syncAfterAuth, syncMessage, hasGuestItems } = useAuthCartSync()
+  const navigationTimeoutRef = useRef(null)
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -33,15 +34,26 @@ const Register = () => {
     
     return () => {
       dispatch(clearError())
+      // Clear navigation timeout on unmount
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current)
+        navigationTimeoutRef.current = null
+      }
     }
   }, [isAuthenticated, navigate, dispatch])
 
   const handleCartMergeAfterRegistration = async () => {
     await syncAfterAuth()
     
+    // Clear any existing timeout
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current)
+    }
+    
     // Navigate after a brief delay to show sync message
-    setTimeout(() => {
+    navigationTimeoutRef.current = setTimeout(() => {
       navigate('/')
+      navigationTimeoutRef.current = null
     }, 1000)
   }
 

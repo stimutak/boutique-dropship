@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import errorService from '../../services/errorService'
 import './FeedbackSystem.css'
@@ -7,6 +7,28 @@ import './FeedbackSystem.css'
 const Toast = ({ notification, onDismiss, onAction }) => {
   const [isVisible, setIsVisible] = useState(false)
   const [progress, setProgress] = useState(100)
+  const timerRef = useRef(null)
+  const dismissTimeoutRef = useRef(null)
+
+  const handleDismiss = useCallback(() => {
+    // Clear any active progress timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    
+    setIsVisible(false)
+    
+    // Clear any existing dismiss timeout
+    if (dismissTimeoutRef.current) {
+      clearTimeout(dismissTimeoutRef.current)
+    }
+    
+    dismissTimeoutRef.current = setTimeout(() => {
+      onDismiss(notification.id)
+      dismissTimeoutRef.current = null
+    }, 300)
+  }, [notification.id, onDismiss])
 
   useEffect(() => {
     setIsVisible(true)
@@ -17,25 +39,29 @@ const Toast = ({ notification, onDismiss, onAction }) => {
       const interval = 100
       const step = (interval / duration) * 100
       
-      const timer = setInterval(() => {
+      timerRef.current = setInterval(() => {
         setProgress(prev => {
           if (prev <= 0) {
-            clearInterval(timer)
             handleDismiss()
             return 0
           }
           return prev - step
         })
       }, interval)
-      
-      return () => clearInterval(timer)
     }
-  }, [notification])
 
-  const handleDismiss = () => {
-    setIsVisible(false)
-    setTimeout(() => onDismiss(notification.id), 300)
-  }
+    // Cleanup function - clear timers on unmount or notification change
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+      if (dismissTimeoutRef.current) {
+        clearTimeout(dismissTimeoutRef.current)
+        dismissTimeoutRef.current = null
+      }
+    }
+  }, [notification, handleDismiss])
 
   const handleAction = (action) => {
     onAction(notification.id, action)

@@ -12,12 +12,12 @@ import productsReducer from '../store/slices/productsSlice'
 import { vi } from 'vitest'
 
 // Mock errorService to track listeners
-const mockErrorService = {
-  addListener: vi.fn(() => vi.fn()), // Return mock unsubscribe function
-  formatErrorForUser: vi.fn(() => ({ title: 'Error', message: 'Test error' }))
-}
-
-vi.mock('../services/errorService', () => ({ default: mockErrorService }))
+vi.mock('../services/errorService', () => ({
+  default: {
+    addListener: vi.fn(() => vi.fn()), // Return mock unsubscribe function
+    formatErrorForUser: vi.fn(() => ({ title: 'Error', message: 'Test error' }))
+  }
+}))
 
 // Mock router hooks
 const mockNavigate = vi.fn()
@@ -224,7 +224,7 @@ describe('Memory Leak Detection', () => {
     })
 
     test('FAILING: should clear timer when toast is manually dismissed', async () => {
-      const mockOnDismiss = jest.fn()
+      const mockOnDismiss = vi.fn()
       const mockNotification = {
         id: 'test-2',
         type: 'info',
@@ -238,7 +238,7 @@ describe('Memory Leak Detection', () => {
         <Toast 
           notification={mockNotification}
           onDismiss={mockOnDismiss}
-          onAction={jest.fn()}
+          onAction={vi.fn()}
         />
       )
 

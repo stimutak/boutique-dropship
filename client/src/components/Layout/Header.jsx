@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +11,7 @@ import './Header.css'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const logoutTimeoutRef = useRef(null)
   
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -21,13 +22,29 @@ const Header = () => {
   
   const isRTL = supportedLanguages[i18n.language]?.dir === 'rtl'
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (logoutTimeoutRef.current) {
+        clearTimeout(logoutTimeoutRef.current)
+        logoutTimeoutRef.current = null
+      }
+    }
+  }, [])
+
   const handleLogout = async () => {
     // Call backend logout endpoint to clear httpOnly cookie
     await dispatch(logoutUser())
     
+    // Clear any existing timeout
+    if (logoutTimeoutRef.current) {
+      clearTimeout(logoutTimeoutRef.current)
+    }
+    
     // Clear the flag after 5 seconds to allow normal operation
-    setTimeout(() => {
+    logoutTimeoutRef.current = setTimeout(() => {
       window.sessionStorage.removeItem('justLoggedOut')
+      logoutTimeoutRef.current = null
     }, 5000)
     
     // Clear cart state and reset to fresh guest session
