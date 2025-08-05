@@ -4,7 +4,7 @@ const { body, validationResult, param } = require('express-validator');
 const Review = require('../models/Review');
 const Product = require('../models/Product');
 const { requireAuth } = require('../middleware/auth');
-const { ErrorCodes } = require('../utils/errorHandler');
+const { _ErrorCodes } = require('../utils/errorHandler');
 const router = express.Router();
 
 // Validation middleware for review creation

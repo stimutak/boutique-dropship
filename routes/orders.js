@@ -7,7 +7,7 @@ const User = require('../models/User');
 const { authenticateToken, requireAuth, requireAdmin } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { getCurrencyForLocale, getExchangeRates } = require('../utils/currency');
-const { ErrorCodes } = require('../utils/errorHandler');
+const { _ErrorCodes } = require('../utils/errorHandler');
 const { i18nMiddleware, getErrorMessage } = require('../utils/i18n');
 
 // Helper function to get user's currency from request

@@ -2,7 +2,6 @@
 require('../helpers/mockServices');
 
 /* eslint-env jest */
-/* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "validateErrorResponse"] }] */
 
 const request = require('supertest');
 const express = require('express');
