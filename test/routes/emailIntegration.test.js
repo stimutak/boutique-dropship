@@ -179,7 +179,7 @@ describe('Email Integration Tests', () => {
         .send(orderData);
       
       if (response.status !== 201) {
-        console.log('Guest checkout error:', JSON.stringify(response.body, null, 2));
+        // Debug: Guest checkout error - check response.status and response.body if needed
       }
       
       expect(response.status).toBe(201);

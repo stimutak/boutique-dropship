@@ -651,7 +651,8 @@ Invalid Product`; // Missing required fields
     });
   });
 
-  describe.skip('Wholesaler Communication Management', () => {
+  // TODO: Re-enable when Wholesaler Communication Management API is implemented
+  /* describe('Wholesaler Communication Management', () => {
     test('should get wholesaler communication logs', async () => {
       const response = await request(app)
         .get('/api/admin/wholesalers/logs')
@@ -684,7 +685,7 @@ Invalid Product`; // Missing required fields
       expect(response.body.summary.overall).toBeDefined();
       expect(response.body.summary.byWholesaler).toBeDefined();
     });
-  });
+  }); */
 
   describe('Analytics Endpoints', () => {
     test('should get dashboard analytics', async () => {
@@ -701,7 +702,8 @@ Invalid Product`; // Missing required fields
       expect(response.body.analytics.period).toBeDefined();
     });
 
-    test.skip('should get sales analytics with different periods', async () => {
+    // TODO: Implement sales analytics periods when API supports it
+    /* test('should get sales analytics with different periods', async () => {
       const response = await request(app)
         .get('/api/admin/analytics/sales?period=7d&groupBy=day')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -711,9 +713,10 @@ Invalid Product`; // Missing required fields
       expect(response.body.salesAnalytics.period).toBe('7d');
       expect(response.body.salesAnalytics.groupBy).toBe('day');
       expect(response.body.salesAnalytics.data).toBeDefined();
-    });
+    }); */
 
-    test.skip('should filter sales analytics by category', async () => {
+    // TODO: Implement sales analytics category filter when API supports it
+    /* test('should filter sales analytics by category', async () => {
       const response = await request(app)
         .get('/api/admin/analytics/sales?category=crystals')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -721,7 +724,7 @@ Invalid Product`; // Missing required fields
 
       expect(response.body.success).toBe(true);
       expect(response.body.salesAnalytics.filters.category).toBe('crystals');
-    });
+    }); */ 
   });
 
   describe('User Management', () => {

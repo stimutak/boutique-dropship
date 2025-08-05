@@ -83,7 +83,7 @@ describe('Admin Image Upload Integration Tests', () => {
         expect(uploadResponse.body.images).toHaveLength(1);
         
         const uploadedImage = uploadResponse.body.images[0];
-        console.log('Uploaded image:', uploadedImage);
+        // Debug: Uploaded image info available in uploadedImage
 
         // Now create a product with the uploaded image
         const productData = {
@@ -120,7 +120,7 @@ describe('Admin Image Upload Integration Tests', () => {
         // THIS IS WHERE THE BUG MANIFESTS:
         // The product is created but images array might be empty or invalid
         const createdProduct = createResponse.body.data.product;
-        console.log('Created product images:', createdProduct.images);
+        // Debug: Created product images available in createdProduct.images
         
         // These assertions should pass but currently fail due to the bug
         expect(createdProduct.images).toHaveLength(1);
@@ -422,7 +422,7 @@ describe('Admin Image Upload Integration Tests', () => {
           .attach('images', testImagePath)
           .expect(200);
 
-        console.log('Current upload response:', JSON.stringify(response.body, null, 2));
+        // Debug: Upload response structure can be inspected if needed
         
         // Document what we're actually getting vs what we expect
         expect(response.body.success).toBe(true);
@@ -430,8 +430,7 @@ describe('Admin Image Upload Integration Tests', () => {
         
         if (response.body.images.length > 0) {
           const image = response.body.images[0];
-          console.log('Image object structure:', Object.keys(image));
-          console.log('Image URL format:', image.url);
+          // Debug: Image object structure and URL format can be inspected if needed
         }
 
       } finally {
