@@ -1358,16 +1358,18 @@ Invalid Product`; // Missing required fields
       });
 
       test('should require admin authentication', async () => {
-        await request(app)
+        const response = await request(app)
           .get('/api/admin/reviews')
           .set('Authorization', `Bearer ${regularUserToken}`)
           .expect(403);
+        expect(response.status).toBe(403);
       });
 
       test('should require authentication', async () => {
-        await request(app)
+        const response = await request(app)
           .get('/api/admin/reviews')
           .expect(401);
+        expect(response.status).toBe(401);
       });
     });
 
@@ -1409,11 +1411,12 @@ Invalid Product`; // Missing required fields
       test('should require admin authentication', async () => {
         const pendingReview = testReviews[0];
         
-        await request(app)
+        const response = await request(app)
           .put(`/api/admin/reviews/${pendingReview._id}/approve`)
           .set('Authorization', `Bearer ${regularUserToken}`)
           .send({ adminNotes: 'Trying to approve' })
           .expect(403);
+        expect(response.status).toBe(403);
       });
 
       test('should handle non-existent review', async () => {
@@ -1508,11 +1511,12 @@ Invalid Product`; // Missing required fields
       test('should require admin authentication', async () => {
         const pendingReview = testReviews[0];
         
-        await request(app)
+        const response = await request(app)
           .put(`/api/admin/reviews/${pendingReview._id}/reject`)
           .set('Authorization', `Bearer ${regularUserToken}`)
           .send({ adminNotes: 'Trying to reject' })
           .expect(403);
+        expect(response.status).toBe(403);
       });
     });
 
@@ -1548,18 +1552,20 @@ Invalid Product`; // Missing required fields
       test('should require admin authentication', async () => {
         const reviewToDelete = testReviews[0];
         
-        await request(app)
+        const response = await request(app)
           .delete(`/api/admin/reviews/${reviewToDelete._id}`)
           .set('Authorization', `Bearer ${regularUserToken}`)
           .expect(403);
+        expect(response.status).toBe(403);
       });
 
       test('should require authentication', async () => {
         const reviewToDelete = testReviews[0];
         
-        await request(app)
+        const response = await request(app)
           .delete(`/api/admin/reviews/${reviewToDelete._id}`)
           .expect(401);
+        expect(response.status).toBe(401);
       });
     });
 
@@ -1593,10 +1599,11 @@ Invalid Product`; // Missing required fields
       });
 
       test('should require admin authentication', async () => {
-        await request(app)
+        const response = await request(app)
           .get('/api/admin/reviews/stats')
           .set('Authorization', `Bearer ${regularUserToken}`)
           .expect(403);
+        expect(response.status).toBe(403);
       });
     });
   });
