@@ -1,5 +1,5 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
+const _mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');

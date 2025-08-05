@@ -195,10 +195,13 @@ describe('Review Routes', () => {
         comment: 'This is an excellent product! I love it and would recommend it to anyone.'
       };
 
-      await request(app)
+      const response = await request(app)
         .post('/api/reviews')
         .send(reviewData)
         .expect(401);
+      
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBeDefined();
     });
 
     test('should validate required fields', async () => {
@@ -283,7 +286,7 @@ describe('Review Routes', () => {
       });
 
       // Create reviews with different statuses and slight time differences
-      const review1 = await Review.create({
+      await Review.create({
         product: testProduct._id,
         user: testUser._id,
         rating: 5,
@@ -483,9 +486,12 @@ describe('Review Routes', () => {
     });
 
     test('should require authentication', async () => {
-      await request(app)
+      const response = await request(app)
         .get('/api/reviews/user/my-reviews')
         .expect(401);
+      
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBeDefined();
     });
   });
 });

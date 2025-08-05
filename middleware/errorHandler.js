@@ -22,7 +22,9 @@ const handleCastErrorDB = (err) => {
 };
 
 const handleDuplicateFieldsDB = (err) => {
-  const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
+  // Safer regex that limits backtracking
+  const match = err.errmsg.match(/(["'])([^"']{0,100})\1/);
+  const value = match ? match[0] : 'unknown';
   const message = `Duplicate field value: ${value}. Please use another value!`;
   return new AppError(message, 400, 'DUPLICATE_FIELD');
 };
@@ -124,7 +126,7 @@ const sendErrorProd = (err, req, res) => {
 };
 
 // Global error handling middleware
-const globalErrorHandler = (err, req, res, next) => {
+const globalErrorHandler = (err, req, res, _next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 

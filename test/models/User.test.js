@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const _mongoose = require('mongoose');
 const User = require('../../models/User');
 
 describe('User Model', () => {

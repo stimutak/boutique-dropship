@@ -1,7 +1,7 @@
 console.log('Script starting...');
 
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const _bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 console.log('Imports loaded...');

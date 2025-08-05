@@ -304,7 +304,7 @@ function getSupportedLocales() {
  * Check if a locale is supported
  */
 function isLocaleSupported(locale) {
-  return errorTranslations.hasOwnProperty(locale);
+  return Object.prototype.hasOwnProperty.call(errorTranslations, locale);
 }
 
 module.exports = {

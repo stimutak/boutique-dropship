@@ -1,6 +1,7 @@
 const request = require('supertest');
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 // Mock the logger and errorRecovery utilities
 jest.mock('../../utils/logger', () => ({

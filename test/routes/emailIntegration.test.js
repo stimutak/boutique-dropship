@@ -1,6 +1,6 @@
 const request = require('supertest');
 const express = require('express');
-const mongoose = require('mongoose');
+const _mongoose = require('mongoose');
 
 // Mock email service BEFORE importing routes
 const mockEmailService = {
