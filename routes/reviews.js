@@ -56,11 +56,16 @@ router.post('/', requireAuth, validateReview, async (req, res) => {
     }
 
     // Check if user can review this product (must have purchased it)
-    const canReview = await Review.canUserReview(userId, productId);
-    if (!canReview) {
+    const reviewCheck = await Review.canUserReview(userId, productId);
+    if (!reviewCheck.canReview) {
+      const messages = {
+        'not_purchased': 'You can only review products you have purchased',
+        'already_reviewed': 'You have already reviewed this product'
+      };
+      
       return res.status(403).json({
         success: false,
-        message: 'You can only review products you have purchased and have not already reviewed'
+        message: messages[reviewCheck.reason] || 'You cannot review this product'
       });
     }
 

@@ -13,9 +13,13 @@ export const fetchProductReviews = createAsyncThunk(
 // Submit a new review
 export const submitReview = createAsyncThunk(
   'reviews/submitReview',
-  async ({ productId, rating, comment }) => {
-    const response = await api.post('/api/reviews', { productId, rating, comment });
-    return response.data;
+  async ({ productId, rating, comment }, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/api/reviews', { productId, rating, comment });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: error.message });
+    }
   }
 );
 
@@ -172,7 +176,8 @@ const reviewsSlice = createSlice({
       })
       .addCase(submitReview.rejected, (state, action) => {
         state.submitLoading = false;
-        state.submitError = action.error.message;
+        // Extract the actual server error message if available
+        state.submitError = action.payload?.message || action.error.message;
       });
 
     // Mark helpful

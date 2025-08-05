@@ -129,7 +129,7 @@ reviewSchema.statics.canUserReview = async function (userId, productId) {
   });
   
   if (!purchaseExists) {
-    return false;
+    return { canReview: false, reason: 'not_purchased' };
   }
   
   // Check if user already reviewed this product
@@ -138,7 +138,11 @@ reviewSchema.statics.canUserReview = async function (userId, productId) {
     product: productId
   });
   
-  return !existingReview;
+  if (existingReview) {
+    return { canReview: false, reason: 'already_reviewed' };
+  }
+  
+  return { canReview: true };
 };
 
 // Helper method to get user email

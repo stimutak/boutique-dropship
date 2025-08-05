@@ -96,9 +96,7 @@ const ReviewForm = ({ productId, onSuccess }) => {
 
           {submitError && (
             <div className="review-form__error">
-              {submitError === 'Request failed with status code 403' 
-                ? t('reviews.mustPurchaseToReview') 
-                : submitError}
+              {submitError}
             </div>
           )}
 
