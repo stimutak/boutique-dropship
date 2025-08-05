@@ -197,7 +197,7 @@ describe('Cart Routes', () => {
     Product.create = jest.fn().mockResolvedValue(testProduct);
     
     // Create a comprehensive findById mock that handles both direct calls and select chaining
-    Product.findById = jest.fn().mockImplementation((id) => {
+    Product.findById = jest.fn().mockImplementation((_id) => {
       // Create a promise-like object that can be awaited directly OR has a select method
       const result = {
         // For direct await
@@ -292,7 +292,7 @@ describe('Cart Routes', () => {
     it('should filter out inactive products from cart', async () => {
       // Mock inactive product
       const inactiveProduct = { ...testProduct, isActive: false };
-      Product.findById = jest.fn().mockImplementation((id) => ({
+      Product.findById = jest.fn().mockImplementation((_id) => ({
         select: jest.fn().mockResolvedValue(inactiveProduct)
       }));
       

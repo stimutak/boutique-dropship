@@ -355,9 +355,8 @@ describe('Comprehensive Route Testing', () => {
         expect(response.body.success).toBe(true);
         expect(Array.isArray(response.body.data.products)).toBe(true);
         // Should include wholesaler info for admin
-        if (response.body.data.products.length > 0) {
-          expect(response.body.data.products[0]).toHaveProperty('wholesaler');
-        }
+        expect(response.body.data.products.length).toBeGreaterThan(0);
+        expect(response.body.data.products[0]).toHaveProperty('wholesaler');
       });
 
       it('should deny access to non-admin users', async () => {

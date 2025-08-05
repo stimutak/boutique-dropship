@@ -46,7 +46,7 @@ describe('Error Handling Middleware', () => {
     });
 
     test('should handle successful async operations', async () => {
-      const asyncRoute = catchAsync(async (req, res, next) => {
+      const asyncRoute = catchAsync(async (req, res, _next) => {
         res.json({ success: true, message: 'Success' });
       });
 

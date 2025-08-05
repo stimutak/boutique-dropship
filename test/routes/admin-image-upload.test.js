@@ -321,7 +321,7 @@ describe('Admin Image Upload Integration Tests', () => {
         expect(response.body.images).toHaveLength(2);
         
         // Each image should have proper metadata
-        response.body.images.forEach((image, index) => {
+        response.body.images.forEach((image, _index) => {
           expect(image.url).toBeDefined();
           expect(image.filename).toBeDefined();
           expect(image.originalName).toBeDefined();

@@ -330,7 +330,7 @@ describe('Email Integration Tests', () => {
     });
 
     it('should send payment receipt and wholesaler notification on successful payment', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/payments/webhook')
         .send({ id: 'tr_test123' })
         .expect(200);

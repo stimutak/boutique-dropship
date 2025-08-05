@@ -13,10 +13,9 @@ const { createTestApp } = require('../helpers/testApp');
 describe('Order Routes', () => {
   let app;
   let testProduct;
-  let testUser;
-  let adminToken;
+  // testUser removed - not used
   let agent;  // For maintaining session cookies
-  let csrfToken;
+  // csrfToken removed - not used
 
   // Helper function to create test order data
   const createTestOrderData = (overrides = {}) => ({
@@ -118,7 +117,7 @@ describe('Order Routes', () => {
     });
     
     // Create test user
-    testUser = await User.create({
+    const _testUser = await User.create({
       email: 'test@example.com',
       password: 'password123',
       firstName: 'John',
@@ -154,7 +153,7 @@ describe('Order Routes', () => {
 
     // Get CSRF token for the session
     const csrfResponse = await agent.get('/health');
-    csrfToken = csrfResponse.headers['set-cookie'] ? 
+    const _csrfToken = csrfResponse.headers['set-cookie'] ? 
       (await agent.get('/csrf-token'))?.body?.csrfToken : null;
   });
   

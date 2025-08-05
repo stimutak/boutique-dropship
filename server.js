@@ -20,14 +20,14 @@ if (process.env.NODE_ENV === 'development') {
 // Validate critical environment variables at startup
 if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'test') {
   console.error('FATAL ERROR: JWT_SECRET environment variable is not set. This is required for secure token generation.');
-  process.exit(1);
+  throw new Error('JWT_SECRET not configured');
 }
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   if (process.env.NODE_ENV !== 'test') {
     console.error('FATAL ERROR: JWT_SECRET must be at least 32 characters long for security.');
     // Never log actual JWT_SECRET length for security reasons
-    process.exit(1);
+    throw new Error('JWT_SECRET too short');
   }
 }
 
