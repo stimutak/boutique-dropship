@@ -151,6 +151,7 @@ app.use('/api/payments', rateLimits.payment, require('./routes/payments'));
 app.use('/api/wholesalers', require('./routes/wholesalers'));
 app.use('/api/integration', rateLimits.integration, require('./routes/integration'));
 app.use('/api/admin', rateLimits.admin, require('./routes/admin'));
+app.use('/api/settings', rateLimits.admin, require('./routes/settings'));
 app.use('/api/monitoring', require('./routes/monitoring'));
 
 // Health check

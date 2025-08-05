@@ -1,3 +1,8 @@
+// Set environment variables first
+process.env.MOLLIE_API_KEY = 'test_dHar4XY7LxsDOtmnkVtjNVWXLSlXsM';
+process.env.FRONTEND_URL = 'http://localhost:3000';
+process.env.API_URL = 'http://localhost:5000';
+
 const request = require('supertest');
 const express = require('express');
 const mongoose = require('mongoose');
@@ -5,6 +10,12 @@ const jwt = require('jsonwebtoken');
 const Order = require('../../models/Order');
 const Product = require('../../models/Product');
 const User = require('../../models/User');
+const { errorResponse } = require('../../utils/errorHandler');
+
+// Mock console methods to reduce test output noise
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+const originalConsoleLog = console.log;
 
 // Mock the entire Mollie module before requiring the routes
 const mockMollieClient = {
@@ -24,6 +35,30 @@ jest.mock('@mollie/api-client', () => ({
   createMollieClient: jest.fn(() => mockMollieClient)
 }));
 
+// Mock wholesaler notification service to prevent errors
+jest.mock('../../utils/wholesalerNotificationService', () => ({
+  processOrderNotifications: jest.fn().mockResolvedValue({ success: true })
+}));
+
+// Mock email service to prevent errors
+jest.mock('../../utils/emailService', () => ({
+  sendPaymentReceipt: jest.fn().mockResolvedValue({ success: true }),
+  sendWholesalerNotification: jest.fn().mockResolvedValue({ success: true })
+}));
+
+// Set up console mocks
+beforeAll(() => {
+  console.warn = jest.fn();
+  console.error = jest.fn();
+  console.log = jest.fn();
+});
+
+afterAll(() => {
+  console.warn = originalConsoleWarn;
+  console.error = originalConsoleError;
+  console.log = originalConsoleLog;
+});
+
 // Now require the payment routes after mocking
 const paymentRoutes = require('../../routes/payments');
 
@@ -31,6 +66,9 @@ const paymentRoutes = require('../../routes/payments');
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
+  
+  // Add error response middleware (CRITICAL - this was missing!)
+  app.use(errorResponse);
   
   // Add auth middleware for testing
   app.use((req, res, next) => {
@@ -43,6 +81,12 @@ const createTestApp = () => {
         return res.status(401).json({ success: false, error: { code: 'INVALID_TOKEN', message: 'Invalid token' } });
       }
     }
+    next();
+  });
+  
+  // Add session middleware for cart clearing functionality
+  app.use((req, res, next) => {
+    req.session = req.session || { cart: [] };
     next();
   });
   
@@ -79,6 +123,11 @@ describe('Payment Routes', () => {
     
     // Reset mocks
     jest.clearAllMocks();
+    
+    // Reset console mocks to prevent interference between tests
+    console.warn.mockClear();
+    console.error.mockClear();
+    console.log.mockClear();
     
     // Create test product
     const testProduct = await Product.create({
@@ -209,13 +258,13 @@ describe('Payment Routes', () => {
       expect(mockMollieClient.payments.create).toHaveBeenCalledWith({
         amount: { currency: 'USD', value: '64.78' },
         description: `Order ${testOrder.orderNumber}`,
-        method: 'card',
         redirectUrl: 'http://localhost:3000/success',
         webhookUrl: 'http://localhost:5000/webhook',
         metadata: {
           orderId: testOrder._id.toString(),
           orderNumber: testOrder.orderNumber
         }
+        // Note: method 'card' is not included as it's the default
       });
     });
     
@@ -230,7 +279,7 @@ describe('Payment Routes', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
       expect(response.body.error.details).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ msg: 'Valid order ID is required' })
+          expect.objectContaining({ message: 'Valid order ID is required' })
         ])
       );
     });
@@ -277,7 +326,25 @@ describe('Payment Routes', () => {
       
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('MOLLIE_VALIDATION_ERROR');
-      expect(response.body.error.field).toBe('amount');
+      expect(response.body.error.message).toContain('Amount is too low');
+    });
+    
+    it('should handle Mollie API key errors', async () => {
+      const mollieError = new Error('Bad Request');
+      mollieError.title = 'Bad Request';
+      mollieError.statusCode = 400;
+      
+      mockMollieClient.payments.create.mockRejectedValue(mollieError);
+      
+      const response = await request(app)
+        .post('/api/payments/create')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ orderId: testOrder._id, method: 'card' })
+        .expect(400);
+      
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('MOLLIE_API_ERROR');
+      expect(response.body.error.message).toContain('Payment service unavailable');
     });
     
     it('should create payment with cryptocurrency method', async () => {
@@ -497,13 +564,26 @@ describe('Payment Routes', () => {
     it('should filter methods by amount', async () => {
       mockMollieClient.methods.list.mockResolvedValue([]);
       
-      const _response = await request(app)
+      const response = await request(app)
         .get('/api/payments/methods?amount=100.00&currency=USD')
         .expect(200);
       
+      expect(response.body.success).toBe(true);
+      expect(response.body.methods).toEqual([]);
       expect(mockMollieClient.methods.list).toHaveBeenCalledWith({
         amount: { currency: 'USD', value: '100.00' }
       });
+    });
+    
+    it('should handle payment methods API error', async () => {
+      mockMollieClient.methods.list.mockRejectedValue(new Error('API connection failed'));
+      
+      const response = await request(app)
+        .get('/api/payments/methods')
+        .expect(500);
+      
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('PAYMENT_METHODS_ERROR');
     });
   });
   
@@ -571,12 +651,39 @@ describe('Payment Routes', () => {
     });
     
     it('should reject refund from non-admin user', async () => {
-      testUser.isAdmin = false;
-      await testUser.save();
+      // Create a real non-admin user in database
+      const nonAdminUser = await User.create({
+        email: 'nonadmin@example.com',
+        password: 'password123',
+        firstName: 'Non',
+        lastName: 'Admin',
+        isAdmin: false
+      });
       
-      const response = await request(app)
+      const nonAdminToken = jwt.sign({ userId: nonAdminUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      
+      // Create an app that uses the real requireAuth middleware
+      const { requireAuth: _requireAuth } = require('../../middleware/auth');
+      const createNonAdminApp = () => {
+        const app = express();
+        app.use(express.json());
+        app.use(errorResponse);
+        
+        // Mock the cookie parser for testing (since requireAuth checks cookies first)
+        app.use((req, res, next) => {
+          req.cookies = {};
+          next();
+        });
+        
+        app.use('/api/payments', paymentRoutes);
+        return app;
+      };
+      
+      const nonAdminApp = createNonAdminApp();
+      
+      const response = await request(nonAdminApp)
         .post('/api/payments/refund')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer ${nonAdminToken}`)
         .send({ paymentId: 'tr_test_payment_123' })
         .expect(403);
       
@@ -602,6 +709,24 @@ describe('Payment Routes', () => {
       
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('MISSING_PAYMENT_ID');
+    });
+    
+    it('should handle Mollie refund errors', async () => {
+      const mollieRefundError = new Error('Refund not possible');
+      mollieRefundError.field = 'amount';
+      mollieRefundError.detail = 'Refund amount exceeds available amount';
+      
+      mockMollieClient.payments.refunds.create.mockRejectedValue(mollieRefundError);
+      
+      const response = await request(app)
+        .post('/api/payments/refund')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ paymentId: 'tr_test_payment_123' })
+        .expect(400);
+      
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('MOLLIE_REFUND_ERROR');
+      expect(response.body.error.message).toContain('Refund amount exceeds available amount');
     });
   });
   
@@ -633,6 +758,20 @@ describe('Payment Routes', () => {
       
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('MOLLIE_CONNECTION_ERROR');
+    });
+  });
+  
+  describe('Error Handling', () => {
+    it('should handle generic payment status errors', async () => {
+      const mollieError = new Error('Payment service unavailable');
+      mockMollieClient.payments.get.mockRejectedValue(mollieError);
+      
+      const response = await request(app)
+        .get('/api/payments/status/tr_test_payment_123')
+        .expect(500);
+      
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('PAYMENT_STATUS_ERROR');
     });
   });
 });

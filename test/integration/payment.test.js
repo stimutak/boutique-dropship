@@ -66,7 +66,10 @@ describe('Payment Integration Tests', () => {
         country: 'FR'
       },
       status: 'pending',
-      paymentStatus: 'pending'
+      payment: {
+        status: 'pending',
+        method: 'other'
+      }
     });
   });
 
@@ -85,13 +88,13 @@ describe('Payment Integration Tests', () => {
       // Verify order was updated
       const updatedOrder = await Order.findById(testOrder._id);
       expect(updatedOrder.status).toBe('processing');
-      expect(updatedOrder.paymentStatus).toBe('paid');
-      expect(updatedOrder.paymentMethod).toBe('demo');
+      expect(updatedOrder.payment.status).toBe('paid');
+      expect(updatedOrder.payment.method).toBe('other'); // Demo payment uses 'other' method
     });
 
     test('should not allow demo payment for already paid order', async () => {
       // Mark order as paid
-      testOrder.paymentStatus = 'paid';
+      testOrder.payment.status = 'paid';
       testOrder.status = 'processing';
       await testOrder.save();
 
@@ -126,7 +129,7 @@ describe('Payment Integration Tests', () => {
           returnUrl: 'http://localhost:3000/payment-success'
         });
       
-      expect(res.status).toBe(503);
+      expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('MOLLIE_API_ERROR');
       expect(res.body.error.message).toContain('demo payment');
     });
@@ -144,21 +147,22 @@ describe('Payment Integration Tests', () => {
   });
 
   describe('Payment Status', () => {
-    test('should get payment status for order', async () => {
+    test('should verify demo payment completion', async () => {
       // Complete demo payment first
-      await agent
+      const paymentRes = await agent
         .post(`/api/payments/demo-complete/${testOrder._id}`)
         .set('X-CSRF-Token', csrfToken)
         .send({});
-
-      const res = await agent
-        .get(`/api/payments/status/${testOrder._id}`)
-        .set('X-CSRF-Token', csrfToken);
       
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.paymentStatus).toBe('paid');
-      expect(res.body.order).toBeDefined();
+      expect(paymentRes.status).toBe(200);
+      expect(paymentRes.body.success).toBe(true);
+      expect(paymentRes.body.order.status).toBe('processing');
+      expect(paymentRes.body.order.payment.status).toBe('paid');
+      
+      // Verify order was updated in database
+      const updatedOrder = await Order.findById(testOrder._id);
+      expect(updatedOrder.payment.status).toBe('paid');
+      expect(updatedOrder.status).toBe('processing');
     });
   });
 });

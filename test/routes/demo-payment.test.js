@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const Order = require('../../models/Order');
 const Product = require('../../models/Product');
 const User = require('../../models/User');
+const { errorResponse } = require('../../utils/errorHandler');
 const paymentRoutes = require('../../routes/payments');
 
 // Mock wholesaler notification service
@@ -18,6 +19,10 @@ const { processOrderNotifications } = require('../../utils/wholesalerNotificatio
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
+  
+  // Add error response middleware
+  app.use(errorResponse);
+  
   app.use('/api/payments', paymentRoutes);
   return app;
 };
@@ -199,7 +204,7 @@ describe('Demo Payment Completion Endpoint', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
       expect(response.body.error.details).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ msg: 'Valid order ID is required' })
+          expect.objectContaining({ message: 'Valid order ID is required' })
         ])
       );
     });

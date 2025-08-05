@@ -318,7 +318,7 @@ describe('Wholesaler Routes', () => {
       expect(wholesaler.wholesalerEmail).toBe('test@wholesaler.com');
       expect(wholesaler.productCode).toBe('TEST-001');
       expect(wholesaler.notified).toBe(false);
-      expect(wholesaler.notifiedAt).toBeNull();
+      expect(wholesaler.notifiedAt).toBeUndefined();
     });
     
     it('should return updated status after notification', async () => {

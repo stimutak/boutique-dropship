@@ -252,6 +252,19 @@ const AdminDashboard = () => {
               <span className="stat-subtitle">{analytics?.metrics?.users?.newUsersThisWeek || 0} {t('admin.dashboard.newThisWeek')}</span>
             </div>
           </div>
+
+          <div 
+            data-testid="total-reviews-card"
+            className="stat-card clickable"
+            onClick={() => handleCardClick('reviews')}
+          >
+            <div className="stat-icon">⭐</div>
+            <div className="stat-content">
+              <h3>{analytics?.metrics?.reviews?.totalReviews || 0}</h3>
+              <p>{t('admin.dashboard.totalReviews')}</p>
+              <span className="stat-subtitle">{analytics?.metrics?.reviews?.pendingReviews || 0} {t('admin.dashboard.pending')}</span>
+            </div>
+          </div>
         </div>
 
         {/* Main Dashboard Content */}

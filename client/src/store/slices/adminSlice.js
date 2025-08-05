@@ -25,6 +25,15 @@ const initialState = {
     sortOrder: 'desc',
     currentPage: 1,
     itemsPerPage: 10
+  },
+  settings: {
+    categories: [],
+    settingsByCategory: {},
+    selectedCategory: 'general',
+    loading: false,
+    error: null,
+    changes: {},
+    hasUnsavedChanges: false
   }
 };
 
@@ -70,6 +79,61 @@ const adminSlice = createSlice({
         // Reset to first page when changing items per page
         state[section].currentPage = 1;
       }
+    },
+    // Settings actions
+    setSettingsLoading: (state, action) => {
+      state.settings.loading = action.payload;
+    },
+    setSettingsError: (state, action) => {
+      state.settings.error = action.payload;
+    },
+    setSettingsCategories: (state, action) => {
+      state.settings.categories = action.payload;
+    },
+    setSettingsByCategory: (state, action) => {
+      state.settings.settingsByCategory = action.payload;
+    },
+    setSelectedCategory: (state, action) => {
+      state.settings.selectedCategory = action.payload;
+    },
+    setSettingValue: (state, action) => {
+      const { key, value } = action.payload;
+      state.settings.changes[key] = value;
+      state.settings.hasUnsavedChanges = true;
+    },
+    commitSettingChange: (state, action) => {
+      const { key, value } = action.payload;
+      // Update the setting in the category data
+      Object.keys(state.settings.settingsByCategory).forEach(category => {
+        const settings = state.settings.settingsByCategory[category];
+        const settingIndex = settings.findIndex(s => s.key === key);
+        if (settingIndex !== -1) {
+          settings[settingIndex].value = value;
+          settings[settingIndex].updatedAt = new Date().toISOString();
+        }
+      });
+      // Remove from changes
+      delete state.settings.changes[key];
+      // Check if there are still unsaved changes
+      state.settings.hasUnsavedChanges = Object.keys(state.settings.changes).length > 0;
+    },
+    revertSettingChange: (state, action) => {
+      const { key } = action.payload;
+      delete state.settings.changes[key];
+      state.settings.hasUnsavedChanges = Object.keys(state.settings.changes).length > 0;
+    },
+    clearAllSettingChanges: (state) => {
+      state.settings.changes = {};
+      state.settings.hasUnsavedChanges = false;
+    },
+    updateSettingInCategory: (state, action) => {
+      const { category, key, updates } = action.payload;
+      if (state.settings.settingsByCategory[category]) {
+        const settingIndex = state.settings.settingsByCategory[category].findIndex(s => s.key === key);
+        if (settingIndex !== -1) {
+          Object.assign(state.settings.settingsByCategory[category][settingIndex], updates);
+        }
+      }
     }
   }
 });
@@ -81,7 +145,17 @@ export const {
   setSortBy,
   clearFilters,
   setCurrentPageNumber,
-  setItemsPerPage
+  setItemsPerPage,
+  setSettingsLoading,
+  setSettingsError,
+  setSettingsCategories,
+  setSettingsByCategory,
+  setSelectedCategory,
+  setSettingValue,
+  commitSettingChange,
+  revertSettingChange,
+  clearAllSettingChanges,
+  updateSettingInCategory
 } = adminSlice.actions;
 
 export default adminSlice.reducer;
