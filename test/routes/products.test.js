@@ -324,7 +324,7 @@ describe('Product Routes', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.query).toBe('crystal');
       expect(response.body.results.length).toBeGreaterThan(0);
-      expect(response.body.data.meta.resultCount).toBeGreaterThan(0);
+      expect(response.body.meta.resultCount).toBeGreaterThan(0);
     });
     
     it('should provide search suggestions', async () => {
@@ -335,7 +335,7 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.suggestions).toBeDefined();
-      expect(response.body.data.meta.suggestionsEnabled).toBe(true);
+      expect(response.body.meta.suggestionsEnabled).toBe(true);
     });
     
     it('should require search query', async () => {
@@ -393,14 +393,14 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.data.filters.chakras).toContain('heart');
-      expect(response.body.data.filters.chakras).toContain('crown');
-      expect(response.body.data.filters.elements).toContain('air');
-      expect(response.body.data.filters.elements).toContain('earth');
-      expect(response.body.data.filters.healingProperties).toContain('love');
-      expect(response.body.data.filters.healingProperties).toContain('relaxation');
-      expect(response.body.data.filters.priceRange.min).toBeDefined();
-      expect(response.body.data.filters.priceRange.max).toBeDefined();
+      expect(response.body.filters.chakras).toContain('heart');
+      expect(response.body.filters.chakras).toContain('crown');
+      expect(response.body.filters.elements).toContain('air');
+      expect(response.body.filters.elements).toContain('earth');
+      expect(response.body.filters.healingProperties).toContain('love');
+      expect(response.body.filters.healingProperties).toContain('relaxation');
+      expect(response.body.filters.priceRange.min).toBeDefined();
+      expect(response.body.filters.priceRange.max).toBeDefined();
     });
     
     it('should filter options by category', async () => {
@@ -419,8 +419,8 @@ describe('Product Routes', () => {
         .expect(200);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.data.filters.chakras).toEqual([...response.body.data.filters.chakras].sort());
-      expect(response.body.data.filters.elements).toEqual([...response.body.data.filters.elements].sort());
+      expect(response.body.filters.chakras).toEqual([...response.body.filters.chakras].sort());
+      expect(response.body.filters.elements).toEqual([...response.body.filters.elements].sort());
     });
   });
   
@@ -436,7 +436,7 @@ describe('Product Routes', () => {
       expect(response.body.recommendations).toBeDefined();
       expect(response.body.basedOn.productId).toBe(roseQuartz._id.toString());
       expect(response.body.basedOn.productName).toBe('Rose Quartz Crystal');
-      expect(response.body.data.meta.count).toBeDefined();
+      expect(response.body.meta.count).toBeDefined();
     });
     
     it('should limit recommendations', async () => {
@@ -449,7 +449,7 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.recommendations.length).toBeLessThanOrEqual(2);
-      expect(response.body.data.meta.limit).toBe(2);
+      expect(response.body.meta.limit).toBe(2);
     });
     
     it('should return 404 for non-existent product', async () => {
