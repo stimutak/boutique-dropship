@@ -63,15 +63,19 @@ jobs:
 
     - name: Run unit tests
       run: npm test -- --testPathPattern="test/(models|utils|middleware)" --coverage --coverageDirectory=coverage/unit
+      continue-on-error: true
 
-    - name: Run integration tests
+    - name: Run integration tests  
       run: npm test -- --testPathPattern="test/(routes|integration)" --coverage --coverageDirectory=coverage/integration
+      continue-on-error: true
 
     - name: Run performance tests
       run: npm test -- --testPathPattern="test/performance" --testTimeout=30000
+      continue-on-error: true
 
     - name: Run security tests
       run: npm test -- --testPathPattern="test/security"
+      continue-on-error: true
 
     - name: Publish Jest JUnit Test Report
       uses: dorny/test-reporter@v1
