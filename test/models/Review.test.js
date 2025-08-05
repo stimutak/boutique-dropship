@@ -210,8 +210,13 @@ describe('Review Model', () => {
 
     test('should have canUserReview static method to check purchase history', async () => {
       // This test will verify that users can only review products they've purchased
-      const canReview = await Review.canUserReview(testUser._id, testProduct._id);
-      expect(typeof canReview).toBe('boolean');
+      const result = await Review.canUserReview(testUser._id, testProduct._id);
+      expect(result).toHaveProperty('canReview');
+      expect(typeof result.canReview).toBe('boolean');
+      if (!result.canReview) {
+        expect(result).toHaveProperty('reason');
+        expect(typeof result.reason).toBe('string');
+      }
     });
   });
 

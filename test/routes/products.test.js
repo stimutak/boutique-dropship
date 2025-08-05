@@ -555,8 +555,8 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Product created successfully');
-      expect(response.body.data.product.name).toBe('Green Aventurine');
-      expect(response.body.data.product.slug).toBe('green-aventurine');
+      expect(response.body.product.name).toBe('Green Aventurine');
+      expect(response.body.product.slug).toBe('green-aventurine');
       
       // Verify product was saved to database
       const savedProduct = await Product.findOne({ slug: 'green-aventurine' });
@@ -587,7 +587,7 @@ describe('Product Routes', () => {
         .expect(201);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.data.product.slug).toBe('black-tourmaline-crystal');
+      expect(response.body.product.slug).toBe('black-tourmaline-crystal');
     });
     
     it('should handle duplicate slugs', async () => {
@@ -613,7 +613,7 @@ describe('Product Routes', () => {
         .expect(201);
       
       expect(response.body.success).toBe(true);
-      expect(response.body.data.product.slug).toMatch(/^rose-quartz-crystal-\d+$/);
+      expect(response.body.product.slug).toMatch(/^rose-quartz-crystal-\d+$/);
     });
     
     it('should validate required fields', async () => {
@@ -674,8 +674,8 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Product updated successfully');
-      expect(response.body.data.product.price).toBe(34.99);
-      expect(response.body.data.product.shortDescription).toBe('Updated description for heart chakra crystal');
+      expect(response.body.product.price).toBe(34.99);
+      expect(response.body.product.shortDescription).toBe('Updated description for heart chakra crystal');
     });
     
     it('should return 404 for non-existent product', async () => {
@@ -714,7 +714,7 @@ describe('Product Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Product deactivated successfully');
-      expect(response.body.data.product.isActive).toBe(false);
+      expect(response.body.product.isActive).toBe(false);
       
       // Verify product is deactivated in database
       const updatedProduct = await Product.findById(roseQuartz._id);

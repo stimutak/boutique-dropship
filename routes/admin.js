@@ -14,6 +14,7 @@ const { requireAdmin } = require('../middleware/auth');
 // processOrderNotifications removed - not used in this route
 const { csvValidator, imageValidator, cleanupTempFiles } = require('../middleware/uploadSecurity');
 const { logger } = require('../utils/logger');
+const { sanitizeInputMiddleware, validateObjectIdParam, sanitizeQuery } = require('../utils/inputSanitizer');
 
 // Configure secure multer for CSV uploads
 const upload = multer({
@@ -23,8 +24,9 @@ const upload = multer({
   filename: csvValidator.generateFilename
 });
 
-// All admin routes require admin authentication
+// All admin routes require admin authentication and input sanitization
 router.use(requireAdmin);
+router.use(sanitizeInputMiddleware);
 
 // ===== WHOLESALER MANAGEMENT =====
 
@@ -502,7 +504,7 @@ router.get('/products/export', async (req, res) => {
 });
 
 // GET /api/admin/products/:id - Get single product for editing
-router.get('/products/:id', async (req, res) => {
+router.get('/products/:id', validateObjectIdParam('id'), async (req, res) => {
   try {
     const productId = req.params.id;
     
@@ -1032,7 +1034,7 @@ router.get('/orders', async (req, res) => {
 });
 
 // GET /api/admin/orders/:id - Get single order with full admin data
-router.get('/orders/:id', async (req, res) => {
+router.get('/orders/:id', validateObjectIdParam('id'), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('customer', 'firstName lastName email phone addresses')
@@ -1402,7 +1404,7 @@ router.get('/analytics/dashboard', async (req, res) => {
 // ===== EXTENDED USER MANAGEMENT =====
 
 // GET /api/admin/users/:id - Get user details with order history
-router.get('/users/:id', async (req, res) => {
+router.get('/users/:id', validateObjectIdParam('id'), async (req, res) => {
   try {
     const userId = req.params.id;
     

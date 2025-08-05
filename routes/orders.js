@@ -9,6 +9,7 @@ const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { getCurrencyForLocale, getExchangeRates } = require('../utils/currency');
 const { _ErrorCodes } = require('../utils/errorHandler');
 const { i18nMiddleware } = require('../utils/i18n');
+const { validateObjectIdParam, sanitizeInputMiddleware } = require('../utils/inputSanitizer');
 
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
@@ -709,7 +710,7 @@ router.get('/admin', requireAdmin, i18nMiddleware, async (req, res) => {
 });
 
 // Get order by ID (supports both authenticated and guest orders)
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', validateObjectIdParam('id'), authenticateToken, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('items.product', '-wholesaler')

@@ -6,6 +6,7 @@ const Order = require('../models/Order');
 const { requireAuth } = require('../middleware/auth');
 const { ErrorCodes } = require('../utils/errorHandler');
 const { logger, paymentLogger } = require('../utils/logger');
+const { sanitizeInputMiddleware, validateObjectIdParam } = require('../utils/inputSanitizer');
 
 // Initialize Mollie client with fallback
 let mollieClient;
@@ -40,7 +41,7 @@ try {
 
 // Create payment for order
 // Note: Using optional authentication to support guest checkout
-router.post('/create', [
+router.post('/create', sanitizeInputMiddleware, [
   body('orderId').isMongoId().withMessage('Valid order ID is required'),
   body('method').optional().isIn(['card', 'crypto', 'other']).withMessage('Invalid payment method'),
   body('redirectUrl').optional().custom((value) => {
@@ -142,7 +143,7 @@ router.post('/create', [
 
 // Demo payment completion endpoint (for testing)
 // Note: No authentication required to support guest checkout
-router.post('/demo-complete/:orderId', [
+router.post('/demo-complete/:orderId', validateObjectIdParam('orderId'), [
   param('orderId').isMongoId().withMessage('Valid order ID is required')
 ], async (req, res) => {
   try {

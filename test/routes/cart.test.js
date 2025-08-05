@@ -96,6 +96,7 @@ jest.mock('mongoose', () => {
 const Product = require('../../models/Product');
 // User model removed - not used
 const Cart = require('../../models/Cart');
+const { errorResponse } = require('../../utils/errorHandler');
 const cartRoutes = require('../../routes/cart');
 
 // Mock the auth middleware
@@ -133,6 +134,7 @@ const createTestApp = () => {
   }));
   
   app.use(express.json());
+  app.use(errorResponse);
   app.use('/api/cart', cartRoutes);
   
   return app;

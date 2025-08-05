@@ -9,6 +9,7 @@ const { validateCSRFToken } = require('../middleware/sessionCSRF');
 // AppError removed - using res.error() instead
 const { ErrorCodes } = require('../utils/errorHandler');
 const { logger, securityLogger } = require('../utils/logger');
+const { sanitizeInputMiddleware, validateObjectIdParam } = require('../utils/inputSanitizer');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -148,7 +149,7 @@ router.post('/register', validateRegistration, async (req, res) => {
 });
 
 // Login user with enhanced cart merging
-router.post('/login', validateLogin, async (req, res) => {
+router.post('/login', sanitizeInputMiddleware, validateLogin, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -385,7 +386,7 @@ router.get('/profile', requireAuth, async (req, res) => {
 });
 
 // Update user profile with optimistic updates and performance optimization
-router.put('/profile', requireAuth, validateCSRFToken, [
+router.put('/profile', requireAuth, sanitizeInputMiddleware, validateCSRFToken, [
   body('firstName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('First name must be 1-50 characters'),
   body('lastName').optional().trim().isLength({ min: 1, max: 50 }).withMessage('Last name must be 1-50 characters'),
   body('phone').optional().isString().isLength({ min: 7, max: 30 }).withMessage('Phone must be 7-30 characters'),
