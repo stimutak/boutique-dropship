@@ -41,7 +41,7 @@ try {
 // Note: Using optional authentication to support guest checkout
 router.post('/create', [
   body('orderId').isMongoId().withMessage('Valid order ID is required'),
-  body('method').optional().isIn(['card', 'crypto', 'creditcard', 'other']).withMessage('Invalid payment method'),
+  body('method').optional().isIn(['card', 'crypto', 'other']).withMessage('Invalid payment method'),
   body('redirectUrl').optional().custom((value) => {
     if (value && !value.match(/^https?:\/\/.+/)) {
       throw new Error('Valid redirect URL required');
@@ -92,7 +92,7 @@ router.post('/create', [
     };
 
     // Add method if specified
-    if (method && method !== 'creditcard') {
+    if (method && method !== 'card') {
       paymentData.method = method;
     }
 

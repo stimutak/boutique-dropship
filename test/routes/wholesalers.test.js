@@ -107,7 +107,7 @@ describe('Wholesaler Routes', () => {
       shipping: 0,
       total: 64.78,
       payment: {
-        method: 'creditcard',
+        method: 'card',
         status: 'paid'
       },
       status: 'processing'

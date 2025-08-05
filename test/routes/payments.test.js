@@ -172,7 +172,7 @@ describe('Payment Routes', () => {
         id: 'tr_test_payment_123',
         status: 'open',
         amount: { currency: 'USD', value: '64.78' },
-        method: 'creditcard',
+        method: 'card',
         createdAt: '2023-01-01T00:00:00Z',
         _links: {
           checkout: {
@@ -223,7 +223,7 @@ describe('Payment Routes', () => {
       const response = await request(app)
         .post('/api/payments/create')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ method: 'creditcard' })
+        .send({ method: 'card' })
         .expect(400);
       
       expect(response.body.success).toBe(false);
@@ -241,7 +241,7 @@ describe('Payment Routes', () => {
       const response = await request(app)
         .post('/api/payments/create')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ orderId: fakeOrderId, method: 'creditcard' })
+        .send({ orderId: fakeOrderId, method: 'card' })
         .expect(404);
       
       expect(response.body.success).toBe(false);
@@ -255,7 +255,7 @@ describe('Payment Routes', () => {
       const response = await request(app)
         .post('/api/payments/create')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ orderId: testOrder._id, method: 'creditcard' })
+        .send({ orderId: testOrder._id, method: 'card' })
         .expect(400);
       
       expect(response.body.success).toBe(false);
@@ -272,7 +272,7 @@ describe('Payment Routes', () => {
       const response = await request(app)
         .post('/api/payments/create')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ orderId: testOrder._id, method: 'creditcard' })
+        .send({ orderId: testOrder._id, method: 'card' })
         .expect(400);
       
       expect(response.body.success).toBe(false);
@@ -423,7 +423,7 @@ describe('Payment Routes', () => {
         id: 'tr_test_payment_123',
         status: 'paid',
         amount: { currency: 'USD', value: '64.78' },
-        method: 'creditcard',
+        method: 'card',
         paidAt: '2023-01-01T12:00:00Z',
         createdAt: '2023-01-01T10:00:00Z',
         description: `Order ${testOrder.orderNumber}`
@@ -465,11 +465,11 @@ describe('Payment Routes', () => {
     it('should return available payment methods', async () => {
       const mockMethods = [
         {
-          id: 'creditcard',
+          id: 'card',
           description: 'Credit card',
           minimumAmount: { currency: 'USD', value: '0.01' },
           maximumAmount: { currency: 'USD', value: '10000.00' },
-          image: { size1x: 'https://example.com/creditcard.png' },
+          image: { size1x: 'https://example.com/card.png' },
           pricing: []
         },
         {
@@ -490,7 +490,7 @@ describe('Payment Routes', () => {
       
       expect(response.body.success).toBe(true);
       expect(response.body.methods).toHaveLength(2);
-      expect(response.body.methods[0].id).toBe('creditcard');
+      expect(response.body.methods[0].id).toBe('card');
       expect(response.body.methods[1].id).toBe('bitcoin');
     });
     
@@ -608,7 +608,7 @@ describe('Payment Routes', () => {
   describe('GET /api/payments/test', () => {
     it('should test Mollie connection successfully', async () => {
       const mockMethods = [
-        { id: 'creditcard', description: 'Credit card' },
+        { id: 'card', description: 'Credit card' },
         { id: 'bitcoin', description: 'Bitcoin' }
       ];
       

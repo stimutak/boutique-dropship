@@ -38,7 +38,7 @@ jest.mock('@mollie/api-client', () => ({
     },
     methods: {
       list: jest.fn(() => Promise.resolve([
-        { id: 'creditcard', description: 'Credit card' },
+        { id: 'card', description: 'Credit card' },
         { id: 'ideal', description: 'iDEAL' }
       ]))
     }
