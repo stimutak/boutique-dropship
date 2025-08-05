@@ -337,17 +337,17 @@ const AdminSettings = () => {
     const errors = {}
     
     settingsToValidate.forEach(setting => {
-      const value = changes[setting.key] !== undefined ? changes[setting.key] : setting.value
+      const value = changes[setting.key] !== undefined ? changes[setting.key] : setting.value;
       
       if (setting.validation?.required && (!value || value === '')) {
-        errors[setting.key] = t('admin.settings.validation.required')
-        return
+        errors[setting.key] = t('admin.settings.validation.required');
+        return;
       }
       
       if (setting.inputType === 'email' && value) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(value)) {
-          errors[setting.key] = t('admin.settings.validation.invalidEmail')
+          errors[setting.key] = t('admin.settings.validation.invalidEmail');
         }
       }
       
@@ -355,29 +355,29 @@ const AdminSettings = () => {
         try {
           new URL(value)
         } catch {
-          errors[setting.key] = t('admin.settings.validation.invalidUrl')
+          errors[setting.key] = t('admin.settings.validation.invalidUrl');
         }
       }
       
       if (setting.inputType === 'number' && value !== undefined) {
         if (setting.validation?.min !== undefined && value < setting.validation.min) {
-          errors[setting.key] = t('admin.settings.validation.minValue', { min: setting.validation.min })
+          errors[setting.key] = t('admin.settings.validation.minValue', { min: setting.validation.min });
         }
         if (setting.validation?.max !== undefined && value > setting.validation.max) {
-          errors[setting.key] = t('admin.settings.validation.maxValue', { max: setting.validation.max })
+          errors[setting.key] = t('admin.settings.validation.maxValue', { max: setting.validation.max });
         }
       }
       
       if (setting.validation?.minLength && value && value.length < setting.validation.minLength) {
-        errors[setting.key] = t('admin.settings.validation.minLength', { min: setting.validation.minLength })
+        errors[setting.key] = t('admin.settings.validation.minLength', { min: setting.validation.minLength });
       }
       
       if (setting.validation?.maxLength && value && value.length > setting.validation.maxLength) {
-        errors[setting.key] = t('admin.settings.validation.maxLength', { max: setting.validation.maxLength })
+        errors[setting.key] = t('admin.settings.validation.maxLength', { max: setting.validation.maxLength });
       }
-    }
+    })
     
-    return errors
+    return errors;
   }
 
   // Save settings
