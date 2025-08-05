@@ -88,14 +88,14 @@ jobs:
         cat coverage/unit/lcov.info coverage/integration/lcov.info > coverage/lcov.info 2>/dev/null || true
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage/lcov.info
         flags: unittests
         name: codecov-umbrella
 
     - name: Archive test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-${{ matrix.node-version }}
@@ -124,7 +124,7 @@ jobs:
       run: npx eslint . --ext .js --format junit --output-file eslint-results.xml
 
     - name: Upload lint results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: lint-results
