@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, Suspense, lazy } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -11,38 +11,40 @@ import { supportedLanguages } from './i18n/i18n'
 import Header from './components/Layout/Header'
 import Footer from './components/Layout/Footer'
 import CartDebug from './components/CartDebug'
+import PageLoader from './components/Loading/PageLoader'
+import LazyLoadErrorBoundary from './components/ErrorBoundary/LazyLoadErrorBoundary'
 
-// Pages
-import Home from './pages/Home'
-import Products from './pages/Products'
-import ProductDetail from './pages/ProductDetail'
-import Cart from './pages/Cart'
-import Checkout from './pages/Checkout'
-import Payment from './pages/Payment'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Profile from './pages/Profile'
-import ForgotPassword from './pages/ForgotPassword'
-import ResetPassword from './pages/ResetPassword'
-import Orders from './pages/Orders'
-import OrderDetail from './pages/OrderDetail'
-import PaymentSuccess from './pages/PaymentSuccess'
-import MyReviews from './pages/MyReviews'
-import NotFound from './pages/NotFound'
-
-// Protected Route Components
+// Protected Route Components (keep immediate - needed for routing logic)
 import ProtectedRoute from './components/Auth/ProtectedRoute'
 import AdminRoute from './components/Auth/AdminRoute'
 
-// Admin Pages
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminProducts from './pages/admin/AdminProducts'
-import AdminProductNew from './pages/admin/AdminProductNew'
-import AdminProductEdit from './pages/admin/AdminProductEdit'
-import AdminReviews from './components/admin/AdminReviews'
-import AdminOrders from './pages/admin/AdminOrders'
-import AdminUsers from './pages/admin/AdminUsers'
-import AdminSettings from './pages/admin/AdminSettings'
+// Lazy-loaded Pages
+const Home = lazy(() => import('./pages/Home'))
+const Products = lazy(() => import('./pages/Products'))
+const ProductDetail = lazy(() => import('./pages/ProductDetail'))
+const Cart = lazy(() => import('./pages/Cart'))
+const Checkout = lazy(() => import('./pages/Checkout'))
+const Payment = lazy(() => import('./pages/Payment'))
+const Login = lazy(() => import('./pages/Login'))
+const Register = lazy(() => import('./pages/Register'))
+const Profile = lazy(() => import('./pages/Profile'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const Orders = lazy(() => import('./pages/Orders'))
+const OrderDetail = lazy(() => import('./pages/OrderDetail'))
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'))
+const MyReviews = lazy(() => import('./pages/MyReviews'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+
+// Lazy-loaded Admin Pages (heaviest bundle)
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'))
+const AdminProductNew = lazy(() => import('./pages/admin/AdminProductNew'))
+const AdminProductEdit = lazy(() => import('./pages/admin/AdminProductEdit'))
+const AdminReviews = lazy(() => import('./components/admin/AdminReviews'))
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'))
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'))
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'))
 
 
 function App() {
@@ -87,125 +89,129 @@ function App() {
       <Header />
       {process.env.NODE_ENV === 'development' && <CartDebug />}
       <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/products/:slug" element={<ProductDetail />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/payment/:orderId" element={<Payment />} />
-          <Route path="/payment/success/:orderId" element={<PaymentSuccess />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/orders" 
-            element={
-              <ProtectedRoute>
-                <Orders />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/orders/:id" 
-            element={
-              <ProtectedRoute>
-                <OrderDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/my-reviews" 
-            element={
-              <ProtectedRoute>
-                <MyReviews />
-              </ProtectedRoute>
-            } 
-          />
-          {/* Admin Routes */}
-          <Route 
-            path="/admin" 
-            element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/admin/dashboard" 
-            element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/admin/products" 
-            element={
-              <AdminRoute>
-                <AdminProducts />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/admin/products/new" 
-            element={
-              <AdminRoute>
-                <AdminProductNew />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/admin/products/:id/edit" 
-            element={
-              <AdminRoute>
-                <AdminProductEdit />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/admin/orders" 
-            element={
-              <AdminRoute>
-                <AdminOrders />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/admin/reviews" 
-            element={
-              <AdminRoute>
-                <AdminReviews />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/admin/users" 
-            element={
-              <AdminRoute>
-                <AdminUsers />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/admin/settings" 
-            element={
-              <AdminRoute>
-                <AdminSettings />
-              </AdminRoute>
-            } 
-          />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <LazyLoadErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/products/:slug" element={<ProductDetail />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/payment/:orderId" element={<Payment />} />
+            <Route path="/payment/success/:orderId" element={<PaymentSuccess />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/orders" 
+              element={
+                <ProtectedRoute>
+                  <Orders />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/orders/:id" 
+              element={
+                <ProtectedRoute>
+                  <OrderDetail />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/my-reviews" 
+              element={
+                <ProtectedRoute>
+                  <MyReviews />
+                </ProtectedRoute>
+              } 
+            />
+            {/* Admin Routes */}
+            <Route 
+              path="/admin" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/products" 
+              element={
+                <AdminRoute>
+                  <AdminProducts />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/products/new" 
+              element={
+                <AdminRoute>
+                  <AdminProductNew />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/products/:id/edit" 
+              element={
+                <AdminRoute>
+                  <AdminProductEdit />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/orders" 
+              element={
+                <AdminRoute>
+                  <AdminOrders />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/reviews" 
+              element={
+                <AdminRoute>
+                  <AdminReviews />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings" 
+              element={
+                <AdminRoute>
+                  <AdminSettings />
+                </AdminRoute>
+              } 
+            />
+            <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </LazyLoadErrorBoundary>
       </main>
       <Footer />
     </div>

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { ErrorCodes } = require('../utils/errorHandler');
+const { logger } = require('../utils/logger');
 
 // Middleware to authenticate JWT tokens
 const authenticateToken = async (req, res, next) => {
@@ -30,7 +31,7 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     // Log the error for debugging but don't expose details to client
-    console.error('JWT verification error:', error.message);
+    logger.error('JWT verification error', { error: error.message });
     req.user = null;
     next(); // Continue without authentication for optional auth routes
   }
@@ -93,7 +94,7 @@ const requireAuth = async (req, res, next) => {
       });
     }
     
-    console.error('Authentication error:', error);
+    logger.error('Authentication error', { error: error.message });
     if (res.error) {
       res.error(500, ErrorCodes.INTERNAL_ERROR, 'Authentication failed');
     } else {
@@ -176,7 +177,7 @@ const requireAdmin = async (req, res, next) => {
       });
     }
     
-    console.error('Admin auth error:', error);
+    logger.error('Admin auth error', { error: error.message });
     if (res.error) {
       res.error(500, ErrorCodes.INTERNAL_ERROR, 'Authorization failed');
     } else {

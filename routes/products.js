@@ -21,9 +21,10 @@ function getUserCurrency(req) {
 function enhanceProductWithCurrency(product, currency, locale = 'en') {
   const productObj = product.toObject ? product.toObject() : product;
   
-  // Get price in user's currency
-  const priceInCurrency = productObj.prices && productObj.prices[currency] 
-    ? productObj.prices[currency] 
+  // Get price in user's currency (use safe object property access)
+  const safeCurrency = typeof currency === 'string' && /^[A-Z]{3}$/.test(currency) ? currency : 'USD';
+  const priceInCurrency = productObj.prices && Object.prototype.hasOwnProperty.call(productObj.prices, safeCurrency)
+    ? productObj.prices[safeCurrency] 
     : productObj.price; // Fallback to USD price
     
   return {

@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { logger } = require('../utils/logger');
 
 // Unified CSRF token management
 const generateCSRFToken = (req, res, next) => {
@@ -26,10 +27,12 @@ const validateCSRFToken = (req, res, next) => {
   // });
   
   if (!token || token !== req.session.csrfToken) {
-    console.error('CSRF token mismatch:', {
+    logger.error('CSRF token mismatch', {
       provided: token ? 'yes' : 'no',
       session: req.session.csrfToken ? 'yes' : 'no',
-      match: token === req.session.csrfToken
+      match: token === req.session.csrfToken,
+      method: req.method,
+      path: req.path
     });
     return res.status(403).json({
       success: false,

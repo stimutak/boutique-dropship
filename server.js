@@ -65,7 +65,8 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.warn('CORS blocked origin:', origin);
+      // Log CORS blocks to proper logger instead of console spam
+      logger.warn('CORS blocked origin', { origin, timestamp: new Date().toISOString() });
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -125,19 +126,19 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
-  console.log('Connected to MongoDB');
+  logger.info('Connected to MongoDB');
 }).catch((error) => {
-  console.warn('MongoDB connection failed:', error.message);
-  console.warn('Running in development mode without database');
+  logger.warn('MongoDB connection failed', { error: error.message });
+  logger.warn('Running in development mode without database');
 });
 
 // Handle MongoDB connection events
 mongoose.connection.on('error', (error) => {
-  console.warn('MongoDB connection error:', error.message);
+  logger.error('MongoDB connection error', { error: error.message });
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.warn('MongoDB disconnected');
+  logger.warn('MongoDB disconnected');
 });
 
 // Routes with specific rate limiting

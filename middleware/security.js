@@ -3,6 +3,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 const { body, validationResult } = require('express-validator');
+const { logger } = require('../utils/logger');
 
 // CSRF Protection Middleware
 const csrfProtection = (req, res, next) => {
@@ -26,15 +27,16 @@ const csrfProtection = (req, res, next) => {
 
   // If no session exists yet, it's likely a first request - be lenient
   if (!req.session) {
-    console.warn('No session found for CSRF check on:', req.path);
+    logger.warn('No session found for CSRF check', { path: req.path });
     return next();
   }
 
   if (!token || !sessionToken || token !== sessionToken) {
-    console.error('CSRF token mismatch:', {
+    logger.error('CSRF token mismatch', {
       provided: token ? 'yes' : 'no',
       session: sessionToken ? 'yes' : 'no',
-      match: token === sessionToken
+      match: token === sessionToken,
+      path: req.path
     });
     return res.status(403).json({
       success: false,
@@ -157,7 +159,7 @@ const sanitizeInput = [
   mongoSanitize({
     replaceWith: '_',
     onSanitize: ({ req, key }) => {
-      console.warn(`Sanitized input: ${key} in ${req.method} ${req.path}`);
+      logger.warn('Sanitized input detected', { key, method: req.method, path: req.path });
     }
   })
 ];

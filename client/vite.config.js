@@ -19,6 +19,49 @@ export default defineConfig({
       }
     }
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'redux-vendor': ['@reduxjs/toolkit', 'react-redux'],
+          'ui-vendor': ['react-i18next', 'i18next', 'i18next-browser-languagedetector', 'i18next-http-backend'],
+          
+          // Admin chunk (heaviest section)
+          'admin': [
+            './src/pages/admin/AdminDashboard.jsx',
+            './src/pages/admin/AdminProducts.jsx',
+            './src/pages/admin/AdminOrders.jsx',
+            './src/pages/admin/AdminUsers.jsx',
+            './src/pages/admin/AdminSettings.jsx',
+            './src/components/admin/AdminReviews.jsx'
+          ],
+          
+          // Auth chunk
+          'auth': [
+            './src/pages/Login.jsx',
+            './src/pages/Register.jsx',
+            './src/pages/ForgotPassword.jsx',
+            './src/pages/ResetPassword.jsx'
+          ],
+          
+          // Commerce chunk
+          'commerce': [
+            './src/pages/Products.jsx',
+            './src/pages/ProductDetail.jsx',
+            './src/pages/Cart.jsx',
+            './src/pages/Checkout.jsx',
+            './src/pages/Payment.jsx'
+          ]
+        }
+      }
+    },
+    // Enable source maps for better debugging
+    sourcemap: process.env.NODE_ENV === 'development',
+    // Optimize chunk size warnings
+    chunkSizeWarningLimit: 1000
+  },
   test: {
     globals: true,
     environment: 'jsdom',
