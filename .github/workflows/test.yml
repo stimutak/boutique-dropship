@@ -14,17 +14,6 @@ jobs:
       matrix:
         node-version: [18.x, 20.x]
 
-    services:
-      mongodb:
-        image: mongo:6.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -44,8 +33,6 @@ jobs:
         echo "NODE_ENV=test" > .env.test
         echo "JWT_SECRET=test-secret-key-for-ci-that-is-at-least-32-characters-long" >> .env.test
         echo "SESSION_SECRET=test-session-secret-for-ci" >> .env.test
-        echo "MONGODB_URI=mongodb://localhost:27017/holistic-store-test" >> .env.test
-        echo "MONGODB_TEST_URI=mongodb://localhost:27017/holistic-store-test" >> .env.test
         echo "MOLLIE_API_KEY=test_dummy_key" >> .env.test
         echo "EMAIL_HOST=smtp.test.com" >> .env.test
         echo "EMAIL_PORT=587" >> .env.test
@@ -53,13 +40,6 @@ jobs:
         echo "EMAIL_PASS=testpass" >> .env.test
         echo "FRONTEND_URL=http://localhost:3001" >> .env.test
         cp .env.test .env
-
-    - name: Wait for MongoDB
-      run: |
-        until mongosh --host localhost:27017 --eval "print('MongoDB is ready')"; do
-          echo "Waiting for MongoDB..."
-          sleep 2
-        done
 
     - name: Run unit tests
       run: npm test -- --testPathPattern="test/(models|utils|middleware)" --coverage --coverageDirectory=coverage/unit
