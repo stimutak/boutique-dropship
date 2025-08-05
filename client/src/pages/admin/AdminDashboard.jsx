@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+// Authentication now uses httpOnly cookies instead of Redux token
 import AdminLayout from '../../components/Layout/AdminLayout'
 import { formatPrice, getCurrencyForLocale } from '../../utils/currency'
 import './AdminDashboard.css'
@@ -16,7 +16,7 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   
-  const { token } = useSelector(state => state.auth)
+  // Authentication is now handled via httpOnly cookies
   const currentCurrency = getCurrencyForLocale(i18n.language)
 
   // Fetch dashboard data
@@ -27,9 +27,7 @@ const AdminDashboard = () => {
 
       // Fetch analytics data
       const analyticsResponse = await fetch('/api/admin/analytics/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
       })
 
       if (!analyticsResponse.ok) {
@@ -41,9 +39,7 @@ const AdminDashboard = () => {
 
       // Fetch recent orders
       const ordersResponse = await fetch('/api/admin/orders?limit=5&sort=-createdAt', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
       })
 
       if (ordersResponse.ok) {
@@ -53,9 +49,7 @@ const AdminDashboard = () => {
 
       // Fetch top products
       const productsResponse = await fetch('/api/admin/analytics/products?limit=5&sort=revenue', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
       })
 
       if (productsResponse.ok) {
@@ -65,17 +59,13 @@ const AdminDashboard = () => {
 
       // Fetch system status
       const statusResponse = await fetch('/api/admin/products?filter=lowStock', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
       })
 
       if (statusResponse.ok) {
         const statusData = await statusResponse.json()
         const userStatsResponse = await fetch('/api/admin/users/stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          credentials: 'include'
         })
         
         let userStats = { newUsersToday: 0 }
@@ -128,9 +118,7 @@ const AdminDashboard = () => {
   const handleExportReports = async () => {
     try {
       const response = await fetch('/api/admin/analytics/export?type=dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
       })
 
       if (!response.ok) {
