@@ -1,18 +1,9 @@
 const request = require('supertest');
-const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const Product = require('../../models/Product');
 const User = require('../../models/User');
-const productRoutes = require('../../routes/products');
-
-// Create test app
-const createTestApp = () => {
-  const app = express();
-  app.use(express.json());
-  app.use('/api/products', productRoutes);
-  return app;
-};
+const { createTestApp } = require('../helpers/testApp');
 
 describe('Product Routes', () => {
   let app;

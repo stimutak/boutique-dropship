@@ -18,6 +18,12 @@ jest.mock('../../utils/errorRecovery', () => ({
   }))
 }));
 
+// Mock User model to prevent mongoose Schema.Types issues during loading
+jest.mock('../../models/User', () => ({
+  findById: jest.fn(),
+  findOne: jest.fn()
+}));
+
 // Mock mongoose
 jest.mock('mongoose', () => ({
   connection: {

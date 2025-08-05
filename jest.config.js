@@ -16,7 +16,9 @@ module.exports = {
     '/node_modules/',
     '/dist/',
     '/build/',
-    '/client/node_modules/'
+    '/client/node_modules/',
+    '/client/src/__tests__/',
+    '/client/src/.*\\.test\\.(js|jsx)$'
   ],
   
   // Coverage configuration
