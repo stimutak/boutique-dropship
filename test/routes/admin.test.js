@@ -652,7 +652,8 @@ Invalid Product`; // Missing required fields
   });
 
   // TODO: Re-enable when Wholesaler Communication Management API is implemented
-  /* describe('Wholesaler Communication Management', () => {
+  /*
+  describe('Wholesaler Communication Management', () => {
     test('should get wholesaler communication logs', async () => {
       const response = await request(app)
         .get('/api/admin/wholesalers/logs')
@@ -703,7 +704,8 @@ Invalid Product`; // Missing required fields
     });
 
     // TODO: Implement sales analytics periods when API supports it
-    /* test('should get sales analytics with different periods', async () => {
+    /*
+    test('should get sales analytics with different periods', async () => {
       const response = await request(app)
         .get('/api/admin/analytics/sales?period=7d&groupBy=day')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -716,7 +718,8 @@ Invalid Product`; // Missing required fields
     }); */
 
     // TODO: Implement sales analytics category filter when API supports it
-    /* test('should filter sales analytics by category', async () => {
+    /*
+    test('should filter sales analytics by category', async () => {
       const response = await request(app)
         .get('/api/admin/analytics/sales?category=crystals')
         .set('Authorization', `Bearer ${adminToken}`)

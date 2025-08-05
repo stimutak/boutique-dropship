@@ -46,7 +46,7 @@ afterAll(async () => {
 }, 30000);
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason, _promise) => {
   // Log unhandled rejections for debugging - consider using proper logger in production
   process.stderr.write(`Unhandled Rejection: ${reason}\n`);
 });

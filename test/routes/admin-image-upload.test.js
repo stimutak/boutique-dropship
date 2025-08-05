@@ -429,7 +429,7 @@ describe('Admin Image Upload Integration Tests', () => {
         expect(response.body.images).toBeDefined();
         
         if (response.body.images.length > 0) {
-          const image = response.body.images[0];
+          const _image = response.body.images[0];
           // Debug: Image object structure and URL format can be inspected if needed
         }
 
