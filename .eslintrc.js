@@ -145,6 +145,7 @@ module.exports = {
     '*.min.js',
     '.jest-cache/',
     'public/',
-    'mongo-init.js'  // MongoDB script, not Node.js
+    'mongo-init.js',  // MongoDB script, not Node.js
+    'scripts/test-design-system.js'  // Requires puppeteer which is not installed
   ]
 };

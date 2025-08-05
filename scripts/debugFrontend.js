@@ -24,7 +24,7 @@ async function debugFrontend() {
   // Test frontend proxy
   console.log('\n2. Testing Frontend Proxy (port 3006):');
   try {
-    const res = await axios.get('http://localhost:3006/api/products');
+    await axios.get('http://localhost:3006/api/products');
     console.log('   ✅ Proxy working');
   } catch (err) {
     console.log('   ❌ Proxy failed:', err.message);
@@ -33,7 +33,7 @@ async function debugFrontend() {
   // Check if frontend is running
   console.log('\n3. Testing Frontend Server:');
   try {
-    const res = await axios.get('http://localhost:3006/');
+    await axios.get('http://localhost:3006/');
     console.log('   ✅ Frontend server is running');
   } catch (err) {
     console.log('   ❌ Frontend not accessible:', err.message);

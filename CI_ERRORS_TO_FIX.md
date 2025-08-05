@@ -1,11 +1,11 @@
 # CI/CD Errors to Fix
 
-**SIGNIFICANT PROGRESS**: Reduced from 276 to 107 errors (61% reduction)
+**MAJOR PROGRESS**: Reduced from 276 to 74 errors (73% reduction)
 
 ## Summary
 - **Initial**: 592 problems (276 errors, 316 warnings)
-- **Current**: 423 problems (107 errors, 316 warnings)
-- **Fixed**: 169 errors
+- **Current**: 390 problems (74 errors, 316 warnings)
+- **Fixed**: 202 errors
 
 ## ✅ Fixed Issues
 
@@ -26,21 +26,31 @@
 - ✅ Removed clearDB calls from tests
 - ✅ Excluded mongo-init.js from linting
 
-## 🔴 Remaining Critical Errors (107)
+### 5. ~~More Unused Variables~~ - FIXED (many)
+- ✅ Fixed mongoose imports in 4 test files
+- ✅ Fixed bcrypt imports in 2 scripts
+- ✅ Fixed Product imports in 2 scripts
+- ✅ Added missing mongoose import in monitoring.test.js
 
-### 1. Tests with No Assertions (21 errors)
-- **14 errors** in main test files
+### 6. ~~Code Issues~~ - FIXED
+- ✅ Fixed hasOwnProperty in i18n.js
+- ✅ Fixed unsafe regex in errorHandler.js and Wholesaler.js
+
+## 🔴 Remaining Critical Errors (74)
+
+### 1. Tests with No Assertions (7 errors)
 - **7 errors** in error-standardization.test.js
-- Fix: Add expect() statements or use test.skip()
+- Already configured ESLint to recognize validateErrorResponse
 
-### 2. Undefined/Unused Variables (~30 errors)
-- **mongoose** not defined (6 errors)
-- **Unused**: id, response, res, bcrypt, Product
-- Fix: Import missing or prefix with underscore
+### 2. Remaining Unused Variables (~15 errors)
+- **Unused**: id (3), response (2), res (2), next (2)
+- **Unused imports**: getErrorMessage, validateCSRFToken
+- Fix: Prefix with underscore
 
-### 3. Code Issues
-- **hasOwnProperty** usage (1 error)
-- **Unsafe regex** patterns (2-3 errors)
+### 3. Other Issues
+- **process.exit** usage (2 errors) 
+- **puppeteer not found** (1 error)
+- **conditional expect** (1 error)
 
 ## 🟡 Warnings (316 - not blocking CI)
 - Console.log statements (200+)

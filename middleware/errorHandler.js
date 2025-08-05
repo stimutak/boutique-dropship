@@ -150,7 +150,7 @@ const globalErrorHandler = (err, req, res, _next) => {
 // Async error wrapper
 const catchAsync = (fn) => {
   return (req, res, _next) => {
-    fn(req, res, _next).catch(next);
+    fn(req, res, _next).catch(_next);
   };
 };
 

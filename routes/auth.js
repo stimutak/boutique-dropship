@@ -6,7 +6,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { requireAuth, authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
-const { AppError } = require('../middleware/errorHandler');
+// AppError removed - using res.error() instead
 const { ErrorCodes } = require('../utils/errorHandler');
 
 // Generate JWT token

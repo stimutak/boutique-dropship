@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 const { formatPrice } = require('./currency');
-const { getErrorMessage } = require('./i18n');
+// getErrorMessage removed - not used in this file
 
 // Create transporter with environment configuration
 const createTransporter = () => {
