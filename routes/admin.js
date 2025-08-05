@@ -13,6 +13,7 @@ const Review = require('../models/Review');
 const { requireAdmin } = require('../middleware/auth');
 // processOrderNotifications removed - not used in this route
 const { csvValidator, imageValidator, cleanupTempFiles } = require('../middleware/uploadSecurity');
+const { logger } = require('../utils/logger');
 
 // Configure secure multer for CSV uploads
 const upload = multer({
@@ -65,7 +66,7 @@ router.get('/wholesalers', async (req, res) => {
       data: wholesalers
     });
   } catch (error) {
-    console.error('Error fetching wholesalers:', error);
+    logger.error('Error fetching wholesalers:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to fetch wholesalers'
@@ -117,7 +118,7 @@ router.post('/wholesalers', [
       data: newWholesaler
     });
   } catch (error) {
-    console.error('Error creating wholesaler:', error);
+    logger.error('Error creating wholesaler:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to create wholesaler'
@@ -228,7 +229,7 @@ router.get('/products', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Admin products fetch error:', error);
+    logger.error('Admin products fetch error:', { error: error.message, stack: error.stack });
     res.error(500, 'ADMIN_PRODUCTS_ERROR', 'Failed to fetch products');
   }
 });
@@ -270,7 +271,7 @@ router.post('/products', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error creating product:', error);
+    logger.error('Error creating product:', { error: error.message, stack: error.stack });
     
     if (error.code === 11000) {
       return res.error(400, 'DUPLICATE_SLUG', 'Product with this slug already exists');
@@ -423,7 +424,7 @@ router.post('/products/bulk-import', upload.single('csvFile'), async (req, res) 
       fs.unlinkSync(req.file.path);
     }
     
-    console.error('Bulk import error:', error);
+    logger.error('Bulk import error:', { error: error.message, stack: error.stack });
     res.error(500, 'BULK_IMPORT_ERROR', 'Failed to import products');
   }
 });
@@ -495,7 +496,7 @@ router.get('/products/export', async (req, res) => {
     res.send(csvContent);
 
   } catch (error) {
-    console.error('Product export error:', error);
+    logger.error('Product export error:', { error: error.message, stack: error.stack });
     res.error(500, 'EXPORT_ERROR', 'Failed to export products');
   }
 });
@@ -517,7 +518,7 @@ router.get('/products/:id', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching product:', error);
+    logger.error('Error fetching product:', { error: error.message, stack: error.stack });
     res.error(500, 'PRODUCT_FETCH_ERROR', 'Failed to fetch product');
   }
 });
@@ -547,7 +548,7 @@ router.put('/products/:id', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error updating product:', error);
+    logger.error('Error updating product:', { error: error.message, stack: error.stack });
     
     if (error.code === 11000) {
       return res.error(400, 'DUPLICATE_SLUG', 'Product with this slug already exists');
@@ -580,7 +581,7 @@ router.delete('/products/:id', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error archiving product:', error);
+    logger.error('Error archiving product:', { error: error.message, stack: error.stack });
     res.error(500, 'PRODUCT_DELETE_ERROR', 'Failed to archive product');
   }
 });
@@ -612,7 +613,7 @@ router.put('/products/:id/restore', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error restoring product:', error);
+    logger.error('Error restoring product:', { error: error.message, stack: error.stack });
     res.error(500, 'PRODUCT_RESTORE_ERROR', 'Failed to restore product');
   }
 });
@@ -630,7 +631,7 @@ router.post('/products/images', (req, res) => {
   // Custom multer error handling middleware
   imageUpload.array('images', 10)(req, res, async (err) => {
     if (err) {
-      console.error('Multer upload error:', err);
+      logger.error('Multer upload error:', err);
       
       // Handle specific multer errors
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -687,7 +688,7 @@ router.post('/products/images', (req, res) => {
       });
 
     } catch (error) {
-      console.error('Image upload processing error:', error);
+      logger.error('Image upload processing error:', { error: error.message, stack: error.stack });
       res.error(500, 'IMAGE_UPLOAD_ERROR', 'Failed to process uploaded images');
     }
   });
@@ -697,7 +698,7 @@ router.post('/products/images', (req, res) => {
 router.post('/products/:id/images', async (req, res) => {
   imageUpload.array('images', 10)(req, res, async (err) => {
     if (err) {
-      console.error('Multer upload error:', err);
+      logger.error('Multer upload error:', err);
       
       // Handle specific multer errors (same as above)
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -760,7 +761,7 @@ router.post('/products/:id/images', async (req, res) => {
       });
 
     } catch (error) {
-      console.error('Product image upload error:', error);
+      logger.error('Product image upload error:', { error: error.message, stack: error.stack });
       res.error(500, 'IMAGE_UPLOAD_ERROR', 'Failed to upload images to product');
     }
   });
@@ -792,7 +793,7 @@ router.delete('/products/:id/images/:imageId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Product image deletion error:', error);
+    logger.error('Product image deletion error:', { error: error.message, stack: error.stack });
     res.error(500, 'IMAGE_DELETE_ERROR', 'Failed to delete image');
   }
 });
@@ -821,7 +822,7 @@ router.get('/categories', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Categories fetch error:', error);
+    logger.error('Categories fetch error:', { error: error.message, stack: error.stack });
     res.error(500, 'CATEGORIES_ERROR', 'Failed to fetch categories');
   }
 });
@@ -867,7 +868,7 @@ router.post('/categories', [
     });
 
   } catch (error) {
-    console.error('Category creation error:', error);
+    logger.error('Category creation error:', { error: error.message, stack: error.stack });
     res.error(500, 'CATEGORY_CREATION_ERROR', 'Failed to create category');
   }
 });
@@ -917,7 +918,7 @@ router.put('/products/:id/inventory', [
     });
 
   } catch (error) {
-    console.error('Inventory update error:', error);
+    logger.error('Inventory update error:', { error: error.message, stack: error.stack });
     res.error(500, 'INVENTORY_UPDATE_ERROR', 'Failed to update inventory');
   }
 });
@@ -1025,7 +1026,7 @@ router.get('/orders', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Admin orders fetch error:', error);
+    logger.error('Admin orders fetch error:', { error: error.message, stack: error.stack });
     res.error(500, 'ADMIN_ORDERS_ERROR', 'Failed to fetch orders');
   }
 });
@@ -1065,7 +1066,7 @@ router.get('/orders/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Admin order fetch error:', error);
+    logger.error('Admin order fetch error:', { error: error.message, stack: error.stack });
     res.error(500, 'ADMIN_ORDER_ERROR', 'Failed to fetch order');
   }
 });
@@ -1094,10 +1095,48 @@ router.put('/orders/:id/status', [
       req.params.id,
       updateData,
       { new: true }
-    ).populate('customer', 'firstName lastName email');
+    ).populate('customer', 'firstName lastName email preferences');
 
     if (!order) {
       return res.error(404, 'ORDER_NOT_FOUND', 'Order not found');
+    }
+
+    // Send shipping notification email if status changed to shipped
+    if (status === 'shipped') {
+      try {
+        const { sendOrderStatusUpdate } = require('../utils/emailService');
+        
+        let customerEmail, customerName, shouldSendEmail = true, userLocale = 'en';
+        
+        if (order.customer) {
+          // Registered user
+          customerEmail = order.customer.email;
+          customerName = `${order.customer.firstName} ${order.customer.lastName}`;
+          shouldSendEmail = order.customer.preferences?.emailPreferences?.orderUpdates !== false;
+          userLocale = order.customer.preferences?.locale || 'en';
+        } else {
+          // Guest user
+          customerEmail = order.guestInfo?.email;
+          customerName = `${order.guestInfo?.firstName} ${order.guestInfo?.lastName}`;
+          userLocale = 'en'; // Default for guest users
+        }
+        
+        if (shouldSendEmail && customerEmail) {
+          const statusData = {
+            orderNumber: order.orderNumber,
+            customerName,
+            status: 'shipped',
+            trackingNumber: order.shipping?.trackingNumber
+          };
+          
+          const emailResult = await sendOrderStatusUpdate(customerEmail, statusData, userLocale);
+          if (!emailResult.success) {
+            logger.error('Failed to send shipping notification:', emailResult.error);
+          }
+        }
+      } catch (emailError) {
+        logger.error('Error sending shipping notification:', emailError);
+      }
     }
 
     res.json({
@@ -1113,7 +1152,7 @@ router.put('/orders/:id/status', [
     });
 
   } catch (error) {
-    console.error('Order status update error:', error);
+    logger.error('Order status update error:', { error: error.message, stack: error.stack });
     res.error(500, 'ORDER_UPDATE_ERROR', 'Failed to update order status');
   }
 });
@@ -1192,7 +1231,7 @@ router.post('/orders/:id/refund', [
     });
 
   } catch (error) {
-    console.error('Refund processing error:', error);
+    logger.error('Refund processing error:', { error: error.message, stack: error.stack });
     res.error(500, 'REFUND_ERROR', 'Failed to process refund');
   }
 });
@@ -1240,7 +1279,7 @@ router.get('/orders/:id/shipping-label', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Shipping label generation error:', error);
+    logger.error('Shipping label generation error:', { error: error.message, stack: error.stack });
     res.error(500, 'SHIPPING_LABEL_ERROR', 'Failed to generate shipping label');
   }
 });
@@ -1355,7 +1394,7 @@ router.get('/analytics/dashboard', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Analytics dashboard error:', error);
+    logger.error('Analytics dashboard error:', { error: error.message, stack: error.stack });
     res.error(500, 'ANALYTICS_ERROR', 'Failed to fetch analytics data');
   }
 });
@@ -1400,7 +1439,7 @@ router.get('/users/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User details fetch error:', error);
+    logger.error('User details fetch error:', { error: error.message, stack: error.stack });
     res.error(500, 'USER_DETAILS_ERROR', 'Failed to fetch user details');
   }
 });
@@ -1444,7 +1483,7 @@ router.put('/users/:id', [
     });
 
   } catch (error) {
-    console.error('User update error:', error);
+    logger.error('User update error:', { error: error.message, stack: error.stack });
     
     if (error.code === 11000 && error.keyPattern?.email) {
       return res.error(400, 'EMAIL_EXISTS', 'Email address already exists');
@@ -1498,7 +1537,7 @@ router.put('/users/:id/role', [
     });
 
   } catch (error) {
-    console.error('User role update error:', error);
+    logger.error('User role update error:', { error: error.message, stack: error.stack });
     res.error(500, 'USER_ROLE_UPDATE_ERROR', 'Failed to update user role');
   }
 });
@@ -1553,7 +1592,7 @@ router.get('/users/:id/activity', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User activity fetch error:', error);
+    logger.error('User activity fetch error:', { error: error.message, stack: error.stack });
     res.error(500, 'USER_ACTIVITY_ERROR', 'Failed to fetch user activity');
   }
 });
@@ -1671,7 +1710,7 @@ router.get('/analytics/sales', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Sales analytics error:', error);
+    logger.error('Sales analytics error:', { error: error.message, stack: error.stack });
     res.error(500, 'SALES_ANALYTICS_ERROR', 'Failed to fetch sales analytics');
   }
 });
@@ -1830,7 +1869,7 @@ router.get('/analytics/products', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Product analytics error:', error);
+    logger.error('Product analytics error:', { error: error.message, stack: error.stack });
     res.error(500, 'PRODUCT_ANALYTICS_ERROR', 'Failed to fetch product analytics');
   }
 });
@@ -1943,7 +1982,7 @@ router.get('/analytics/customers', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Customer analytics error:', error);
+    logger.error('Customer analytics error:', { error: error.message, stack: error.stack });
     res.error(500, 'CUSTOMER_ANALYTICS_ERROR', 'Failed to fetch customer analytics');
   }
 });
@@ -2037,7 +2076,7 @@ router.get('/analytics/revenue', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Revenue analytics error:', error);
+    logger.error('Revenue analytics error:', { error: error.message, stack: error.stack });
     res.error(500, 'REVENUE_ANALYTICS_ERROR', 'Failed to fetch revenue analytics');
   }
 });
@@ -2182,7 +2221,7 @@ router.get('/analytics/export', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Analytics export error:', error);
+    logger.error('Analytics export error:', { error: error.message, stack: error.stack });
     res.error(500, 'EXPORT_ERROR', 'Failed to export analytics data');
   }
 });
@@ -2275,7 +2314,7 @@ router.get('/users', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Admin users fetch error:', error);
+    logger.error('Admin users fetch error:', { error: error.message, stack: error.stack });
     res.error(500, 'ADMIN_USERS_ERROR', 'Failed to fetch users');
   }
 });
@@ -2323,7 +2362,7 @@ router.put('/users/:id/status', [
     });
 
   } catch (error) {
-    console.error('User status update error:', error);
+    logger.error('User status update error:', { error: error.message, stack: error.stack });
     res.error(500, 'USER_UPDATE_ERROR', 'Failed to update user status');
   }
 });
@@ -2414,7 +2453,7 @@ router.get('/reviews', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Admin reviews fetch error:', error);
+    logger.error('Admin reviews fetch error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
@@ -2500,7 +2539,7 @@ router.put('/reviews/:id/approve', [
     });
 
   } catch (error) {
-    console.error('Review approval error:', error);
+    logger.error('Review approval error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
@@ -2587,7 +2626,7 @@ router.put('/reviews/:id/reject', [
     });
 
   } catch (error) {
-    console.error('Review rejection error:', error);
+    logger.error('Review rejection error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
@@ -2621,7 +2660,7 @@ router.delete('/reviews/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Review deletion error:', error);
+    logger.error('Review deletion error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
@@ -2674,7 +2713,7 @@ router.get('/reviews/stats', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Review stats error:', error);
+    logger.error('Review stats error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
