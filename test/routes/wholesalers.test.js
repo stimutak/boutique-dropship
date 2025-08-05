@@ -289,7 +289,7 @@ describe('Wholesaler Routes', () => {
         ...testOrder.toObject(),
         _id: new mongoose.Types.ObjectId(),
         orderNumber: 'ORD-PENDING-123',
-        payment: { method: 'creditcard', status: 'pending' },
+        payment: { method: 'card', status: 'pending' },
         status: 'pending'
       });
       
