@@ -5,7 +5,7 @@ const request = require('supertest');
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
+// crypto removed - not used
 const User = require('../../models/User');
 const authRoutes = require('../../routes/auth');
 const { generateCSRFToken } = require('../../middleware/sessionCSRF');

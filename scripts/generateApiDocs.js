@@ -14,7 +14,7 @@ const ROUTES_DIR = path.join(__dirname, '..', 'routes');
 const OUTPUT_FILE = path.join(__dirname, '..', 'docs', 'API_REFERENCE.md');
 
 // Route analysis patterns
-const ROUTE_PATTERNS = {
+const _ROUTE_PATTERNS = {
   method: /\.(get|post|put|delete|patch)\s*\(/g,
   path: /['"`]([^'"`]+)['"`]/,
   middleware: /auth|admin|validate/g,
@@ -28,7 +28,7 @@ function extractRoutes(filePath, content) {
   const routes = [];
   const lines = content.split('\n');
   
-  const currentRoute = null;
+  const _currentRoute = null;
   let inComment = false;
   let commentBuffer = '';
   

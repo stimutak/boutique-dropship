@@ -13,10 +13,10 @@ const { createTestApp } = require('../helpers/testApp');
 describe('Order Routes', () => {
   let app;
   let testProduct;
-  let _testUser;
+  let testUser;
   let adminToken;
   let agent;  // For maintaining session cookies
-  let _csrfToken;
+  let csrfToken;
 
   // Helper function to create test order data
   const createTestOrderData = (overrides = {}) => ({

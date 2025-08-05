@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 // rateLimit removed - not used
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+// MongoStore removed - not used
 const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config();
@@ -90,7 +90,6 @@ app.use(speedLimiter);
 const { 
   createSessionConfig, 
   generateCSRFToken,
-  validateCSRFToken,
   enhanceGuestSession,
   cleanupGuestSession 
 } = require('./middleware/sessionCSRF');

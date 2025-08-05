@@ -42,7 +42,7 @@ const downloadProductImages = async () => {
       const photoData = await new Promise((resolve, reject) => {
         https.get(image.url, (res) => {
           let data = '';
-          res.on('data', chunk => data += chunk);
+          res.on('data', chunk => { data += chunk; });
           res.on('end', () => {
             try {
               resolve(JSON.parse(data));

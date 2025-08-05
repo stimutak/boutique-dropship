@@ -509,7 +509,7 @@ Invalid Product`; // Missing required fields
     describe('Multi-currency Support', () => {
       test('should filter orders by currency (TDD - RED)', async () => {
         // Create an order in EUR
-        const eurOrder = await Order.create({
+        const _eurOrder = await Order.create({
           customer: regularUser._id,
           items: [{
             product: testProduct._id,

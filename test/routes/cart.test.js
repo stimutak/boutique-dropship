@@ -25,18 +25,18 @@ jest.mock('mongoose', () => {
   const MockObjectId = jest.fn();
   MockObjectId.toString = jest.fn().mockReturnValue('507f1f77bcf86cd799439011');
   
-  const mockModel = (name) => {
+  const mockModel = (_name) => {
     const MockedModel = jest.fn();
     
     // Create a chainable mock for select
-    const createSelectableMock = (returnValue) => {
+    const _createSelectableMock = (returnValue) => {
       const mock = jest.fn().mockResolvedValue(returnValue);
       mock.select = jest.fn().mockResolvedValue(returnValue);
       return mock;
     };
     
     // Static methods
-    MockedModel.findById = jest.fn().mockImplementation((id) => {
+    MockedModel.findById = jest.fn().mockImplementation((_id) => {
       const mock = jest.fn().mockResolvedValue(null);
       mock.select = jest.fn().mockResolvedValue(null);
       return mock;
@@ -57,7 +57,7 @@ jest.mock('mongoose', () => {
   };
   
   // Mock Schema constructor
-  const MockSchema = jest.fn().mockImplementation((definition, options) => {
+  const MockSchema = jest.fn().mockImplementation((_definition, _options) => {
     const schema = {
       index: jest.fn(),
       methods: {},
@@ -94,7 +94,7 @@ jest.mock('mongoose', () => {
 
 // Import models after mocking mongoose
 const Product = require('../../models/Product');
-const User = require('../../models/User');
+// User model removed - not used
 const Cart = require('../../models/Cart');
 const cartRoutes = require('../../routes/cart');
 
@@ -344,7 +344,7 @@ describe('Cart Routes', () => {
     it('should handle CSRF token validation correctly', async () => {
       // Test with missing CSRF token by removing the mock
       jest.unmock('../../middleware/sessionCSRF');
-      const { validateCSRFToken } = require('../../middleware/sessionCSRF');
+      const { _validateCSRFToken } = require('../../middleware/sessionCSRF');
       
       // Create a new app instance with real CSRF validation
       const appWithCSRF = express();

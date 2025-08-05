@@ -134,7 +134,7 @@ async function testNotificationSystem() {
     console.log('✓ Connected to database\n');
     
     // Create test data
-    const { products, order } = await createTestData();
+    const { _products, order } = await createTestData();
     console.log('✓ Test data created\n');
     
     // Show order before processing

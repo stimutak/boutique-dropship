@@ -103,7 +103,7 @@ async function diagnoseIssues() {
     console.log(`   - Using product ID: ${firstProductId}`);
     
     // Try to add to cart
-    const cartRes = await axios.post(`${BASE_URL}/api/cart/add`, {
+    const _cartRes = await axios.post(`${BASE_URL}/api/cart/add`, {
       productId: firstProductId,
       quantity: 1
     }, {

@@ -280,7 +280,7 @@ describe('Complete User Journey Integration Tests', () => {
       const agent = request.agent(app);
 
       // Step 1: Create existing user with saved address
-      const existingUser = await User.create({
+      const _existingUser = await User.create({
         email: 'returning@example.com',
         password: 'password123',
         firstName: 'John',
@@ -649,19 +649,19 @@ describe('Complete User Journey Integration Tests', () => {
       );
 
       // Simulate concurrent cart operations
-      const concurrentOperations = tokens.map((token, index) => 
+      const concurrentOperations = tokens.map((token, _index) => 
         request(app)
           .post('/api/cart/add')
           .set('Authorization', `Bearer ${token}`)
           .send({
             productId: testProduct1._id,
-            quantity: index + 1
+            quantity: _index + 1
           })
       );
 
       const results = await Promise.all(concurrentOperations);
       
-      results.forEach((result, index) => {
+      results.forEach((result, _index) => {
         expect(result.status).toBe(200);
         expect(result.body.success).toBe(true);
       });
