@@ -8,6 +8,7 @@ const { requireAuth, authenticateToken } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 // AppError removed - using res.error() instead
 const { ErrorCodes } = require('../utils/errorHandler');
+const { logger, securityLogger } = require('../utils/logger');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -115,11 +116,11 @@ router.post('/register', validateRegistration, async (req, res) => {
 
         const emailResult = await sendWelcomeEmail(user.email, welcomeData, userLocale);
         if (!emailResult.success) {
-          console.error('Failed to send welcome email:', emailResult.error);
+          logger.error('Failed to send welcome email:', emailResult.error);
         }
       }
     } catch (emailError) {
-      console.error('Error sending welcome email:', emailError);
+      logger.error('Error sending welcome email:', emailError);
     }
 
     // Set token as httpOnly cookie for security
@@ -141,7 +142,7 @@ router.post('/register', validateRegistration, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.REGISTRATION_ERROR, 'Failed to register user');
   }
 });
@@ -205,7 +206,7 @@ router.post('/login', validateLogin, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    securityLogger.error('Login error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.LOGIN_ERROR, 'Failed to login');
   }
 });
@@ -254,20 +255,19 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
         }, userLocale);
         
         if (!emailResult.success) {
-          console.error('Failed to send reset email:', emailResult.error);
+          logger.error('Failed to send reset email:', emailResult.error);
         }
         
         // Log reset URL for development when email is not configured
         if (emailResult.message === 'Email skipped - not configured') {
-          console.log('\n========================================');
-          console.log('PASSWORD RESET URL (Email not configured)');
-          console.log('========================================');
-          console.log(`User: ${user.email}`);
-          console.log(`Reset URL: ${resetUrl}`);
-          console.log('========================================\n');
+          logger.info('Password reset URL generated (Email not configured):', {
+            user: user.email,
+            resetUrl,
+            note: 'Email service not configured, showing URL in logs'
+          });
         }
       } catch (emailError) {
-        console.error('Error sending reset email:', emailError);
+        logger.error('Error sending reset email:', emailError);
       }
     } else {
       // If user doesn't exist, still perform the same cryptographic operations
@@ -282,7 +282,7 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Forgot password error:', error);
+    securityLogger.error('Forgot password error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.FORGOT_PASSWORD_ERROR, 'Failed to process password reset request');
   }
 });
@@ -330,7 +330,7 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Reset password error:', error);
+    securityLogger.error('Reset password error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.RESET_PASSWORD_ERROR, 'Failed to reset password');
   }
 });
@@ -357,7 +357,7 @@ router.get('/verify', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Token verification error:', error);
+    securityLogger.error('Token verification error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.VERIFICATION_ERROR, 'Failed to verify authentication');
   }
 });
@@ -379,7 +379,7 @@ router.get('/profile', requireAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Profile fetch error:', error);
+    logger.error('Profile fetch error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.PROFILE_FETCH_ERROR, 'Failed to fetch user profile');
   }
 });
@@ -534,14 +534,16 @@ router.put('/profile', requireAuth, validateCSRFToken, [
         }
       });
     } catch (updateError) {
-      console.error('Profile update error:', updateError);
+      logger.error('Profile update error:', { error: updateError.message, stack: updateError.stack });
       return res.error(500, ErrorCodes.PROFILE_UPDATE_ERROR, updateError.message || 'Failed to update profile');
     }
 
   } catch (error) {
-    console.error('Profile update error:', error);
-    console.error('Error stack:', error.stack);
-    console.error('Request body:', req.body);
+    logger.error('Profile update error:', {
+      error: error.message,
+      stack: error.stack,
+      requestBody: req.body
+    });
     
     // Handle specific MongoDB errors
     if (error.code === 11000) {
@@ -583,7 +585,7 @@ router.post('/change-password', requireAuth, [
       message: 'Password changed successfully'
     });
   } catch (error) {
-    console.error('Password change error:', error);
+    securityLogger.error('Password change error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.PASSWORD_CHANGE_ERROR, 'Failed to change password');
   }
 });
@@ -594,7 +596,7 @@ router.post('/logout', requireAuth, async (req, res) => {
     const userId = req.user._id;
     
     // Log logout event
-    console.log('User logout:', {
+    securityLogger.info('User logout:', {
       userId: userId,
       timestamp: new Date()
     });
@@ -608,7 +610,7 @@ router.post('/logout', requireAuth, async (req, res) => {
       // Clear the session
       req.session.destroy((err) => {
         if (err) {
-          console.error('Session destruction error:', err);
+          logger.error('Session destruction error:', err);
         }
       });
     }
@@ -627,7 +629,7 @@ router.post('/logout', requireAuth, async (req, res) => {
       cartCleared: true // Signal to frontend to clear cart state
     });
   } catch (error) {
-    console.error('Logout error:', error);
+    securityLogger.error('Logout error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
@@ -695,7 +697,7 @@ router.post('/profile/addresses', requireAuth, validateCSRFToken, [
     });
 
   } catch (error) {
-    console.error('Add address error:', error);
+    logger.error('Add address error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
@@ -773,7 +775,7 @@ router.put('/profile/addresses/:addressId', requireAuth, validateCSRFToken, [
     });
 
   } catch (error) {
-    console.error('Update address error:', error);
+    logger.error('Update address error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
@@ -817,7 +819,7 @@ router.delete('/profile/addresses/:addressId', requireAuth, validateCSRFToken, a
     });
 
   } catch (error) {
-    console.error('Delete address error:', error);
+    logger.error('Delete address error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
@@ -864,7 +866,7 @@ router.patch('/profile/addresses/:addressId/default', requireAuth, validateCSRFT
     });
 
   } catch (error) {
-    console.error('Set default address error:', error);
+    logger.error('Set default address error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: {
@@ -911,7 +913,7 @@ router.post('/refresh-token', async (req, res) => {
       user: user.toPublicJSON()
     });
   } catch (error) {
-    console.error('Token refresh error:', error);
+    securityLogger.error('Token refresh error:', { error: error.message, stack: error.stack });
     res.status(401).json({
       success: false,
       error: {

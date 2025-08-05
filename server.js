@@ -9,30 +9,33 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config();
 
+// Import logging first for proper startup logging
+const { logger, securityLogger } = require('./utils/logger');
+
 // Only log environment details in development - never in production for security
 if (process.env.NODE_ENV === 'development') {
-  console.log('Environment variables loaded:');
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log('PORT:', process.env.PORT);
+  logger.info('Environment variables loaded:', {
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT
+  });
   // Note: Never log JWT_SECRET details, even in development
 }
 
 // Validate critical environment variables at startup
 if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'test') {
-  console.error('FATAL ERROR: JWT_SECRET environment variable is not set. This is required for secure token generation.');
+  securityLogger.error('FATAL ERROR: JWT_SECRET environment variable is not set. This is required for secure token generation.');
   throw new Error('JWT_SECRET not configured');
 }
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   if (process.env.NODE_ENV !== 'test') {
-    console.error('FATAL ERROR: JWT_SECRET must be at least 32 characters long for security.');
+    securityLogger.error('FATAL ERROR: JWT_SECRET must be at least 32 characters long for security.');
     // Never log actual JWT_SECRET length for security reasons
     throw new Error('JWT_SECRET too short');
   }
 }
 
-// Import logging and error handling
-const { logger } = require('./utils/logger');
+// Import error handling
 const { globalErrorHandler } = require('./middleware/errorHandler');
 const { i18nMiddleware } = require('./utils/i18n');
 const { errorResponse } = require('./utils/errorHandler');

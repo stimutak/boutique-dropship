@@ -5,6 +5,7 @@ const { body, param, validationResult } = require('express-validator');
 const Order = require('../models/Order');
 const { requireAuth } = require('../middleware/auth');
 const { ErrorCodes } = require('../utils/errorHandler');
+const { logger, paymentLogger } = require('../utils/logger');
 
 // Initialize Mollie client with fallback
 let mollieClient;
@@ -12,16 +13,16 @@ try {
   const apiKey = process.env.MOLLIE_API_KEY || process.env.MOLLIE_TEST_KEY;
   
   if (!apiKey) {
-    console.warn('No Mollie API key found. Using mock client for development.');
+    paymentLogger.warn('No Mollie API key found. Using mock client for development.');
     throw new Error('No API key provided');
   }
   
   mollieClient = createMollieClient({ 
     apiKey: apiKey
   });
-  console.log('Mollie client initialized successfully');
+  paymentLogger.info('Mollie client initialized successfully');
 } catch (error) {
-  console.warn('Mollie client initialization failed:', error.message);
+  paymentLogger.warn('Mollie client initialization failed:', { error: error.message });
   // Create a mock client for development
   mollieClient = {
     payments: {
@@ -123,7 +124,7 @@ router.post('/create', [
     });
 
   } catch (error) {
-    console.error('Payment creation error:', error);
+    paymentLogger.error('Payment creation error:', { error: error.message, stack: error.stack });
     
     // Handle Mollie API errors
     if (error.field) {
@@ -191,7 +192,7 @@ router.post('/demo-complete/:orderId', [
       const { processOrderNotifications } = require('../utils/wholesalerNotificationService');
       await processOrderNotifications(orderId);
     } catch (notificationError) {
-      console.error('Wholesaler notification error:', notificationError);
+      logger.error('Wholesaler notification error:', notificationError);
     }
 
     res.json({
@@ -210,7 +211,7 @@ router.post('/demo-complete/:orderId', [
     });
 
   } catch (error) {
-    console.error('Demo payment completion error:', error);
+    paymentLogger.error('Demo payment completion error:', { error: error.message, stack: error.stack });
     res.error(500, 'DEMO_PAYMENT_ERROR', 'Failed to complete demo payment');
   }
 });
@@ -230,7 +231,7 @@ router.post('/webhook', async (req, res) => {
     // Find the order
     const order = await Order.findOne({ 'payment.molliePaymentId': paymentId });
     if (!order) {
-      console.error(`Order not found for payment ID: ${paymentId}`);
+      paymentLogger.error('Order not found for payment ID:', { paymentId });
       return res.status(404).send('Order not found');
     }
 
@@ -258,13 +259,18 @@ router.post('/webhook', async (req, res) => {
         break;
         
       default:
-        console.log(`Unhandled payment status: ${molliePayment.status}`);
+        paymentLogger.warn('Unhandled payment status:', { status: molliePayment.status, paymentId });
     }
 
     await order.save();
 
     // Log status change
-    console.log(`Payment ${paymentId} status changed from ${previousStatus} to ${molliePayment.status} for order ${order.orderNumber}`);
+    paymentLogger.info('Payment status changed:', {
+      paymentId,
+      previousStatus,
+      newStatus: molliePayment.status,
+      orderNumber: order.orderNumber
+    });
 
     // Send payment receipt and trigger wholesaler notifications if payment is successful
     if (molliePayment.status === 'paid' && previousStatus !== 'paid') {
@@ -303,11 +309,43 @@ router.post('/webhook', async (req, res) => {
 
           const emailResult = await sendPaymentReceipt(customerEmail, paymentData, userLocale);
           if (!emailResult.success) {
-            console.error('Failed to send payment receipt email:', emailResult.error);
+            logger.error('Failed to send payment receipt email:', emailResult.error);
           }
         }
       } catch (emailError) {
-        console.error('Error sending payment receipt email:', emailError);
+        logger.error('Error sending payment receipt email:', emailError);
+      }
+
+      // Send order confirmation email
+      try {
+        const { sendOrderConfirmation } = require('../utils/emailService');
+        
+        if (shouldSendEmail) {
+          const orderData = {
+            orderNumber: order.orderNumber,
+            customerName,
+            items: order.items.map(item => ({
+              productName: item.product?.name || 'Product',
+              quantity: item.quantity,
+              price: item.price
+            })),
+            total: order.total,
+            shippingAddress: order.shippingAddress,
+            currency: order.currency
+          };
+          
+          const confirmationResult = await sendOrderConfirmation(
+            customerEmail, 
+            orderData, 
+            userLocale
+          );
+          
+          if (!confirmationResult.success) {
+            console.error('Failed to send order confirmation:', confirmationResult.error);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending order confirmation:', emailError);
       }
 
       // Trigger wholesaler notifications
@@ -342,21 +380,28 @@ router.post('/webhook', async (req, res) => {
             );
 
             if (notificationResult.success) {
-              console.log(`Wholesaler notification sent for order ${order.orderNumber}, item ${item._id}`);
+              logger.info('Wholesaler notification sent:', {
+                orderNumber: order.orderNumber,
+                itemId: item._id
+              });
             } else {
-              console.error(`Failed to send wholesaler notification for order ${order.orderNumber}, item ${item._id}:`, notificationResult.error);
+              logger.error('Failed to send wholesaler notification:', {
+                orderNumber: order.orderNumber,
+                itemId: item._id,
+                error: notificationResult.error
+              });
             }
           }
         }
       } catch (wholesalerError) {
-        console.error('Error sending wholesaler notifications:', wholesalerError);
+        logger.error('Error sending wholesaler notifications:', wholesalerError);
       }
     }
 
     res.status(200).send('OK');
 
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    paymentLogger.error('Webhook processing error:', { error: error.message, stack: error.stack });
     res.status(500).send('Webhook processing failed');
   }
 });
@@ -392,7 +437,7 @@ router.get('/status/:paymentId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Payment status check error:', error);
+    paymentLogger.error('Payment status check error:', { error: error.message, stack: error.stack });
     
     if (error.statusCode === 404) {
       return res.error(404, 'PAYMENT_NOT_FOUND', 'Payment not found');
@@ -432,7 +477,7 @@ router.get('/methods', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Payment methods error:', error);
+    paymentLogger.error('Payment methods error:', { error: error.message, stack: error.stack });
     res.error(500, 'PAYMENT_METHODS_ERROR', 'Failed to fetch payment methods');
   }
 });
@@ -497,7 +542,7 @@ router.post('/refund', requireAuth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Refund processing error:', error);
+    paymentLogger.error('Refund processing error:', { error: error.message, stack: error.stack });
     
     if (error.field) {
       return res.error(400, 'MOLLIE_REFUND_ERROR', `Mollie refund error: ${error.detail}`, error.field);
@@ -521,7 +566,7 @@ router.get('/test', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Mollie test error:', error);
+    paymentLogger.error('Mollie test error:', { error: error.message, stack: error.stack });
     res.error(500, 'MOLLIE_CONNECTION_ERROR', 'Failed to connect to Mollie API');
   }
 });

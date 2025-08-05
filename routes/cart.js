@@ -8,6 +8,7 @@ const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { getCurrencyForLocale, formatPrice } = require('../utils/currency');
 const { ErrorCodes } = require('../utils/errorHandler');
 const { secureSessionLog, secureOperationLog } = require('../utils/secureLogging');
+const { logger, securityLogger } = require('../utils/logger');
 
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
@@ -62,7 +63,7 @@ const getOrCreateCart = async (req) => {
     const existingCarts = await Cart.find({ sessionId });
     if (existingCarts.length > 1) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn(`Found ${existingCarts.length} carts for session (masked), cleaning up duplicates`);
+        logger.warn('Found multiple carts for session, cleaning up duplicates:', { cartCount: existingCarts.length });
       }
       // Keep the most recently updated cart and delete the rest
       const sortedCarts = existingCarts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));

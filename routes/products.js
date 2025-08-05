@@ -4,6 +4,7 @@ const Product = require('../models/Product');
 const { _requireAuth, requireAdmin } = require('../middleware/auth');
 const { getCurrencyForLocale, formatPrice } = require('../utils/currency');
 const { ErrorCodes } = require('../utils/errorHandler');
+const { logger } = require('../utils/logger');
 const router = express.Router();
 
 // Helper function to get user's currency from request
@@ -180,7 +181,7 @@ router.get('/', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching products:', error);
+    logger.error('Error fetching products:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.PRODUCTS_FETCH_ERROR, 'Failed to fetch products');
   }
 });
@@ -207,7 +208,7 @@ router.get('/tags', async (req, res) => {
       data: uniqueTags
     });
   } catch (error) {
-    console.error('Error fetching tags:', error);
+    logger.error('Error fetching tags:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to fetch tags',
@@ -330,7 +331,7 @@ router.get('/autocomplete', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Autocomplete error:', error);
+    logger.error('Autocomplete error:', { error: error.message, stack: error.stack });
     res.json({ 
       success: true, 
       data: [] 
@@ -397,7 +398,7 @@ router.get('/search', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Search error:', error);
+    logger.error('Search error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.SEARCH_ERROR, 'Search failed');
   }
 });
@@ -433,7 +434,7 @@ router.get('/categories', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Categories fetch error:', error);
+    logger.error('Categories fetch error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.CATEGORIES_ERROR, 'Failed to fetch categories');
   }
 });
@@ -527,7 +528,7 @@ router.get('/filters', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Filters fetch error:', error);
+    logger.error('Filters fetch error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.FILTERS_ERROR, 'Failed to fetch filter options');
   }
 });
@@ -578,7 +579,7 @@ router.get('/recommendations/:productId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Recommendations error:', error);
+    logger.error('Recommendations error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.RECOMMENDATIONS_ERROR, 'Failed to fetch recommendations');
   }
 });
@@ -630,7 +631,7 @@ router.get('/:slug', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Product fetch error:', error);
+    logger.error('Product fetch error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.PRODUCTS_FETCH_ERROR, 'Failed to fetch product');
   }
 });
@@ -685,7 +686,7 @@ router.post('/', requireAdmin, [
     });
     
   } catch (error) {
-    console.error('Product creation error:', error);
+    logger.error('Product creation error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.PRODUCT_CREATION_ERROR, 'Failed to create product');
   }
 });
@@ -724,7 +725,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Product update error:', error);
+    logger.error('Product update error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.PRODUCT_UPDATE_ERROR, 'Failed to update product');
   }
 });
@@ -761,7 +762,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Product deletion error:', error);
+    logger.error('Product deletion error:', { error: error.message, stack: error.stack });
     res.error(500, ErrorCodes.PRODUCT_DELETE_ERROR, 'Failed to delete product');
   }
 });

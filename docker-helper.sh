@@ -40,28 +40,28 @@ case "$1" in
         check_docker
         check_env
         print_color "Starting development environment..." "$GREEN"
-        docker compose -f docker compose.yml -f docker compose.dev.yml up
+        docker compose -f docker-compose.yml -f docker-compose.dev.yml up
         ;;
     
     "dev:build")
         check_docker
         check_env
         print_color "Building and starting development environment..." "$GREEN"
-        docker compose -f docker compose.yml -f docker compose.dev.yml up --build
+        docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
         ;;
     
     "prod"|"production")
         check_docker
         check_env
         print_color "Starting production environment..." "$GREEN"
-        docker compose -f docker compose.yml -f docker compose.prod.yml up -d
+        docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
         ;;
     
     "prod:build")
         check_docker
         check_env
         print_color "Building and starting production environment..." "$GREEN"
-        docker compose -f docker compose.yml -f docker compose.prod.yml up -d --build
+        docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
         ;;
     
     "stop")
