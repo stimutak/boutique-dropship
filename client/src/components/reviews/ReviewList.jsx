@@ -89,7 +89,12 @@ const ReviewList = ({ productId }) => {
             <div key={review._id} className="review-item">
               <div className="review-item__header">
                 <div className="review-item__user">
-                  <strong>{review.user?.name || t('reviews.anonymous')}</strong>
+                  <strong>
+                    {review.user?.firstName && review.user?.lastName 
+                      ? `${review.user.firstName} ${review.user.lastName}`
+                      : review.user?.name || t('reviews.anonymous')
+                    }
+                  </strong>
                   <span className="review-item__date">
                     {new Date(review.createdAt).toLocaleDateString()}
                   </span>
