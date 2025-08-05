@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 // Authentication now uses httpOnly cookies instead of Redux token
 import AdminLayout from '../../components/Layout/AdminLayout'
 import { formatPrice, getCurrencyForLocale } from '../../utils/currency'
+import api from '../../api/config'
 import './AdminDashboard.css'
 
 const AdminDashboard = () => {
@@ -26,52 +27,38 @@ const AdminDashboard = () => {
       setError(null)
 
       // Fetch analytics data
-      const analyticsResponse = await fetch('/api/admin/analytics/dashboard', {
-        credentials: 'include'
-      })
-
-      if (!analyticsResponse.ok) {
-        throw new Error('Failed to fetch analytics data')
-      }
-
-      const analyticsData = await analyticsResponse.json()
-      setAnalytics(analyticsData.analytics)
+      const analyticsResponse = await api.get('/api/admin/analytics/dashboard')
+      setAnalytics(analyticsResponse.data.analytics)
 
       // Fetch recent orders
-      const ordersResponse = await fetch('/api/admin/orders?limit=5&sort=-createdAt', {
-        credentials: 'include'
-      })
-
-      if (ordersResponse.ok) {
-        const ordersData = await ordersResponse.json()
-        setRecentOrders(ordersData.orders || [])
+      try {
+        const ordersResponse = await api.get('/api/admin/orders?limit=5&sort=-createdAt')
+        setRecentOrders(ordersResponse.data.orders || [])
+      } catch (ordersErr) {
+        console.warn('Failed to fetch recent orders:', ordersErr)
+        setRecentOrders([])
       }
 
       // Fetch top products
-      const productsResponse = await fetch('/api/admin/analytics/products?limit=5&sort=revenue', {
-        credentials: 'include'
-      })
-
-      if (productsResponse.ok) {
-        const productsData = await productsResponse.json()
-        setTopProducts(productsData.products || [])
+      try {
+        const productsResponse = await api.get('/api/admin/analytics/products?limit=5&sort=revenue')
+        setTopProducts(productsResponse.data.products || [])
+      } catch (productsErr) {
+        console.warn('Failed to fetch top products:', productsErr)
+        setTopProducts([])
       }
 
       // Fetch system status
-      const statusResponse = await fetch('/api/admin/products?filter=lowStock', {
-        credentials: 'include'
-      })
-
-      if (statusResponse.ok) {
-        const statusData = await statusResponse.json()
-        const userStatsResponse = await fetch('/api/admin/users/stats', {
-          credentials: 'include'
-        })
+      try {
+        const statusResponse = await api.get('/api/admin/products?filter=lowStock')
+        const statusData = statusResponse.data
         
         let userStats = { newUsersToday: 0 }
-        if (userStatsResponse.ok) {
-          const userData = await userStatsResponse.json()
-          userStats = userData.stats || userStats
+        try {
+          const userStatsResponse = await api.get('/api/admin/users/stats')
+          userStats = userStatsResponse.data.stats || userStats
+        } catch (userStatsErr) {
+          console.warn('Failed to fetch user stats:', userStatsErr)
         }
 
         setSystemStatus({
@@ -79,10 +66,17 @@ const AdminDashboard = () => {
           pendingOrdersCount: recentOrders.filter(order => order.status === 'pending').length,
           newUsersToday: userStats.newUsersToday || 0
         })
+      } catch (statusErr) {
+        console.warn('Failed to fetch system status:', statusErr)
+        setSystemStatus({
+          lowStockProducts: [],
+          pendingOrdersCount: 0,
+          newUsersToday: 0
+        })
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
-      setError(err.message)
+      setError(err.response?.data?.error?.message || err.message)
     } finally {
       setIsLoading(false)
     }
@@ -117,15 +111,11 @@ const AdminDashboard = () => {
 
   const handleExportReports = async () => {
     try {
-      const response = await fetch('/api/admin/analytics/export?type=dashboard', {
-        credentials: 'include'
+      const response = await api.get('/api/admin/analytics/export?type=dashboard', {
+        responseType: 'blob'
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to export reports')
-      }
-
-      const blob = await response.blob()
+      const blob = response.data
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.style.display = 'none'
@@ -136,7 +126,8 @@ const AdminDashboard = () => {
       window.URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Error exporting reports:', err)
-      alert('Failed to export reports')
+      const errorMessage = err.response?.data?.error?.message || err.message || 'Failed to export reports'
+      alert(errorMessage)
     }
   }
 
