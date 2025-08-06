@@ -111,6 +111,11 @@ const AdminLayout = ({ children }) => {
         <main className="admin-main-content">
           {children}
         </main>
+        
+        {/* Admin Footer */}
+        <footer className="admin-footer">
+          <p>&copy; {new Date().getFullYear()} Authentika Holistic Lifestyle. All rights reserved.</p>
+        </footer>
       </div>
     </div>
   )

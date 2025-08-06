@@ -6,7 +6,7 @@ const Footer = () => {
     <footer className="footer">
       <div className="footer-container">
         <div className="footer-section">
-          <h3>Holistic Store</h3>
+          <h3>Authentika Holistic Lifestyle</h3>
           <p>Your source for spiritual and wellness products</p>
         </div>
         
@@ -41,7 +41,7 @@ const Footer = () => {
       </div>
       
       <div className="footer-bottom">
-        <p>&copy; {new Date().getFullYear()} Holistic Store. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Authentika Holistic Lifestyle. All rights reserved.</p>
       </div>
     </footer>
   );

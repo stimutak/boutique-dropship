@@ -34,7 +34,7 @@ const emailTranslations = {
       itemsOrdered: 'ITEMS ORDERED:',
       shippingAddress: 'SHIPPING ADDRESS:',
       processingMessage: 'Your order is being processed and you\'ll receive another email once it ships.',
-      signature: 'With gratitude,\nThe Holistic Store Team'
+      signature: 'With gratitude,\nThe Authentika Holistic Lifestyle Team'
     },
     orderStatusUpdate: {
       subject: 'Order Update - {orderNumber}',
@@ -48,7 +48,7 @@ const emailTranslations = {
         delivered: 'Your order has been delivered. We hope you enjoy your holistic products!'
       },
       thankYou: 'Thank you for your patience!',
-      signature: 'Best regards,\nThe Holistic Store Team'
+      signature: 'Best regards,\nThe Authentika Holistic Lifestyle Team'
     },
     paymentReceipt: {
       subject: 'Payment Receipt - {orderNumber}',
@@ -62,26 +62,26 @@ const emailTranslations = {
       paymentDate: 'Payment Date: {date}',
       preparingMessage: 'Your order is now being prepared for shipment.',
       thankYou: 'Thank you for choosing our holistic products!',
-      signature: 'Best regards,\nThe Holistic Store Team'
+      signature: 'Best regards,\nThe Authentika Holistic Lifestyle Team'
     },
     welcomeEmail: {
-      subject: 'Welcome to Our Holistic Store!',
+      subject: 'Welcome to Our Authentika Holistic Lifestyle!',
       greeting: 'Dear {firstName},',
       welcome: 'Welcome to our holistic wellness community!',
       description: 'We\'re thrilled to have you join us on this journey of spiritual and physical well-being. Our carefully curated collection of crystals, herbs, essential oils, and wellness products is here to support your holistic lifestyle.',
       benefits: 'As a member, you\'ll enjoy:',
       benefitsList: ['Exclusive access to new products', 'Special member discounts', 'Wellness tips and spiritual guidance', 'Priority customer support'],
       startExploring: 'Start exploring our collection and discover products that resonate with your energy.',
-      signature: 'Namaste,\nThe Holistic Store Team'
+      signature: 'Namaste,\nThe Authentika Holistic Lifestyle Team'
     },
     passwordReset: {
       subject: 'Password Reset Request',
       greeting: 'Dear {firstName},',
-      resetMessage: 'We received a request to reset your password for your Holistic Store account.',
+      resetMessage: 'We received a request to reset your password for your Authentika Holistic Lifestyle account.',
       resetInstruction: 'To reset your password, please click the following link:',
       expiryMessage: 'This link will expire in 1 hour for security reasons.',
       ignoreMessage: 'If you didn\'t request this password reset, please ignore this email.',
-      signature: 'Best regards,\nThe Holistic Store Team'
+      signature: 'Best regards,\nThe Authentika Holistic Lifestyle Team'
     }
   },
   es: {
@@ -95,7 +95,7 @@ const emailTranslations = {
       itemsOrdered: 'ARTÍCULOS PEDIDOS:',
       shippingAddress: 'DIRECCIÓN DE ENVÍO:',
       processingMessage: 'Tu pedido está siendo procesado y recibirás otro email una vez que sea enviado.',
-      signature: 'Con gratitud,\nEl Equipo de Holistic Store'
+      signature: 'Con gratitud,\nEl Equipo de Authentika Holistic Lifestyle'
     },
     orderStatusUpdate: {
       subject: 'Actualización de Pedido - {orderNumber}',
@@ -109,7 +109,7 @@ const emailTranslations = {
         delivered: 'Tu pedido ha sido entregado. ¡Esperamos que disfrutes tus productos holísticos!'
       },
       thankYou: '¡Gracias por tu paciencia!',
-      signature: 'Saludos cordiales,\nEl Equipo de Holistic Store'
+      signature: 'Saludos cordiales,\nEl Equipo de Authentika Holistic Lifestyle'
     },
     paymentReceipt: {
       subject: 'Recibo de Pago - {orderNumber}',
@@ -123,7 +123,7 @@ const emailTranslations = {
       paymentDate: 'Fecha de Pago: {date}',
       preparingMessage: 'Tu pedido ahora está siendo preparado para el envío.',
       thankYou: '¡Gracias por elegir nuestros productos holísticos!',
-      signature: 'Saludos cordiales,\nEl Equipo de Holistic Store'
+      signature: 'Saludos cordiales,\nEl Equipo de Authentika Holistic Lifestyle'
     },
     welcomeEmail: {
       subject: '¡Bienvenido/a a Nuestra Tienda Holística!',
@@ -133,16 +133,16 @@ const emailTranslations = {
       benefits: 'Como miembro, disfrutarás de:',
       benefitsList: ['Acceso exclusivo a nuevos productos', 'Descuentos especiales para miembros', 'Consejos de bienestar y orientación espiritual', 'Atención al cliente prioritaria'],
       startExploring: 'Comienza a explorar nuestra colección y descubre productos que resuenen con tu energía.',
-      signature: 'Namaste,\nEl Equipo de Holistic Store'
+      signature: 'Namaste,\nEl Equipo de Authentika Holistic Lifestyle'
     },
     passwordReset: {
       subject: 'Solicitud de Restablecimiento de Contraseña',
       greeting: 'Estimado/a {firstName},',
-      resetMessage: 'Recibimos una solicitud para restablecer tu contraseña de tu cuenta de Holistic Store.',
+      resetMessage: 'Recibimos una solicitud para restablecer tu contraseña de tu cuenta de Authentika Holistic Lifestyle.',
       resetInstruction: 'Para restablecer tu contraseña, por favor haz clic en el siguiente enlace:',
       expiryMessage: 'Este enlace expirará en 1 hora por razones de seguridad.',
       ignoreMessage: 'Si no solicitaste este restablecimiento de contraseña, por favor ignora este email.',
-      signature: 'Saludos cordiales,\nEl Equipo de Holistic Store'
+      signature: 'Saludos cordiales,\nEl Equipo de Authentika Holistic Lifestyle'
     }
   },
   fr: {
@@ -156,7 +156,7 @@ const emailTranslations = {
       itemsOrdered: 'ARTICLES COMMANDÉS :',
       shippingAddress: 'ADRESSE DE LIVRAISON :',
       processingMessage: 'Votre commande est en cours de traitement et vous recevrez un autre email une fois qu\'elle sera expédiée.',
-      signature: 'Avec gratitude,\nL\'Équipe Holistic Store'
+      signature: 'Avec gratitude,\nL\'Équipe Authentika Holistic Lifestyle'
     },
     orderStatusUpdate: {
       subject: 'Mise à Jour de Commande - {orderNumber}',
@@ -170,7 +170,7 @@ const emailTranslations = {
         delivered: 'Votre commande a été livrée. Nous espérons que vous apprécierez vos produits holistiques !'
       },
       thankYou: 'Merci pour votre patience !',
-      signature: 'Cordialement,\nL\'Équipe Holistic Store'
+      signature: 'Cordialement,\nL\'Équipe Authentika Holistic Lifestyle'
     },
     paymentReceipt: {
       subject: 'Reçu de Paiement - {orderNumber}',
@@ -184,7 +184,7 @@ const emailTranslations = {
       paymentDate: 'Date de Paiement : {date}',
       preparingMessage: 'Votre commande est maintenant en cours de préparation pour l\'expédition.',
       thankYou: 'Merci d\'avoir choisi nos produits holistiques !',
-      signature: 'Cordialement,\nL\'Équipe Holistic Store'
+      signature: 'Cordialement,\nL\'Équipe Authentika Holistic Lifestyle'
     },
     welcomeEmail: {
       subject: 'Bienvenue dans Notre Magasin Holistique !',
@@ -194,16 +194,16 @@ const emailTranslations = {
       benefits: 'En tant que membre, vous bénéficierez de :',
       benefitsList: ['Accès exclusif aux nouveaux produits', 'Réductions spéciales membres', 'Conseils de bien-être et guidance spirituelle', 'Support client prioritaire'],
       startExploring: 'Commencez à explorer notre collection et découvrez les produits qui résonnent avec votre énergie.',
-      signature: 'Namaste,\nL\'Équipe Holistic Store'
+      signature: 'Namaste,\nL\'Équipe Authentika Holistic Lifestyle'
     },
     passwordReset: {
       subject: 'Demande de Réinitialisation de Mot de Passe',
       greeting: 'Cher/Chère {firstName},',
-      resetMessage: 'Nous avons reçu une demande de réinitialisation de votre mot de passe pour votre compte Holistic Store.',
+      resetMessage: 'Nous avons reçu une demande de réinitialisation de votre mot de passe pour votre compte Authentika Holistic Lifestyle.',
       resetInstruction: 'Pour réinitialiser votre mot de passe, veuillez cliquer sur le lien suivant :',
       expiryMessage: 'Ce lien expirera dans 1 heure pour des raisons de sécurité.',
       ignoreMessage: 'Si vous n\'avez pas demandé cette réinitialisation, veuillez ignorer cet email.',
-      signature: 'Cordialement,\nL\'Équipe Holistic Store'
+      signature: 'Cordialement,\nL\'Équipe Authentika Holistic Lifestyle'
     }
   },
   de: {
@@ -217,7 +217,7 @@ const emailTranslations = {
       itemsOrdered: 'BESTELLTE ARTIKEL:',
       shippingAddress: 'VERSANDADRESSE:',
       processingMessage: 'Ihre Bestellung wird bearbeitet und Sie erhalten eine weitere E-Mail, sobald sie versendet wird.',
-      signature: 'Mit Dankbarkeit,\nDas Holistic Store Team'
+      signature: 'Mit Dankbarkeit,\nDas Authentika Holistic Lifestyle Team'
     },
     orderStatusUpdate: {
       subject: 'Bestellupdate - {orderNumber}',
@@ -231,7 +231,7 @@ const emailTranslations = {
         delivered: 'Ihre Bestellung wurde zugestellt. Wir hoffen, Sie genießen Ihre ganzheitlichen Produkte!'
       },
       thankYou: 'Vielen Dank für Ihre Geduld!',
-      signature: 'Mit freundlichen Grüßen,\nDas Holistic Store Team'
+      signature: 'Mit freundlichen Grüßen,\nDas Authentika Holistic Lifestyle Team'
     },
     paymentReceipt: {
       subject: 'Zahlungsbeleg - {orderNumber}',
@@ -245,7 +245,7 @@ const emailTranslations = {
       paymentDate: 'Zahlungsdatum: {date}',
       preparingMessage: 'Ihre Bestellung wird nun für den Versand vorbereitet.',
       thankYou: 'Vielen Dank, dass Sie sich für unsere ganzheitlichen Produkte entschieden haben!',
-      signature: 'Mit freundlichen Grüßen,\nDas Holistic Store Team'
+      signature: 'Mit freundlichen Grüßen,\nDas Authentika Holistic Lifestyle Team'
     },
     welcomeEmail: {
       subject: 'Willkommen in unserem Ganzheitlichen Store!',
@@ -255,16 +255,16 @@ const emailTranslations = {
       benefits: 'Als Mitglied genießen Sie:',
       benefitsList: ['Exklusiven Zugang zu neuen Produkten', 'Spezielle Mitgliederrabatte', 'Wellness-Tipps und spirituelle Führung', 'Prioritären Kundensupport'],
       startExploring: 'Beginnen Sie, unsere Sammlung zu erkunden und entdecken Sie Produkte, die mit Ihrer Energie in Resonanz stehen.',
-      signature: 'Namaste,\nDas Holistic Store Team'
+      signature: 'Namaste,\nDas Authentika Holistic Lifestyle Team'
     },
     passwordReset: {
       subject: 'Passwort-Zurücksetzen Anfrage',
       greeting: 'Liebe/r {firstName},',
-      resetMessage: 'Wir haben eine Anfrage erhalten, Ihr Passwort für Ihr Holistic Store Konto zurückzusetzen.',
+      resetMessage: 'Wir haben eine Anfrage erhalten, Ihr Passwort für Ihr Authentika Holistic Lifestyle Konto zurückzusetzen.',
       resetInstruction: 'Um Ihr Passwort zurückzusetzen, klicken Sie bitte auf den folgenden Link:',
       expiryMessage: 'Dieser Link läuft aus Sicherheitsgründen in 1 Stunde ab.',
       ignoreMessage: 'Wenn Sie diese Passwort-Zurücksetzung nicht angefordert haben, ignorieren Sie bitte diese E-Mail.',
-      signature: 'Mit freundlichen Grüßen,\nDas Holistic Store Team'
+      signature: 'Mit freundlichen Grüßen,\nDas Authentika Holistic Lifestyle Team'
     }
   },
   zh: {
@@ -842,7 +842,7 @@ ${notes ? `SPECIAL NOTES:\n${notes}` : ''}
 Please confirm receipt of this order and provide tracking information once shipped.
 
 Best regards,
-Holistic Store Team
+Authentika Holistic Lifestyle Team
   `.trim();
 
   const mailOptions = {

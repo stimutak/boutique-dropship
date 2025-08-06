@@ -59,7 +59,7 @@ const Header = () => {
       <div className="header-content">
         {/* Logo */}
         <Link to="/" className="logo">
-          Holistic Store
+          Authentika Holistic Lifestyle
         </Link>
 
         {/* Search Bar with Autocomplete */}
