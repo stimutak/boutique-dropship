@@ -925,4 +925,347 @@ router.post('/refresh-token', async (req, res) => {
   }
 });
 
+// ===== GDPR CONSENT ENDPOINTS =====
+
+const GDPRConsent = require('../models/GDPRConsent');
+
+// Get current consent status
+router.get('/consent', async (req, res) => {
+  try {
+    let consent = null;
+    
+    // Check for authenticated user
+    if (req.user) {
+      consent = await GDPRConsent.getLatestForUser(req.user._id);
+    } else if (req.session?.id) {
+      // Check for session-based consent
+      consent = await GDPRConsent.getLatestForSession(req.session.id);
+    }
+
+    if (!consent) {
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No consent record found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: consent.toJSON()
+    });
+  } catch (error) {
+    logger.error('Get consent error:', error);
+    res.error(500, 'CONSENT_FETCH_ERROR', 'Failed to fetch consent status');
+  }
+});
+
+// Record new consent
+router.post('/consent', async (req, res) => {
+  try {
+    const { purposes, consentVersion } = req.body;
+
+    if (!purposes) {
+      return res.error(400, 'INVALID_REQUEST', 'Consent purposes are required');
+    }
+
+    const consentData = {
+      userId: req.user?._id || null,
+      sessionId: req.session?.id || req.headers['x-session-id'] || 'anonymous',
+      consentVersion: consentVersion || '1.0',
+      purposes: {
+        necessary: { granted: true, timestamp: new Date() },
+        analytics: { 
+          granted: purposes.analytics || false, 
+          timestamp: purposes.analytics ? new Date() : null 
+        },
+        marketing: { 
+          granted: purposes.marketing || false, 
+          timestamp: purposes.marketing ? new Date() : null 
+        },
+        preferences: { 
+          granted: purposes.preferences || false, 
+          timestamp: purposes.preferences ? new Date() : null 
+        }
+      },
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.headers['user-agent'] || 'unknown'
+    };
+
+    const consent = await GDPRConsent.recordConsent(consentData);
+
+    // Update user record if authenticated
+    if (req.user) {
+      await User.findByIdAndUpdate(req.user._id, {
+        'gdprConsent.currentConsentId': consent._id,
+        'gdprConsent.consentWithdrawnAt': null
+      });
+    }
+
+    res.json({
+      success: true,
+      data: consent.toJSON(),
+      message: 'Consent recorded successfully'
+    });
+  } catch (error) {
+    logger.error('Record consent error:', error);
+    res.error(500, 'CONSENT_RECORD_ERROR', 'Failed to record consent');
+  }
+});
+
+// Update consent
+router.put('/consent', requireAuth, validateCSRFToken, async (req, res) => {
+  try {
+    const { purposes } = req.body;
+
+    if (!purposes) {
+      return res.error(400, 'INVALID_REQUEST', 'Consent purposes are required');
+    }
+
+    const consent = await GDPRConsent.getLatestForUser(req.user._id);
+    
+    if (!consent) {
+      // Create new consent if none exists
+      return router.handle(req, res, () => router.post('/consent', req, res));
+    }
+
+    // Update purposes
+    Object.keys(purposes).forEach(purpose => {
+      if (consent.purposes[purpose]) {
+        consent.purposes[purpose].granted = purposes[purpose];
+        consent.purposes[purpose].timestamp = purposes[purpose] ? new Date() : null;
+      }
+    });
+
+    await consent.save();
+
+    res.json({
+      success: true,
+      data: consent.toJSON(),
+      message: 'Consent updated successfully'
+    });
+  } catch (error) {
+    logger.error('Update consent error:', error);
+    res.error(500, 'CONSENT_UPDATE_ERROR', 'Failed to update consent');
+  }
+});
+
+// Withdraw consent
+router.delete('/consent', requireAuth, validateCSRFToken, async (req, res) => {
+  try {
+    const consent = await GDPRConsent.getLatestForUser(req.user._id);
+    
+    if (!consent) {
+      return res.error(404, 'CONSENT_NOT_FOUND', 'No consent record found');
+    }
+
+    await consent.withdraw();
+
+    // Update user record
+    await User.findByIdAndUpdate(req.user._id, {
+      'gdprConsent.consentWithdrawnAt': new Date()
+    });
+
+    res.json({
+      success: true,
+      message: 'Consent withdrawn successfully'
+    });
+  } catch (error) {
+    logger.error('Withdraw consent error:', error);
+    res.error(500, 'CONSENT_WITHDRAW_ERROR', 'Failed to withdraw consent');
+  }
+});
+
+// ===== DATA EXPORT (RIGHT TO ACCESS) =====
+
+// Request data export
+router.post('/export-data', requireAuth, validateCSRFToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .populate('gdprConsent.currentConsentId');
+
+    if (!user) {
+      return res.error(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
+    }
+
+    // Check if there's a recent export request (within 24 hours)
+    const recentExport = user.gdprConsent.dataExportRequests.find(req => {
+      const hoursSinceRequest = (Date.now() - req.requestedAt) / (1000 * 60 * 60);
+      return hoursSinceRequest < 24 && !req.completedAt;
+    });
+
+    if (recentExport) {
+      return res.error(429, 'EXPORT_IN_PROGRESS', 'A data export is already in progress. Please wait 24 hours between requests.');
+    }
+
+    // Add export request to user record
+    user.gdprConsent.dataExportRequests.push({
+      requestedAt: new Date(),
+      completedAt: null,
+      downloadUrl: null,
+      expiresAt: null
+    });
+
+    await user.save();
+
+    // Process export asynchronously
+    processDataExport(user._id);
+
+    res.json({
+      success: true,
+      message: 'Data export request received. You will receive an email when your data is ready.',
+      estimatedTime: '4-6 hours'
+    });
+  } catch (error) {
+    logger.error('Data export request error:', error);
+    res.error(500, 'EXPORT_REQUEST_ERROR', 'Failed to process data export request');
+  }
+});
+
+// Helper function to process data export (would be moved to a job queue in production)
+async function processDataExport(userId) {
+  try {
+    const Order = require('../models/Order');
+    const Review = require('../models/Review');
+    
+    // Gather all user data
+    const user = await User.findById(userId);
+    const orders = await Order.find({ customer: userId });
+    const reviews = await Review.find({ user: userId });
+    const consents = await GDPRConsent.find({ userId });
+
+    const exportData = {
+      personalData: {
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+        addresses: user.addresses,
+        preferences: user.preferences,
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin
+      },
+      orders: orders.map(order => ({
+        orderNumber: order.orderNumber,
+        date: order.createdAt,
+        status: order.status,
+        total: order.total,
+        currency: order.currency,
+        items: order.items,
+        shipping: order.shipping,
+        billing: order.billing
+      })),
+      reviews: reviews.map(review => ({
+        product: review.product,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt
+      })),
+      consentHistory: consents.map(consent => ({
+        purposes: consent.purposes,
+        consentVersion: consent.consentVersion,
+        createdAt: consent.createdAt,
+        withdrawnAt: consent.withdrawnAt
+      }))
+    };
+
+    // In production, this would:
+    // 1. Generate a secure download link
+    // 2. Store the export file securely
+    // 3. Send email notification
+    // 4. Update user record with download URL
+
+    // For now, just log success
+    logger.info('Data export completed for user:', userId);
+    
+    // Update user record (in production, include actual download URL)
+    const exportRequest = user.gdprConsent.dataExportRequests[user.gdprConsent.dataExportRequests.length - 1];
+    exportRequest.completedAt = new Date();
+    exportRequest.expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+    await user.save();
+
+    return exportData;
+  } catch (error) {
+    logger.error('Data export processing error:', error);
+    throw error;
+  }
+}
+
+// ===== ACCOUNT DELETION (RIGHT TO ERASURE) =====
+
+// Request account deletion
+router.post('/delete-account', requireAuth, validateCSRFToken, async (req, res) => {
+  try {
+    const { password, reason } = req.body;
+
+    // Verify password for security
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.error(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
+    }
+
+    const isValidPassword = await user.comparePassword(password);
+    if (!isValidPassword) {
+      return res.error(401, ErrorCodes.INVALID_CREDENTIALS, 'Invalid password');
+    }
+
+    // Schedule deletion for 30 days (grace period)
+    const scheduledDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    
+    user.gdprConsent.deletionRequests.push({
+      requestedAt: new Date(),
+      scheduledFor: scheduledDate,
+      reason: reason || 'User requested',
+      status: 'scheduled'
+    });
+
+    user.isActive = false; // Deactivate account immediately
+    await user.save();
+
+    // Clear authentication
+    res.clearCookie('token');
+
+    res.json({
+      success: true,
+      message: 'Account deletion scheduled. Your account will be permanently deleted in 30 days. You can cancel this request by logging in before the deletion date.',
+      scheduledFor: scheduledDate
+    });
+  } catch (error) {
+    logger.error('Account deletion request error:', error);
+    res.error(500, 'DELETION_REQUEST_ERROR', 'Failed to process account deletion request');
+  }
+});
+
+// Cancel account deletion
+router.post('/cancel-deletion', requireAuth, validateCSRFToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.error(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
+    }
+
+    // Find pending deletion request
+    const pendingDeletion = user.gdprConsent.deletionRequests.find(
+      req => req.status === 'scheduled'
+    );
+
+    if (!pendingDeletion) {
+      return res.error(404, 'NO_DELETION_REQUEST', 'No pending deletion request found');
+    }
+
+    pendingDeletion.status = 'cancelled';
+    pendingDeletion.completedAt = new Date();
+    user.isActive = true; // Reactivate account
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Account deletion request cancelled successfully'
+    });
+  } catch (error) {
+    logger.error('Cancel deletion error:', error);
+    res.error(500, 'CANCEL_DELETION_ERROR', 'Failed to cancel deletion request');
+  }
+});
+
 module.exports = router;

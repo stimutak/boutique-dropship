@@ -215,8 +215,8 @@ function createSafeMatchStage(matchConditions) {
       } else if (value && typeof value === 'object' && value.constructor === Object) {
         // Allow specific safe operators only
         const safeValue = {};
-        if (value.$eq !== undefined) safeValue.$eq = value.$eq;
-        if (value.$ne !== undefined) safeValue.$ne = value.$ne;
+        if (value.$eq !== undefined) {safeValue.$eq = value.$eq;}
+        if (value.$ne !== undefined) {safeValue.$ne = value.$ne;}
         if (value.$in !== undefined && Array.isArray(value.$in)) {
           safeValue.$in = value.$in.filter(item => 
             typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean'

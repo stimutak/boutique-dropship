@@ -102,6 +102,38 @@ const userSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
+  },
+  gdprConsent: {
+    currentConsentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'GDPRConsent',
+      default: null
+    },
+    dataProcessingAgreement: {
+      type: Boolean,
+      default: false
+    },
+    consentWithdrawnAt: {
+      type: Date,
+      default: null
+    },
+    dataExportRequests: [{
+      requestedAt: { type: Date, required: true },
+      completedAt: { type: Date, default: null },
+      downloadUrl: { type: String, default: null },
+      expiresAt: { type: Date, default: null }
+    }],
+    deletionRequests: [{
+      requestedAt: { type: Date, required: true },
+      scheduledFor: { type: Date, required: true },
+      completedAt: { type: Date, default: null },
+      reason: { type: String, default: '' },
+      status: {
+        type: String,
+        enum: ['pending', 'scheduled', 'processing', 'completed', 'cancelled'],
+        default: 'pending'
+      }
+    }]
   }
 }, {
   timestamps: true

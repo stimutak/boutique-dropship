@@ -291,7 +291,7 @@ describe('CRITICAL NoSQL Injection Vulnerabilities', () => {
         .query({
           'search': ['test', { '$ne': null }],
           'category': [{ '$exists': true }],
-          'status': ['active', { '$or': [{'isActive': true}, {'isActive': false}] }]
+          'status': ['active', { '$or': [{ 'isActive': true }, { 'isActive': false }] }]
         })
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
