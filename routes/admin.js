@@ -637,7 +637,7 @@ router.post('/products/images', (req, res) => {
       
       // Handle specific multer errors
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.error(413, 'FILE_TOO_LARGE', 'File size exceeds the 5MB limit');
+        return res.error(413, 'FILE_TOO_LARGE', 'File size exceeds the 10MB limit. Please use smaller images or compress them before uploading.');
       }
       
       if (err.code === 'LIMIT_FILE_COUNT') {
@@ -704,7 +704,7 @@ router.post('/products/:id/images', async (req, res) => {
       
       // Handle specific multer errors (same as above)
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.error(413, 'FILE_TOO_LARGE', 'File size exceeds the 5MB limit');
+        return res.error(413, 'FILE_TOO_LARGE', 'File size exceeds the 10MB limit. Please use smaller images or compress them before uploading.');
       }
       
       if (err.code === 'LIMIT_FILE_COUNT') {

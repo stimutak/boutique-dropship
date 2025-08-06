@@ -12,7 +12,7 @@ const ALLOWED_FILE_TYPES = {
   image: {
     mimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
     extensions: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
-    maxSize: 5 * 1024 * 1024 // 5MB
+    maxSize: 10 * 1024 * 1024 // 10MB - increased for product images
   }
 };
 

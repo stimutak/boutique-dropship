@@ -186,11 +186,22 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
     // Upload images to get URLs
     if (files.length > 0) {
       try {
-        await dispatch(uploadProductImages(files)).unwrap()
+        const result = await dispatch(uploadProductImages(files)).unwrap()
+        // Images will be added to formData via the useEffect that watches uploadedImages
       } catch (error) {
         console.error('Failed to upload images:', error)
-        // Don't prevent the form from showing selected files
-        // The user should see feedback about what was selected even if upload fails
+        // Show user-friendly error message based on error type
+        let errorMessage = t('admin.products.imageUploadError') || 'Failed to upload images. Please try again.'
+        
+        if (error?.response?.data?.error?.code === 'FILE_TOO_LARGE') {
+          errorMessage = t('admin.products.fileTooLarge') || 'File size exceeds 10MB limit. Please use smaller images.'
+        } else if (error?.response?.data?.error?.code === 'TOO_MANY_FILES') {
+          errorMessage = t('admin.products.tooManyFiles') || 'Maximum 10 files allowed at once.'
+        } else if (error?.response?.data?.error?.code === 'INVALID_FILE_TYPE') {
+          errorMessage = t('admin.products.invalidFileType') || 'Only image files (JPG, PNG, GIF, WebP) are allowed.'
+        }
+        
+        alert(errorMessage)
       }
     }
   }
@@ -568,11 +579,11 @@ const AdminProductForm = ({ product, onSave, onCancel }) => {
               multiple
               onChange={handleImageUpload}
               id="image-upload"
-              className="hidden"
+              style={{ display: 'none' }}
               disabled={isLoading}
             />
-            <label htmlFor="image-upload" className="upload-button">
-              {isLoading ? t('common.uploading') : t('Upload Images')}
+            <label htmlFor="image-upload" className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+              {isLoading ? t('common.loading') : t('admin.products.uploadImages')}
             </label>
             
             {/* Upload Progress */}
