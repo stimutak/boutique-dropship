@@ -5,6 +5,7 @@ const User = require('../../models/User');
 const Product = require('../../models/Product');
 const Order = require('../../models/Order');
 const app = require('../../server');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('NoSQL Injection Security Tests', () => {
   let adminToken;

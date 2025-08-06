@@ -1,13 +1,14 @@
 const request = require('supertest');
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
+const app = require('../../server');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
+const User = require('../../models/User');
 
-// Mock the logger and errorRecovery utilities
+// Mock only external services
 jest.mock('../../utils/logger', () => ({
   logger: {
     info: jest.fn(),
-    error: jest.fn()
+    error: jest.fn(),
+    warn: jest.fn()
   }
 }));
 
@@ -17,43 +18,6 @@ jest.mock('../../utils/errorRecovery', () => ({
     email: { state: 'closed', failures: 0 }
   }))
 }));
-
-// Mock User model to prevent mongoose Schema.Types issues during loading
-jest.mock('../../models/User', () => ({
-  findById: jest.fn(),
-  findOne: jest.fn()
-}));
-
-// Mock mongoose
-jest.mock('mongoose', () => ({
-  connection: {
-    readyState: 1,
-    host: 'localhost',
-    port: 27017,
-    name: 'test-db',
-    db: {
-      admin: () => ({
-        ping: () => Promise.resolve()
-      }),
-      listCollections: () => ({
-        toArray: () => Promise.resolve([
-          { name: 'users' },
-          { name: 'products' }
-        ])
-      }),
-      collection: (_name) => ({
-        stats: () => Promise.resolve({
-          count: 10,
-          size: 1024,
-          avgObjSize: 102
-        })
-      })
-    }
-  }
-}));
-
-const { logger } = require('../../utils/logger');
-const { getCircuitBreakerStatus } = require('../../utils/errorRecovery');
 
 describe('Monitoring Routes', () => {
   let app;
@@ -201,7 +165,7 @@ describe('Monitoring Routes', () => {
         .expect(401);
       
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('NO_TOKEN');
+      expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
     });
     
     it('should handle errors gracefully', async () => {
@@ -218,7 +182,7 @@ describe('Monitoring Routes', () => {
         .expect(500);
       
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('STATUS_ERROR');
+      expect(response.body.error.code).toBe('INTERNAL_ERROR');
       expect(response.body.error.message).toBe('Unable to retrieve system status');
       
       // Verify error logging
@@ -278,7 +242,7 @@ describe('Monitoring Routes', () => {
         .expect(401);
       
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('NO_TOKEN');
+      expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
     });
     
     it('should handle collection stats errors gracefully', async () => {
@@ -345,7 +309,7 @@ describe('Monitoring Routes', () => {
         .expect(401);
       
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('NO_TOKEN');
+      expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
     });
   });
   

@@ -5,6 +5,7 @@
 const request = require('supertest');
 const express = require('express');
 const session = require('express-session');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 // Mock mongodb-memory-server to prevent library dependency issues
 jest.mock('mongodb-memory-server', () => ({
@@ -17,31 +18,7 @@ jest.mock('mongodb-memory-server', () => ({
 }));
 
 // Mock mongoose before requiring models
-jest.mock('mongoose', () => {
-  const mockConnect = jest.fn().mockResolvedValue(true);
-  const mockClose = jest.fn().mockResolvedValue(true);
-  
-  // Mock ObjectId constructor
-  const MockObjectId = jest.fn();
-  MockObjectId.toString = jest.fn().mockReturnValue('507f1f77bcf86cd799439011');
-  
-  const mockModel = (_name) => {
-    const MockedModel = jest.fn();
-    
-    // Create a chainable mock for select
-    const _createSelectableMock = (returnValue) => {
-      const mock = jest.fn().mockResolvedValue(returnValue);
-      mock.select = jest.fn().mockResolvedValue(returnValue);
-      return mock;
-    };
-    
-    // Static methods
-    MockedModel.findById = jest.fn().mockImplementation((_id) => {
-      const mock = jest.fn().mockResolvedValue(null);
-      mock.select = jest.fn().mockResolvedValue(null);
-      return mock;
-    });
-    MockedModel.findOne = jest.fn();
+MockedModel.findOne = jest.fn();
     MockedModel.find = jest.fn();
     MockedModel.create = jest.fn();
     MockedModel.deleteMany = jest.fn();

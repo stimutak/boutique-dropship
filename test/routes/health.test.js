@@ -1,5 +1,6 @@
 const request = require('supertest');
 const { createTestApp } = require('../helpers/testApp');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('Health Check Routes', () => {
   let app;

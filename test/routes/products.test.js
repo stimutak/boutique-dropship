@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const Product = require('../../models/Product');
 const User = require('../../models/User');
 const { createTestApp } = require('../helpers/testApp');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('Product Routes', () => {
   let app;

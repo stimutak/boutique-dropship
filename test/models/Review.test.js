@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Review = require('../../models/Review');
 const User = require('../../models/User');
 const Product = require('../../models/Product');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('Review Model', () => {
   let testUser;

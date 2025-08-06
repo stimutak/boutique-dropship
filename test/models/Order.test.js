@@ -2,6 +2,7 @@ const _mongoose = require('mongoose');
 const Order = require('../../models/Order');
 const User = require('../../models/User');
 const Product = require('../../models/Product');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('Order Model', () => {
   let testUser, testProduct;

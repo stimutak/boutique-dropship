@@ -3,6 +3,7 @@ const express = require('express');
 const User = require('../../models/User');
 const jwt = require('jsonwebtoken');
 const authRoutes = require('../../routes/auth');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 // Create test app
 const createTestApp = () => {
@@ -74,7 +75,7 @@ describe('Email Preferences Endpoints', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('NO_TOKEN');
+      expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
     });
   });
 
@@ -124,7 +125,7 @@ describe('Email Preferences Endpoints', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('NO_TOKEN');
+      expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
     });
   });
 

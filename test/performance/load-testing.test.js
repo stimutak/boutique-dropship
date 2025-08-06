@@ -5,6 +5,7 @@ const User = require('../../models/User');
 const Product = require('../../models/Product');
 const Order = require('../../models/Order');
 const { createTestApp } = require('../helpers/testApp');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('Performance and Load Testing', () => {
   let app;

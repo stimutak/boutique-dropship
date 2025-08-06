@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const User = require('../../models/User');
 const Product = require('../../models/Product');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 const { createTestApp } = require('../helpers/testApp');
 

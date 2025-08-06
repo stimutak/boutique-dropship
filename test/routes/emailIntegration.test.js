@@ -1,6 +1,7 @@
 const request = require('supertest');
 const express = require('express');
 const _mongoose = require('mongoose');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 // Mock email service BEFORE importing routes
 const mockEmailService = {
@@ -12,27 +13,7 @@ const mockEmailService = {
   sendWholesalerNotification: jest.fn().mockResolvedValue({ success: true, messageId: 'test-id' })
 };
 
-jest.mock('../../utils/emailService', () => mockEmailService);
-
-const User = require('../../models/User');
-const Order = require('../../models/Order');
-const Product = require('../../models/Product');
-const authRoutes = require('../../routes/auth');
-const orderRoutes = require('../../routes/orders');
-const paymentRoutes = require('../../routes/payments');
-
-// Mock Mollie client
-jest.mock('@mollie/api-client', () => ({
-  createMollieClient: jest.fn(() => ({
-    payments: {
-      get: jest.fn().mockResolvedValue({
-        id: 'tr_test123',
-        status: 'paid',
-        amount: { value: '29.99', currency: 'USD' },
-        paidAt: '2023-12-01T10:00:00Z',
-        details: { cardNumber: '**** 1234' }
-      })
-    }
+}
   }))
 }));
 

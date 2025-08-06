@@ -7,6 +7,7 @@ const Product = require('../../models/Product');
 const User = require('../../models/User');
 const { errorResponse } = require('../../utils/errorHandler');
 const paymentRoutes = require('../../routes/payments');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 // Mock wholesaler notification service
 jest.mock('../../utils/wholesalerNotificationService', () => ({

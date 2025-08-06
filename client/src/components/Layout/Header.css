@@ -3,18 +3,13 @@
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.98),
-    rgba(252, 251, 249, 0.99)
-  );
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 2px solid rgba(139, 115, 85, 0.15);
+  background: #F5F5F0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid #E0E0DC;
   box-shadow: 
-    0 4px 20px rgba(0, 0, 0, 0.08),
     0 2px 8px rgba(0, 0, 0, 0.04),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.9);
+    0 1px 2px rgba(0, 0, 0, 0.06);
   transition: all 0.3s var(--ease-luxury);
 }
 
@@ -32,16 +27,22 @@
 .logo {
   font-family: var(--font-headings);
   font-size: var(--text-2xl);
-  font-weight: 700;
-  color: #2c2416;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--earth-deep) 0%, var(--sage-deep) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   text-decoration: none;
   letter-spacing: -0.5px;
   transition: all var(--transition-fast);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  position: relative;
 }
 
 .logo:hover {
-  color: var(--sage-primary);
+  background: linear-gradient(135deg, var(--sage-deep) 0%, var(--earth-deep) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   transform: translateX(-2px);
 }
 
@@ -56,13 +57,14 @@
   width: 100%;
   padding: 0.625rem 1.25rem;
   padding-inline-end: 120px;
-  border: 1px solid rgba(139, 115, 85, 0.2);
+  border: 1px solid rgba(135, 169, 107, 0.2);
   border-radius: 50px;
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.7);
   color: var(--earth-deep);
   font-size: 0.9rem;
   font-family: var(--font-luxury-body);
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .search-input::placeholder {
@@ -87,16 +89,17 @@
   color: white;
   border: none;
   border-radius: var(--radius-full);
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.875rem;
   cursor: pointer;
   transition: all var(--transition-base);
-  box-shadow: 0 2px 8px rgba(135, 169, 107, 0.25);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .search-button:hover {
-  background: linear-gradient(135deg, var(--sage-deep), #5a7548);
-  transform: translateY(-50%) scale(1.05);
-  box-shadow: 0 4px 12px rgba(135, 169, 107, 0.35);
+  background: linear-gradient(135deg, var(--sage-deep), var(--ocean-deep));
+  transform: translateY(-50%) scale(1.02);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* Navigation */
@@ -109,8 +112,8 @@
 .nav-link {
   font-family: var(--font-luxury-accent);
   font-size: 0.95rem;
-  font-weight: 600;
-  color: #2c2416;
+  font-weight: 500;
+  color: var(--earth-deep);
   text-decoration: none;
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -123,8 +126,9 @@
 
 .nav-link:hover {
   color: var(--sage-deep);
-  background: rgba(135, 169, 107, 0.12);
-  border-color: rgba(135, 169, 107, 0.3);
+  background: linear-gradient(135deg, rgba(135, 169, 107, 0.05), rgba(135, 169, 107, 0.08));
+  border-color: rgba(135, 169, 107, 0.2);
+  transform: translateY(-1px);
 }
 
 .nav-link::after {
@@ -158,13 +162,18 @@
   inset-inline-end: -12px;
   background: linear-gradient(135deg, var(--sunset-warm), var(--sunset-soft));
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   padding: 0.125rem 0.375rem;
   border-radius: 12px;
-  min-width: 20px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   animation: cartPulse 2s infinite;
 }
 
@@ -175,39 +184,38 @@
 
 /* Language Selector */
 .language-selector {
-  background: white;
-  border: 2px solid rgba(139, 115, 85, 0.2);
-  color: #2c2416;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(135, 169, 107, 0.2);
+  color: var(--earth-deep);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-base);
   font-weight: 500;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-size: 0.9rem;
 }
 
 .language-selector:hover {
-  background: var(--cream-soft);
+  background: rgba(255, 255, 255, 0.8);
   border-color: var(--sage-primary);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* Mobile Menu Toggle */
 .mobile-menu-toggle {
   display: none;
-  background: white;
-  border: 2px solid rgba(139, 115, 85, 0.2);
-  color: #2c2416;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(135, 169, 107, 0.2);
+  color: var(--earth-deep);
   font-size: var(--text-xl);
   cursor: pointer;
   padding: var(--space-2);
   border-radius: var(--radius-md);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all var(--transition-base);
 }
 
 .mobile-menu-toggle:hover {
-  background: var(--cream-soft);
+  background: rgba(255, 255, 255, 0.8);
   border-color: var(--sage-primary);
 }
 
@@ -287,21 +295,21 @@
 }
 
 .user-menu-toggle {
-  background: white;
-  border: 2px solid rgba(139, 115, 85, 0.2);
-  color: #2c2416;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.3));
+  border: 1px solid rgba(135, 169, 107, 0.2);
+  color: var(--earth-deep);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
   transition: all var(--transition-base);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-size: 0.9rem;
 }
 
 .user-menu-toggle:hover {
-  background: var(--cream-soft);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6));
   border-color: var(--sage-primary);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
 }
 

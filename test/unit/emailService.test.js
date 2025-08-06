@@ -4,6 +4,7 @@ jest.unmock('../../utils/emailService');
 // Mock nodemailer for this test
 jest.mock('nodemailer');
 const nodemailer = require('nodemailer');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 const {
   sendOrderConfirmation,

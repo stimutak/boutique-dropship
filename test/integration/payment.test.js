@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const Order = require('../../models/Order');
 const Product = require('../../models/Product');
+const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 // Test setup is handled by jest.config.js setupFilesAfterEnv
 
 describe('Payment Integration Tests', () => {
