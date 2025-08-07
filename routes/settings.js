@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Settings = require('../models/Settings');
 const { requireAdmin } = require('../middleware/auth');
+const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { ErrorCodes } = require('../utils/errorHandler');
 const router = express.Router();
 
@@ -125,7 +126,7 @@ router.get('/:key', requireAdmin, async (req, res) => {
 });
 
 // PUT /api/settings/:key - Update setting value
-router.put('/:key', requireAdmin, [
+router.put('/:key', requireAdmin, validateCSRFToken, [
   body('value').exists().withMessage('Value is required'),
   body('reason').optional().isString().trim().isLength({ max: 200 }).withMessage('Reason must be less than 200 characters')
 ], async (req, res) => {
@@ -191,7 +192,7 @@ router.put('/:key', requireAdmin, [
 });
 
 // PUT /api/settings/:key/reset - Reset setting to default value
-router.put('/:key/reset', requireAdmin, [
+router.put('/:key/reset', requireAdmin, validateCSRFToken, [
   body('reason').optional().isString().trim().isLength({ max: 200 }).withMessage('Reason must be less than 200 characters')
 ], async (req, res) => {
   try {
@@ -230,7 +231,7 @@ router.put('/:key/reset', requireAdmin, [
 });
 
 // POST /api/settings - Create new setting (admin only)
-router.post('/', requireAdmin, [
+router.post('/', requireAdmin, validateCSRFToken, [
   body('key').trim().isLength({ min: 1, max: 100 }).withMessage('Key is required and must be less than 100 characters'),
   body('category').isIn([
     'general', 'store', 'payment', 'shipping', 'email', 
@@ -280,7 +281,7 @@ router.post('/', requireAdmin, [
 });
 
 // DELETE /api/settings/:key - Delete setting (admin only)
-router.delete('/:key', requireAdmin, async (req, res) => {
+router.delete('/:key', requireAdmin, validateCSRFToken, async (req, res) => {
   try {
     const { key } = req.params;
     
@@ -306,7 +307,7 @@ router.delete('/:key', requireAdmin, async (req, res) => {
 });
 
 // PUT /api/settings/:key/toggle - Toggle setting active status
-router.put('/:key/toggle', requireAdmin, async (req, res) => {
+router.put('/:key/toggle', requireAdmin, validateCSRFToken, async (req, res) => {
   try {
     const { key } = req.params;
     
@@ -335,7 +336,7 @@ router.put('/:key/toggle', requireAdmin, async (req, res) => {
 });
 
 // POST /api/settings/bulk-update - Update multiple settings at once
-router.post('/bulk-update', requireAdmin, [
+router.post('/bulk-update', requireAdmin, validateCSRFToken, [
   body('updates').isArray({ min: 1 }).withMessage('Updates array is required with at least one item'),
   body('updates.*.key').trim().isLength({ min: 1 }).withMessage('Each update must have a key'),
   body('updates.*.value').exists().withMessage('Each update must have a value'),

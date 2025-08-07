@@ -10,6 +10,7 @@ const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { ErrorCodes } = require('../utils/errorHandler');
 const { logger, securityLogger } = require('../utils/logger');
 const { sanitizeInputMiddleware, validateObjectIdParam } = require('../utils/inputSanitizer');
+const { rateLimits, speedLimiter } = require('../middleware/security');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -70,7 +71,7 @@ const validateResetPassword = [
 ];
 
 // Register new user
-router.post('/register', validateRegistration, async (req, res) => {
+router.post('/register', rateLimits.auth, speedLimiter, validateRegistration, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -149,7 +150,7 @@ router.post('/register', validateRegistration, async (req, res) => {
 });
 
 // Login user with enhanced cart merging
-router.post('/login', sanitizeInputMiddleware, validateLogin, async (req, res) => {
+router.post('/login', rateLimits.auth, speedLimiter, sanitizeInputMiddleware, validateLogin, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -213,7 +214,7 @@ router.post('/login', sanitizeInputMiddleware, validateLogin, async (req, res) =
 });
 
 // Forgot password - Fixed timing attack vulnerability
-router.post('/forgot-password', validateForgotPassword, async (req, res) => {
+router.post('/forgot-password', rateLimits.auth, speedLimiter, validateForgotPassword, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -289,7 +290,7 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
 });
 
 // Reset password
-router.post('/reset-password', validateResetPassword, async (req, res) => {
+router.post('/reset-password', rateLimits.auth, speedLimiter, validateResetPassword, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -556,7 +557,7 @@ router.put('/profile', requireAuth, sanitizeInputMiddleware, validateCSRFToken, 
 });
 
 // Change password
-router.post('/change-password', requireAuth, [
+router.post('/change-password', rateLimits.auth, speedLimiter, requireAuth, [
   body('currentPassword').notEmpty().withMessage('Current password is required'),
   body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long')
 ], async (req, res) => {
@@ -879,7 +880,7 @@ router.patch('/profile/addresses/:addressId/default', requireAuth, validateCSRFT
 });
 
 // Refresh token endpoint
-router.post('/refresh-token', async (req, res) => {
+router.post('/refresh-token', rateLimits.auth, speedLimiter, async (req, res) => {
   try {
     const { token } = req.body;
     

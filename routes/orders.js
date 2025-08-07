@@ -871,7 +871,7 @@ router.post('/:id/associate', requireAuth, async (req, res) => {
 });
 
 // Admin order fulfillment endpoint
-router.put('/:id/fulfill', requireAdmin, i18nMiddleware, async (req, res) => {
+router.put('/:id/fulfill', requireAdmin, validateCSRFToken, i18nMiddleware, async (req, res) => {
   try {
     const { status, trackingNumber, shippingCarrier, shipDate, estimatedDeliveryDate, notes } = req.body;
     
@@ -1027,7 +1027,7 @@ router.put('/:id/fulfill', requireAdmin, i18nMiddleware, async (req, res) => {
 });
 
 // Update order status (admin only - legacy endpoint, use /fulfill instead)
-router.put('/:id/status', requireAdmin, i18nMiddleware, async (req, res) => {
+router.put('/:id/status', requireAdmin, validateCSRFToken, i18nMiddleware, async (req, res) => {
   try {
     const { status, trackingNumber } = req.body;
     

@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Product = require('../models/Product');
 const { _requireAuth, requireAdmin } = require('../middleware/auth');
+const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { getCurrencyForLocale, formatPrice } = require('../utils/currency');
 const { ErrorCodes } = require('../utils/errorHandler');
 const { logger } = require('../utils/logger');
@@ -637,7 +638,7 @@ router.get('/:slug', async (req, res) => {
 });
 
 // POST /api/products - Create new product (admin only)
-router.post('/', requireAdmin, [
+router.post('/', requireAdmin, validateCSRFToken, [
   body('name').trim().isLength({ min: 1, max: 200 }).withMessage('Product name is required and must be less than 200 characters'),
   body('slug').optional().trim().isLength({ max: 200 }).withMessage('Slug must be less than 200 characters'),
   body('description').trim().isLength({ min: 1, max: 2000 }).withMessage('Description is required and must be less than 2000 characters'),
@@ -692,7 +693,7 @@ router.post('/', requireAdmin, [
 });
 
 // PUT /api/products/:id - Update product (admin only)
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireAdmin, validateCSRFToken, async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -731,7 +732,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/products/:id - Delete product (admin only)
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireAdmin, validateCSRFToken, async (req, res) => {
   try {
     const { id } = req.params;
     

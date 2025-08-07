@@ -11,10 +11,11 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const Review = require('../models/Review');
 const { requireAdmin } = require('../middleware/auth');
+const { validateCSRFToken } = require('../middleware/sessionCSRF');
 // processOrderNotifications removed - not used in this route
 const { csvValidator, imageValidator, cleanupTempFiles } = require('../middleware/uploadSecurity');
 const { logger } = require('../utils/logger');
-const { sanitizeInputMiddleware, validateObjectIdParam, sanitizeQuery } = require('../utils/inputSanitizer');
+const { sanitizeInputMiddleware, validateObjectIdParam } = require('../utils/inputSanitizer');
 
 // Configure secure multer for CSV uploads
 const upload = multer({
@@ -27,6 +28,14 @@ const upload = multer({
 // All admin routes require admin authentication and input sanitization
 router.use(requireAdmin);
 router.use(sanitizeInputMiddleware);
+
+// Add CSRF protection to all non-GET admin routes
+router.use((req, res, next) => {
+  if (req.method === 'GET') {
+    return next();
+  }
+  return validateCSRFToken(req, res, next);
+});
 
 // ===== WHOLESALER MANAGEMENT =====
 
