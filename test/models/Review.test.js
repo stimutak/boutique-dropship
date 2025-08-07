@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const Review = require('../../models/Review');
 const User = require('../../models/User');
 const Product = require('../../models/Product');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('Review Model', () => {
   let testUser;
@@ -214,10 +213,8 @@ describe('Review Model', () => {
       const result = await Review.canUserReview(testUser._id, testProduct._id);
       expect(result).toHaveProperty('canReview');
       expect(typeof result.canReview).toBe('boolean');
-      if (!result.canReview) {
-        expect(result).toHaveProperty('reason');
-        expect(typeof result.reason).toBe('string');
-      }
+      // If user cannot review, there should be a reason
+      expect(result.canReview || (result.reason && typeof result.reason === 'string')).toBe(true);
     });
   });
 

@@ -6,7 +6,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const Order = require('../../models/Order');
 const Product = require('../../models/Product');
-const { processPendingNotifications } = require('../utils/wholesalerNotificationService');
+const { processPendingNotifications } = require('../../utils/wholesalerNotificationService');
 
 // Sample test data
 const sampleProducts = [

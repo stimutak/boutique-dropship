@@ -1,10 +1,16 @@
 
+/* eslint-env browser, node */
 /**
  * Test script to verify the holistic design system implementation
  * Checks CSS variables, color schemes, and design elements
  */
 
-const puppeteer = require('puppeteer');
+let puppeteer;
+try {
+  puppeteer = require('puppeteer');
+} catch (error) {
+  throw new Error('Puppeteer not found. To run this script, install it with: npm install --save-dev puppeteer');
+}
 
 async function testDesignSystem() {
   const browser = await puppeteer.launch({ 

@@ -1,7 +1,6 @@
 const request = require('supertest');
 const express = require('express');
 const { AppError, globalErrorHandler, catchAsync } = require('../../middleware/errorHandler');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('Error Handling Middleware', () => {
   let app;

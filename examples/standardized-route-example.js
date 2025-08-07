@@ -10,6 +10,7 @@ const Product = require('../models/Product');
 const { AppError } = require('../middleware/errorHandler');
 const { ErrorCodes } = require('../utils/errorHandler');
 const { requireAuth } = require('../middleware/auth');
+const { logger } = require('../utils/logger');
 
 // Example 1: Route with validation
 router.post('/products',
@@ -145,7 +146,7 @@ router.put('/products/:id/stock', requireAuth, async (req, res, _next) => {
 
   } catch (error) {
     // Database errors or unexpected errors
-    console.error('Stock update error:', error);
+    logger.error('Stock update error:', error);
     _next(new AppError('Failed to update stock', 500, 'STOCK_UPDATE_ERROR'));
   }
 });

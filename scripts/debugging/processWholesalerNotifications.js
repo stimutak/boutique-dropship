@@ -4,7 +4,7 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { processPendingNotifications } = require('../utils/wholesalerNotificationService');
+const { processPendingNotifications } = require('../../utils/wholesalerNotificationService');
 
 async function main() {
   try {

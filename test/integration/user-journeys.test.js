@@ -5,7 +5,6 @@ const User = require('../../models/User');
 const Product = require('../../models/Product');
 const Order = require('../../models/Order');
 const { createTestApp } = require('../helpers/testApp');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('Complete User Journey Integration Tests', () => {
   let app;

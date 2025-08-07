@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const Order = require('../../models/Order');
 const Product = require('../../models/Product');
 const wholesalerRoutes = require('../../routes/wholesalers');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 // Mock the wholesaler notification service
 jest.mock('../../utils/wholesalerNotificationService', () => ({

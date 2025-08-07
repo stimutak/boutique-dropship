@@ -5,7 +5,6 @@
 const request = require('supertest');
 const express = require('express');
 const session = require('express-session');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 // Mock mongodb-memory-server to prevent library dependency issues
 jest.mock('mongodb-memory-server', () => ({

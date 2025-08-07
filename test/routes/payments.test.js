@@ -11,7 +11,6 @@ const Order = require('../../models/Order');
 const Product = require('../../models/Product');
 const User = require('../../models/User');
 const { errorResponse } = require('../../utils/errorHandler');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 // Mock console methods to reduce test output noise
 const originalConsoleWarn = console.warn;

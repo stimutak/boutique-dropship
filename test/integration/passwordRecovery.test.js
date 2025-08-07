@@ -2,7 +2,6 @@ const request = require('supertest');
 const crypto = require('crypto');
 const app = require('../../server');
 const User = require('../../models/User');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 // Test setup is handled by jest.config.js setupFilesAfterEnv
 
 describe('Password Recovery Flow', () => {

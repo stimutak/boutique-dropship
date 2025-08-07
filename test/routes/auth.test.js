@@ -5,7 +5,6 @@ const request = require('supertest');
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 // crypto removed - not used
 const User = require('../../models/User');
 const authRoutes = require('../../routes/auth');

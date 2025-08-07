@@ -9,7 +9,7 @@ async function debugUser() {
     const user = await User.findOne({ email: 'oed@mac.com' });
     if (!user) {
       console.log('User not found with email: oed@mac.com');
-      process.exit(0);
+      return;
     }
     
     console.log('\n=================================');
@@ -33,10 +33,9 @@ async function debugUser() {
     
     console.log('=================================\n');
     
-    process.exit(0);
   } catch (error) {
     console.error('Error:', error.message);
-    process.exit(1);
+    throw error;
   }
 }
 

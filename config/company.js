@@ -14,7 +14,7 @@ const companyInfo = {
     instagram: 'https://instagram.com/authentika',
     twitter: 'https://twitter.com/authentika'
   }
-}
+};
 
 // Export for both CommonJS and ES6
-module.exports = companyInfo
+module.exports = companyInfo;

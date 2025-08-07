@@ -2,7 +2,6 @@ const request = require('supertest');
 const app = require('../../server');
 const Product = require('../../models/Product');
 const Order = require('../../models/Order');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 // Test setup is handled by jest.config.js setupFilesAfterEnv
 
 describe('Checkout Flow Integration Tests', () => {

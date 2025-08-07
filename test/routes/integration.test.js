@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const Product = require('../../models/Product');
 const Order = require('../../models/Order');
 const integrationRoutes = require('../../routes/integration');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 // Create test app
 const createTestApp = () => {

@@ -1,7 +1,6 @@
 const request = require('supertest');
 const express = require('express');
 const _mongoose = require('mongoose');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 // Mock email service BEFORE importing routes
 const mockEmailService = {

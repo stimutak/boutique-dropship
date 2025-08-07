@@ -1,6 +1,5 @@
 const _mongoose = require('mongoose');
 const User = require('../../models/User');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 
 describe('User Model', () => {
 

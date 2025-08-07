@@ -4,7 +4,6 @@
 
 const request = require('supertest');
 const express = require('express');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
 // session removed - not used
 
 // Mock console methods to capture logs

@@ -1,7 +1,7 @@
 const request = require('supertest');
-const app = require('../../server');
-const { createAdminUserWithToken, createRegularUserWithToken } = require('../helpers/testSetup');
-const User = require('../../models/User');
+const jwt = require('jsonwebtoken');
+const express = require('express');
+const mongoose = require('mongoose');
 
 // Mock only external services
 jest.mock('../../utils/logger', () => ({

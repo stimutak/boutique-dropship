@@ -43,8 +43,7 @@ jest.mock('@mollie/api-client', () => ({
 const { globalErrorHandler } = require('../../middleware/errorHandler');
 const { i18nMiddleware } = require('../../utils/i18n');
 const { errorResponse } = require('../../utils/errorHandler');
-const { authenticateToken, requireAuth, requireAdmin } = require('../../middleware/auth');
-const { validateCSRFToken } = require('../../middleware/sessionCSRF');
+const { authenticateToken } = require('../../middleware/auth');
 
 // Import routes
 const authRoutes = require('../../routes/auth');

@@ -2,7 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
-const compression = require('compression');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config({ path: '.env.production' });
@@ -16,14 +15,13 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.mollie.com"],
-    },
-  },
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https://api.mollie.com']
+    }
+  }
 }));
 
-// Compression
-app.use(compression());
+// Compression handled by nginx
 
 // CORS configuration
 app.use(cors({
@@ -61,7 +59,7 @@ const connectDB = async () => {
       await mongoose.connect(process.env.MONGODB_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000,
+        serverSelectionTimeoutMS: 5000
       });
       console.log('✅ MongoDB connected successfully');
       break;

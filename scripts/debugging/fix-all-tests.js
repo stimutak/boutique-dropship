@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * Script to fix all test issues for Docker environment with real MongoDB
@@ -106,7 +105,7 @@ function processTestFile(filePath) {
     if (!content.includes(setupImport)) {
       // Add after other requires
       content = content.replace(
-        /(const.*?require.*?\n)+/,
+        /(const\s+.*?=\s*require\([^)]+\);\n)+/,
         '$&' + setupImport
       );
       modified = true;
@@ -126,7 +125,7 @@ function processTestFile(filePath) {
     fs.writeFileSync(filePath, content);
     console.log(`  ✅ Fixed ${filePath}`);
   } else {
-    console.log(`  ⏭️  No changes needed`);
+    console.log('  ⏭️  No changes needed');
   }
 }
 
