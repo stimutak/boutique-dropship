@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Set environment variables first
 process.env.MOLLIE_API_KEY = 'test_dHar4XY7LxsDOtmnkVtjNVWXLSlXsM';
 process.env.FRONTEND_URL = 'http://localhost:3000';

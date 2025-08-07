@@ -10,6 +10,7 @@ const { getCurrencyForLocale, getExchangeRates } = require('../utils/currency');
 const { _ErrorCodes } = require('../utils/errorHandler');
 const { i18nMiddleware } = require('../utils/i18n');
 const { validateObjectIdParam } = require('../utils/inputSanitizer');
+const { logger } = require('../utils/logger');
 
 // Helper function to get user's currency from request
 function getUserCurrency(req) {
@@ -255,10 +256,10 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
 
       const emailResult = await sendOrderConfirmation(order.guestInfo.email, emailData, userLocale);
       if (!emailResult.success) {
-        console.error('Failed to send order confirmation email:', emailResult.error);
+        logger.error('Failed to send order confirmation email:', { error: emailResult.error });
       }
     } catch (emailError) {
-      console.error('Error sending order confirmation email:', emailError);
+      logger.error('Error sending order confirmation email:', { error: emailError.message });
     }
 
     // Note: Cart will be cleared after successful payment, not here
@@ -279,7 +280,7 @@ router.post('/', authenticateToken, validateGuestCheckout, validateCSRFToken, as
     });
 
   } catch (error) {
-    console.error('Error creating order:', error);
+    logger.error('Error creating order:', { error: error.message });
     res.status(500).json({
       success: false,
       error: {
@@ -418,7 +419,7 @@ router.post('/guest', validateGuestCheckout, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating guest order:', error);
+    logger.error('Error creating guest order:', { error: error.message });
     res.status(500).json({
       success: false,
       error: {
@@ -610,11 +611,11 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
 
         const emailResult = await sendOrderConfirmation(req.user.email, emailData, userLocale);
         if (!emailResult.success) {
-          console.error('Failed to send order confirmation email:', emailResult.error);
+          logger.error('Failed to send order confirmation email:', { error: emailResult.error });
         }
       }
     } catch (emailError) {
-      console.error('Error sending order confirmation email:', emailError);
+      logger.error('Error sending order confirmation email:', { error: emailError.message });
     }
 
     // Clear user's cart
@@ -642,7 +643,7 @@ router.post('/registered', authenticateToken, validateCSRFToken, async (req, res
     });
 
   } catch (error) {
-    console.error('Error creating registered user order:', error);
+    logger.error('Error creating registered user order:', { error: error.message });
     res.status(500).json({
       success: false,
       error: {
@@ -698,7 +699,7 @@ router.get('/admin', requireAdmin, i18nMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching admin orders:', error);
+    logger.error('Error fetching admin orders:', { error: error.message });
     res.status(500).json({
       success: false,
       error: {
@@ -750,7 +751,7 @@ router.get('/:id', validateObjectIdParam('id'), authenticateToken, async (req, r
     });
 
   } catch (error) {
-    console.error('Error fetching order:', error);
+    logger.error('Error fetching order:', { error: error.message });
     res.status(500).json({
       success: false,
       error: {
@@ -809,7 +810,7 @@ router.get('/', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching order history:', error);
+    logger.error('Error fetching order history:', { error: error.message });
     res.status(500).json({
       success: false,
       error: {
@@ -858,7 +859,7 @@ router.post('/:id/associate', requireAuth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error associating order:', error);
+    logger.error('Error associating order:', { error: error.message });
     res.status(500).json({
       success: false,
       error: {
@@ -980,11 +981,11 @@ router.put('/:id/fulfill', requireAdmin, validateCSRFToken, i18nMiddleware, asyn
 
           const emailResult = await sendOrderStatusUpdate(customerEmail, statusData, userLocale);
           if (!emailResult.success) {
-            console.error('Failed to send order status update email:', emailResult.error);
+            logger.error('Failed to send order status update email:', { error: emailResult.error });
           }
         }
       } catch (emailError) {
-        console.error('Error sending order status update email:', emailError);
+        logger.error('Error sending order status update email:', { error: emailError.message });
       }
 
       res.json({
@@ -1014,7 +1015,7 @@ router.put('/:id/fulfill', requireAdmin, validateCSRFToken, i18nMiddleware, asyn
     }
 
   } catch (error) {
-    console.error('Error updating order fulfillment:', error);
+    logger.error('Error updating order fulfillment:', { error: error.message });
     res.status(500).json({
       success: false,
       error: {
@@ -1091,11 +1092,11 @@ router.put('/:id/status', requireAdmin, validateCSRFToken, i18nMiddleware, async
 
         const emailResult = await sendOrderStatusUpdate(customerEmail, statusData, userLocale);
         if (!emailResult.success) {
-          console.error('Failed to send order status update email:', emailResult.error);
+          logger.error('Failed to send order status update email:', { error: emailResult.error });
         }
       }
     } catch (emailError) {
-      console.error('Error sending order status update email:', emailError);
+      logger.error('Error sending order status update email:', { error: emailError.message });
     }
 
     res.json({
@@ -1111,7 +1112,7 @@ router.put('/:id/status', requireAdmin, validateCSRFToken, i18nMiddleware, async
     });
 
   } catch (error) {
-    console.error('Error updating order status:', error);
+    logger.error('Error updating order status:', { error: error.message });
     res.status(500).json({
       success: false,
       error: {

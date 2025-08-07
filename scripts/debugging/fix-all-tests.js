@@ -105,6 +105,7 @@ function processTestFile(filePath) {
     if (!content.includes(setupImport)) {
       // Add after other requires
       content = content.replace(
+        // eslint-disable-next-line security/detect-unsafe-regex
         /(const\s+.*?=\s*require\([^)]+\);\n)+/,
         '$&' + setupImport
       );

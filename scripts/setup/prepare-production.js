@@ -82,6 +82,7 @@ const copyRecursiveSync = (src, dest) => {
       );
     });
   } else {
+    // eslint-disable-next-line node/no-unsupported-features/node-builtins
     fs.copyFileSync(src, dest);
   }
 };
@@ -107,7 +108,7 @@ console.log('✅ Copied client build to public folder');
 
 // Create deployment info file
 const deploymentInfo = {
-  version: require('../package.json').version,
+  version: require('../../package.json').version,
   buildDate: new Date().toISOString(),
   nodeVersion: process.version,
   environment: 'production'

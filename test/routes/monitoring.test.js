@@ -2,6 +2,8 @@ const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const mongoose = require('mongoose');
+const { logger } = require('../../utils/logger');
+const { getCircuitBreakerStatus } = require('../../utils/errorRecovery');
 
 // Mock only external services
 jest.mock('../../utils/logger', () => ({

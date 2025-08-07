@@ -7,6 +7,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const cors = require('cors');
+const { logger } = require('./utils/logger');
 
 // Load environment variables
 require('dotenv').config();
@@ -26,10 +27,10 @@ app.use('/images', express.static(path.join(__dirname, 'public/images')));
 // MongoDB connection (simplified)
 if (process.env.MONGODB_URI) {
   mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ Connected to MongoDB'))
-    .catch(err => console.log('❌ MongoDB connection error:', err));
+    .then(() => logger.info('✅ Connected to MongoDB'))
+    .catch(err => logger.info('❌ MongoDB connection error:', err));
 } else {
-  console.log('⚠️  No MongoDB URI provided - running without database');
+  logger.info('⚠️  No MongoDB URI provided - running without database');
 }
 
 // Import only essential routes
@@ -42,7 +43,7 @@ try {
   app.use('/api/products', productRoutes);
   app.use('/api/cart', cartRoutes);
 } catch (error) {
-  console.log('⚠️  Some routes not loaded:', error.message);
+  logger.info('⚠️  Some routes not loaded:', error.message);
 }
 
 // Health check endpoint
@@ -95,8 +96,8 @@ app.get('*', (req, res) => {
 });
 
 // Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
+app.use((err, req, res, _next) => {
+  logger.error(err.stack);
   res.status(500).json({ 
     error: 'Something went wrong!',
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -106,11 +107,11 @@ app.use((err, req, res, next) => {
 // For DreamHost Passenger
 if (typeof(PhusionPassenger) !== 'undefined') {
   app.listen('passenger');
-  console.log('🚀 Demo server started with Passenger');
+  logger.info('🚀 Demo server started with Passenger');
 } else {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
-    console.log(`🚀 Demo server running on port ${PORT}`);
+    logger.info(`🚀 Demo server running on port ${PORT}`);
   });
 }
 

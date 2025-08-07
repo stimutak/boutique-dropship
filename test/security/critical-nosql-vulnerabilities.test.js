@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const request = require('supertest');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -26,13 +27,13 @@ const {
  */
 
 describe('CRITICAL NoSQL Injection Vulnerabilities', () => {
-  let testApp;
+  let _testApp;
   let testUser;
   let adminUser;
   let userToken;
   let adminToken;
   let testProduct;
-  let testOrder;
+  let _testOrder;
 
   beforeAll(async () => {
     // Set up test application with input sanitization
@@ -78,7 +79,7 @@ describe('CRITICAL NoSQL Injection Vulnerabilities', () => {
       }
     });
 
-    testOrder = await Order.create({
+    _testOrder = await Order.create({
       orderNumber: 'ORD-CRITICAL-001',
       customer: testUser._id,
       items: [{
@@ -115,7 +116,7 @@ describe('CRITICAL NoSQL Injection Vulnerabilities', () => {
     });
 
     // Import app after setting up test data to avoid circular dependency
-    testApp = require('../../server');
+    _testApp = require('../../server');
   });
 
   afterAll(async () => {

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const mongoose = require('mongoose');
 
 // Import mocks before anything else

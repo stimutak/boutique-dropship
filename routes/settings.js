@@ -4,6 +4,7 @@ const Settings = require('../models/Settings');
 const { requireAdmin } = require('../middleware/auth');
 const { validateCSRFToken } = require('../middleware/sessionCSRF');
 const { ErrorCodes } = require('../utils/errorHandler');
+const { logger } = require('../utils/logger');
 const router = express.Router();
 
 // GET /api/settings/public - Get public settings (no auth required)
@@ -21,7 +22,7 @@ router.get('/public', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching public settings:', error);
+    logger.error('Error fetching public settings:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_FETCH_ERROR, 'Failed to fetch public settings');
   }
 });
@@ -66,7 +67,7 @@ router.get('/', requireAdmin, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching settings:', error);
+    logger.error('Error fetching settings:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_FETCH_ERROR, 'Failed to fetch settings');
   }
 });
@@ -96,7 +97,7 @@ router.get('/categories', requireAdmin, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    logger.error('Error fetching categories:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_FETCH_ERROR, 'Failed to fetch categories');
   }
 });
@@ -120,7 +121,7 @@ router.get('/:key', requireAdmin, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching setting:', error);
+    logger.error('Error fetching setting:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_FETCH_ERROR, 'Failed to fetch setting');
   }
 });
@@ -186,7 +187,7 @@ router.put('/:key', requireAdmin, validateCSRFToken, [
     });
     
   } catch (error) {
-    console.error('Error updating setting:', error);
+    logger.error('Error updating setting:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_UPDATE_ERROR, 'Failed to update setting');
   }
 });
@@ -225,7 +226,7 @@ router.put('/:key/reset', requireAdmin, validateCSRFToken, [
     });
     
   } catch (error) {
-    console.error('Error resetting setting:', error);
+    logger.error('Error resetting setting:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_UPDATE_ERROR, 'Failed to reset setting');
   }
 });
@@ -275,7 +276,7 @@ router.post('/', requireAdmin, validateCSRFToken, [
     });
     
   } catch (error) {
-    console.error('Error creating setting:', error);
+    logger.error('Error creating setting:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_CREATE_ERROR, 'Failed to create setting');
   }
 });
@@ -301,7 +302,7 @@ router.delete('/:key', requireAdmin, validateCSRFToken, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error deleting setting:', error);
+    logger.error('Error deleting setting:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_DELETE_ERROR, 'Failed to delete setting');
   }
 });
@@ -330,7 +331,7 @@ router.put('/:key/toggle', requireAdmin, validateCSRFToken, async (req, res) => 
     });
     
   } catch (error) {
-    console.error('Error toggling setting:', error);
+    logger.error('Error toggling setting:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_UPDATE_ERROR, 'Failed to toggle setting');
   }
 });
@@ -423,7 +424,7 @@ router.post('/bulk-update', requireAdmin, validateCSRFToken, [
     });
     
   } catch (error) {
-    console.error('Error bulk updating settings:', error);
+    logger.error('Error bulk updating settings:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_UPDATE_ERROR, 'Failed to bulk update settings');
   }
 });
@@ -469,7 +470,7 @@ router.get('/export', requireAdmin, async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Error exporting settings:', error);
+    logger.error('Error exporting settings:', { error: error.message });
     res.error(500, ErrorCodes.SETTINGS_EXPORT_ERROR, 'Failed to export settings');
   }
 });

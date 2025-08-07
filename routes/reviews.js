@@ -5,6 +5,7 @@ const Review = require('../models/Review');
 const Product = require('../models/Product');
 const { requireAuth } = require('../middleware/auth');
 const { _ErrorCodes } = require('../utils/errorHandler');
+const { logger } = require('../utils/logger');
 const router = express.Router();
 
 // Validation middleware for review creation
@@ -98,7 +99,7 @@ router.post('/', requireAuth, validateReview, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating review:', error);
+    logger.error('Error creating review:', error);
     
     // Handle duplicate review error
     if (error.code === 11000) {
@@ -182,7 +183,7 @@ router.get('/:productId', validateProductId, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching reviews:', error);
+    logger.error('Error fetching reviews:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch reviews'
@@ -235,7 +236,7 @@ router.get('/user/my-reviews', requireAuth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching user reviews:', error);
+    logger.error('Error fetching user reviews:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch your reviews'
@@ -298,7 +299,7 @@ router.put('/:reviewId/helpful', requireAuth, [
     }
 
   } catch (error) {
-    console.error('Error updating review helpfulness:', error);
+    logger.error('Error updating review helpfulness:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update review helpfulness'

@@ -343,11 +343,11 @@ router.post('/webhook', async (req, res) => {
           );
           
           if (!confirmationResult.success) {
-            console.error('Failed to send order confirmation:', confirmationResult.error);
+            logger.error('Failed to send order confirmation:', confirmationResult.error);
           }
         }
       } catch (emailError) {
-        console.error('Error sending order confirmation:', emailError);
+        logger.error('Error sending order confirmation:', emailError);
       }
 
       // Trigger wholesaler notifications

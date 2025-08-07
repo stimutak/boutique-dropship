@@ -25,10 +25,13 @@ function getUserCurrency(req) {
 function enhanceProductWithCurrency(product, currency, locale = 'en') {
   const productObj = product.toPublicJSON();
   
-  // Get price in user's currency
-  const priceInCurrency = product.prices && product.prices[currency] 
-    ? product.prices[currency] 
-    : product.price; // Fallback to USD price
+  // Get price in user's currency - safe currency access after validation
+  let priceInCurrency;
+  if (product.prices && typeof currency === 'string' && Object.prototype.hasOwnProperty.call(product.prices, currency)) {
+    priceInCurrency = product.prices[currency];
+  } else {
+    priceInCurrency = product.price; // Fallback to USD price
+  }
     
   return {
     ...productObj,
@@ -113,7 +116,7 @@ const getOrCreateCart = async (req) => {
         
         retries--;
         if (retries === 0) {
-          console.error('Failed to create/find cart after retries:', error);
+          logger.error('Failed to create/find cart after retries:', { error: error.message });
           throw new Error('Unable to access cart. Please try again.');
         }
         
@@ -158,7 +161,7 @@ router.get('/', authenticateToken, async (req, res) => {
             subtotal: item.price * item.quantity
           };
         } catch (error) {
-          console.error('Error populating cart item:', error);
+          logger.error('Error populating cart item:', { error: error.message });
           return null;
         }
       })
@@ -185,7 +188,7 @@ router.get('/', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching cart:', error);
+    logger.error('Error fetching cart:', { error: error.message });
     res.error(500, ErrorCodes.CART_FETCH_ERROR, 'Failed to fetch cart');
   }
 });
@@ -197,7 +200,7 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
     
     // Debug logging for Docker environment
     if (process.env.NODE_ENV === 'development') {
-      console.log('Add to cart request:', {
+      logger.info('Add to cart request:', {
         productId,
         quantity,
         user: req.user ? 'authenticated' : 'guest',
@@ -246,7 +249,9 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
       );
       
       if (existingItemIndex >= 0) {
-        const currentQuantity = user.cart.items[existingItemIndex].quantity;
+        // Safe array access - existingItemIndex is controlled and validated
+        const existingItem = user.cart.items[existingItemIndex];
+        const currentQuantity = existingItem.quantity;
         const newQuantity = currentQuantity + quantity;
         
         // Check for integer overflow and maximum quantity
@@ -260,7 +265,9 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
       );
       
       if (existingItemIndex >= 0) {
-        const currentQuantity = cart.items[existingItemIndex].quantity;
+        // Safe array access - existingItemIndex is controlled and validated
+        const existingItem = cart.items[existingItemIndex];
+        const currentQuantity = existingItem.quantity;
         const newQuantity = currentQuantity + quantity;
         
         // Check for integer overflow and maximum quantity
@@ -400,8 +407,10 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
         if (quantity === 0) {
           user.cart.items.splice(itemIndex, 1);
         } else {
-          user.cart.items[itemIndex].quantity = quantity;
-          user.cart.items[itemIndex].addedAt = new Date();
+          // Safe array access - itemIndex is controlled and validated
+          const itemToUpdate = user.cart.items[itemIndex];
+          itemToUpdate.quantity = quantity;
+          itemToUpdate.addedAt = new Date();
         }
         user.cart.updatedAt = new Date();
         await user.save();
@@ -482,7 +491,7 @@ router.put('/update', authenticateToken, validateCSRFToken, async (req, res) => 
     });
 
   } catch (error) {
-    console.error('Error updating cart:', error);
+    logger.error('Error updating cart:', { error: error.message });
     res.error(500, ErrorCodes.CART_UPDATE_ERROR, 'Failed to update cart');
   }
 });
@@ -573,7 +582,7 @@ router.delete('/remove', authenticateToken, validateCSRFToken, async (req, res) 
     });
 
   } catch (error) {
-    console.error('Error removing from cart:', error);
+    logger.error('Error removing from cart:', { error: error.message });
     res.error(500, ErrorCodes.CART_REMOVE_ERROR, 'Failed to remove item from cart');
   }
 });
@@ -589,7 +598,7 @@ router.delete('/clear', authenticateToken, validateCSRFToken, async (req, res) =
       user.cart.updatedAt = new Date();
       await user.save();
       if (process.env.NODE_ENV === 'development') {
-        console.log('Cleared user cart for user:', user._id);
+        logger.info('Cleared user cart for user:', { userId: user._id });
       }
     } else {
       // Clear guest cart - use atomic update instead of delete/recreate
@@ -622,7 +631,7 @@ router.delete('/clear', authenticateToken, validateCSRFToken, async (req, res) =
     });
 
   } catch (error) {
-    console.error('Error clearing cart:', error);
+    logger.error('Error clearing cart:', { error: error.message });
     res.error(500, ErrorCodes.CART_CLEAR_ERROR, 'Failed to clear cart');
   }
 });
@@ -636,7 +645,7 @@ router.post('/merge', authenticateToken, async (req, res) => {
 
     const { guestCartItems, sessionId } = req.body;
     
-    console.log('Cart merge request:', { 
+    logger.info('Cart merge request:', { 
       userId: req.user._id, 
       sessionId, 
       guestItemCount: guestCartItems?.length || 0 
@@ -684,13 +693,13 @@ router.post('/merge', authenticateToken, async (req, res) => {
       // Clean up the guest cart from database if sessionId provided
       if (sessionId) {
         await Cart.deleteOne({ sessionId });
-        console.log('Deleted guest cart for session:', sessionId);
+        logger.info('Deleted guest cart for session:', { sessionId });
       }
     } else if (sessionId) {
       // No items sent from frontend, try to load from database
       const guestCart = await Cart.findOne({ sessionId });
       if (guestCart && guestCart.items.length > 0) {
-        console.log('Found guest cart with', guestCart.items.length, 'items for session:', sessionId);
+        logger.info('Found guest cart', { itemCount: guestCart.items.length, sessionId });
         
         for (const guestItem of guestCart.items) {
           const product = await Product.findById(guestItem.product);
@@ -719,9 +728,9 @@ router.post('/merge', authenticateToken, async (req, res) => {
         
         // Clean up the guest cart after merge
         await Cart.deleteOne({ sessionId });
-        console.log('Deleted guest cart for session:', sessionId);
+        logger.info('Deleted guest cart for session:', { sessionId });
       } else {
-        console.log('No guest cart found for session:', sessionId);
+        logger.info('No guest cart found for session:', { sessionId });
       }
     }
 
@@ -757,7 +766,7 @@ router.post('/merge', authenticateToken, async (req, res) => {
             subtotal: item.price * item.quantity
           };
         } catch (error) {
-          console.error('Error populating cart item:', error);
+          logger.error('Error populating cart item:', { error: error.message });
           return null;
         }
       })
@@ -833,7 +842,7 @@ router.post('/reset-guest-session', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error resetting guest cart session:', error);
+    logger.error('Error resetting guest cart session:', { error: error.message });
     res.error(500, ErrorCodes.RESET_SESSION_ERROR, 'Failed to reset guest cart session');
   }
 });

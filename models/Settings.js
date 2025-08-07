@@ -216,6 +216,7 @@ settingsSchema.methods.validateValue = function (value) {
         errors.push(`${this.label} must be no more than ${validation.maxLength} characters`);
       }
       if (validation.pattern) {
+        // eslint-disable-next-line security/detect-non-literal-regexp
         const regex = new RegExp(validation.pattern);
         if (!regex.test(value)) {
           errors.push(`${this.label} format is invalid`);

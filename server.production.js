@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const { logger } = require('./utils/logger');
 require('dotenv').config({ path: '.env.production' });
 
 const app = express();
@@ -61,13 +62,14 @@ const connectDB = async () => {
         useUnifiedTopology: true,
         serverSelectionTimeoutMS: 5000
       });
-      console.log('✅ MongoDB connected successfully');
+      logger.info('MongoDB connected successfully');
       break;
     } catch (error) {
       retries++;
-      console.error(`MongoDB connection attempt ${retries} failed:`, error.message);
+      logger.error('MongoDB connection attempt failed', { attempt: retries, error: error.message });
       if (retries === maxRetries) {
-        console.error('❌ Failed to connect to MongoDB after maximum retries');
+        logger.error('Failed to connect to MongoDB after maximum retries');
+        // eslint-disable-next-line no-process-exit
         process.exit(1);
       }
       await new Promise(resolve => setTimeout(resolve, 5000));
@@ -82,7 +84,7 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
-const paymentRoutes = require('./routes/payment');
+const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
 const reviewRoutes = require('./routes/reviews');
 
@@ -111,8 +113,8 @@ app.get('*', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
+app.use((err, req, res, _next) => {
+  logger.error('Server error:', { error: err.message });
   
   // Don't expose error details in production
   const message = process.env.NODE_ENV === 'production' 
@@ -129,9 +131,10 @@ app.use((err, req, res, next) => {
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, closing server gracefully');
+  logger.info('SIGTERM received, closing server gracefully');
   mongoose.connection.close(() => {
-    console.log('MongoDB connection closed');
+    logger.info('MongoDB connection closed');
+    // eslint-disable-next-line no-process-exit
     process.exit(0);
   });
 });

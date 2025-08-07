@@ -4,6 +4,7 @@ const { body, param, query } = require('express-validator');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const { apiKeyAuth, handleValidationErrors, rateLimits } = require('../middleware/security');
+const { logger } = require('../utils/logger');
 
 // Apply integration-specific rate limiting
 router.use(rateLimits.integration);
@@ -40,7 +41,7 @@ router.get('/products/link/:referenceKey', [
     // Track referral if source is provided
     if (source) {
       // Log referral for analytics (you might want to store this in a separate collection)
-      console.log(`Cross-site referral: ${source} -> ${product.slug}`);
+      logger.info(`Cross-site referral: ${source} -> ${product.slug}`);
     }
     
     // Return cross-site optimized product data
@@ -58,7 +59,7 @@ router.get('/products/link/:referenceKey', [
     });
     
   } catch (error) {
-    console.error('Cross-site product link error:', error);
+    logger.error('Cross-site product link error:', error);
     res.status(500).json({
       success: false,
       error: {
@@ -96,7 +97,7 @@ router.get('/products/:slug', [
     
     // Track referral if source is provided
     if (source) {
-      console.log(`Cross-site referral: ${source} -> ${product.slug}`);
+      logger.info(`Cross-site referral: ${source} -> ${product.slug}`);
     }
     
     res.json({
@@ -119,7 +120,7 @@ router.get('/products/:slug', [
     });
     
   } catch (error) {
-    console.error('Error fetching integration product:', error);
+    logger.error('Error fetching integration product:', error);
     res.status(500).json({
       success: false,
       error: {
@@ -198,7 +199,7 @@ router.get('/products/embed/:slug', [
     }
     
   } catch (error) {
-    console.error('Product embed error:', error);
+    logger.error('Product embed error:', error);
     res.status(500).json({
       success: false,
       error: {
@@ -274,7 +275,7 @@ router.get('/products/related/:contentId', [
     });
     
   } catch (error) {
-    console.error('Related products error:', error);
+    logger.error('Related products error:', error);
     res.status(500).json({
       success: false,
       error: {
@@ -318,7 +319,7 @@ router.post('/analytics/referral', [
       userAgent: req.get('User-Agent')
     };
     
-    console.log('Cross-site analytics:', analyticsData);
+    logger.info('Cross-site analytics:', analyticsData);
     
     // TODO: Store in analytics collection
     // await Analytics.create(analyticsData);
@@ -329,7 +330,7 @@ router.post('/analytics/referral', [
     });
     
   } catch (error) {
-    console.error('Analytics tracking error:', error);
+    logger.error('Analytics tracking error:', error);
     res.status(500).json({
       success: false,
       error: {
@@ -445,7 +446,7 @@ router.get('/analytics/summary', [
     });
     
   } catch (error) {
-    console.error('Analytics summary error:', error);
+    logger.error('Analytics summary error:', error);
     res.status(500).json({
       success: false,
       error: {

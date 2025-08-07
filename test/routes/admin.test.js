@@ -19,7 +19,7 @@ describe('Admin Routes', () => {
   let regularUser;
   let testProduct;
   let testOrder;
-  const csrfToken = 'test-csrf-token'; // Fixed token for tests
+  const _csrfToken = 'test-csrf-token'; // Fixed token for tests
 
   beforeAll(async () => {
     app = createTestApp();
@@ -653,6 +653,7 @@ Invalid Product`; // Missing required fields
   });
 
   // TODO: Re-enable when Wholesaler Communication Management API is implemented
+  /* eslint-disable jest/no-commented-out-tests */
   /*
   describe('Wholesaler Communication Management', () => {
     test('should get wholesaler communication logs', async () => {
@@ -729,6 +730,7 @@ Invalid Product`; // Missing required fields
       expect(response.body.success).toBe(true);
       expect(response.body.salesAnalytics.filters.category).toBe('crystals');
     }); */ 
+  /* eslint-enable jest/no-commented-out-tests */
   });
 
   describe('User Management', () => {

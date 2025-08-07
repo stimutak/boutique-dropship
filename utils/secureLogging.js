@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Secure logging utilities to prevent leaking sensitive information in logs
  * 
@@ -63,7 +64,7 @@ function secureLog(message, context = {}) {
 }
 
 /**
- * Secure console.log replacement for guest session operations
+ * Secure logger.info replacement for guest session operations
  * 
  * @param {string} message - The message to log
  * @param {string} sessionId - The session ID to mask

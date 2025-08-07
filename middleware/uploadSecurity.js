@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { securityLogger } = require('../utils/logger');
 
 // Allowed file types for different upload contexts
 const ALLOWED_FILE_TYPES = {
@@ -102,9 +103,35 @@ const generateSecureFilename = (originalFilename, fileType) => {
   return `${baseName}${ext}`;
 };
 
+// Validate file path to prevent directory traversal
+const validatePath = (filePath) => {
+  const resolvedPath = path.resolve(filePath);
+  const expectedDir = path.resolve('./uploads');
+  
+  if (!resolvedPath.startsWith(expectedDir)) {
+    throw new Error('Invalid file path: outside allowed directory');
+  }
+  
+  return resolvedPath;
+};
+
 // Main file validation middleware factory
 const createFileValidator = (fileType) => {
-  const config = ALLOWED_FILE_TYPES[fileType];
+  // Validate fileType is a known type to prevent object injection
+  const knownTypes = Object.keys(ALLOWED_FILE_TYPES);
+  if (!knownTypes.includes(fileType)) {
+    throw new Error(`Invalid file type: ${fileType}. Allowed: ${knownTypes.join(', ')}`);
+  }
+  
+  // Safe access after validation - fileType is guaranteed to be a valid key
+  let config;
+  if (fileType === 'csv') {
+    config = ALLOWED_FILE_TYPES.csv;
+  } else if (fileType === 'image') {
+    config = ALLOWED_FILE_TYPES.image;
+  } else {
+    throw new Error(`Unsupported file type: ${fileType}`);
+  }
   
   if (!config) {
     throw new Error(`Invalid file type configuration: ${fileType}`);
@@ -160,36 +187,53 @@ const createFileValidator = (fileType) => {
     // Post-upload validation
     validateUploadedFile: async (filePath, expectedType) => {
       try {
+        // Validate expectedType to prevent object injection
+        const knownTypes = Object.keys(ALLOWED_FILE_TYPES);
+        if (!knownTypes.includes(expectedType)) {
+          throw new Error(`Invalid expected type: ${expectedType}`);
+        }
+        
+        // Validate and resolve file path
+        const validatedPath = validatePath(filePath);
+        
         // Check if file exists
-        if (!fs.existsSync(filePath)) {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        if (!fs.existsSync(validatedPath)) {
           throw new Error('Uploaded file not found');
         }
 
         // Read file header for magic number validation
         const buffer = Buffer.alloc(512);
-        const fd = fs.openSync(filePath, 'r');
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        const fd = fs.openSync(validatedPath, 'r');
         fs.readSync(fd, buffer, 0, 512, 0);
         fs.closeSync(fd);
 
         // Validate magic numbers
         if (!validateFileMagicNumber(buffer, expectedType)) {
           // Clean up the file
-          fs.unlinkSync(filePath);
+          // eslint-disable-next-line security/detect-non-literal-fs-filename
+          fs.unlinkSync(validatedPath);
           throw new Error('File content does not match expected type');
         }
 
         // Check file size again (in case of tampering)
-        const stats = fs.statSync(filePath);
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        const stats = fs.statSync(validatedPath);
         if (stats.size > config.maxSize) {
-          fs.unlinkSync(filePath);
+          // eslint-disable-next-line security/detect-non-literal-fs-filename
+          fs.unlinkSync(validatedPath);
           throw new Error('File size exceeds limit');
         }
 
         return true;
       } catch (error) {
         // Clean up on any error
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+        const cleanupPath = validatePath(filePath);
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        if (fs.existsSync(cleanupPath)) {
+          // eslint-disable-next-line security/detect-non-literal-fs-filename
+          fs.unlinkSync(cleanupPath);
         }
         throw error;
       }
@@ -213,11 +257,16 @@ const cleanupTempFiles = (files) => {
 
   const fileArray = Array.isArray(files) ? files : [files];
   fileArray.forEach(file => {
-    if (file.path && fs.existsSync(file.path)) {
+    if (file.path) {
       try {
-        fs.unlinkSync(file.path);
+        const validatedPath = validatePath(file.path);
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        if (fs.existsSync(validatedPath)) {
+          // eslint-disable-next-line security/detect-non-literal-fs-filename
+          fs.unlinkSync(validatedPath);
+        }
       } catch (error) {
-        console.error(`Failed to cleanup temp file: ${file.path}`, error);
+        securityLogger.error(`Failed to cleanup temp file: ${file.path}`, { error: error.message });
       }
     }
   });

@@ -1,11 +1,11 @@
 const Order = require('../models/Order');
 const _Product = require('../models/Product');
 const { sendWholesalerNotification } = require('./emailService');
-
+const { logger } = require('./logger');
 // Process pending wholesaler notifications
 const processPendingNotifications = async () => {
   try {
-    console.log('Checking for orders requiring wholesaler notifications...');
+    logger.info('Checking for orders requiring wholesaler notifications...');
     
     // Find orders with paid/processing status that have unnotified wholesalers
     const ordersToNotify = await Order.find({
@@ -17,11 +17,11 @@ const processPendingNotifications = async () => {
     }).populate('items.product');
 
     if (ordersToNotify.length === 0) {
-      console.log('No orders requiring wholesaler notifications found.');
+      logger.info('No orders requiring wholesaler notifications found.');
       return { success: true, processed: 0 };
     }
 
-    console.log(`Found ${ordersToNotify.length} orders requiring notifications.`);
+    logger.info(`Found ${ordersToNotify.length} orders requiring notifications.`);
     
     let successCount = 0;
     let errorCount = 0;
@@ -62,7 +62,7 @@ const processPendingNotifications = async () => {
             notes: order.notes
           };
 
-          console.log(`Sending notification to ${wholesalerEmail} for order ${order.orderNumber}...`);
+          logger.info(`Sending notification to ${wholesalerEmail} for order ${order.orderNumber}...`);
           
           const emailResult = await sendWholesalerNotification(wholesalerEmail, orderData);
           
@@ -79,7 +79,7 @@ const processPendingNotifications = async () => {
             
             await order.save();
             
-            console.log(`✓ Successfully notified ${wholesalerEmail} for order ${order.orderNumber}`);
+            logger.info(`✓ Successfully notified ${wholesalerEmail} for order ${order.orderNumber}`);
             successCount++;
             
             results.push({
@@ -89,7 +89,7 @@ const processPendingNotifications = async () => {
               messageId: emailResult.messageId
             });
           } else {
-            console.error(`✗ Failed to notify ${wholesalerEmail} for order ${order.orderNumber}: ${emailResult.error}`);
+            logger.error(`✗ Failed to notify ${wholesalerEmail} for order ${order.orderNumber}: ${emailResult.error}`);
             errorCount++;
             
             results.push({
@@ -102,7 +102,7 @@ const processPendingNotifications = async () => {
         }
         
       } catch (orderError) {
-        console.error(`Error processing order ${order.orderNumber}:`, orderError.message);
+        logger.error(`Error processing order ${order.orderNumber}:`, orderError.message);
         errorCount++;
         
         results.push({
@@ -113,7 +113,7 @@ const processPendingNotifications = async () => {
       }
     }
 
-    console.log(`Notification processing complete. Success: ${successCount}, Errors: ${errorCount}`);
+    logger.info(`Notification processing complete. Success: ${successCount}, Errors: ${errorCount}`);
     
     return {
       success: true,
@@ -124,7 +124,7 @@ const processPendingNotifications = async () => {
     };
     
   } catch (error) {
-    console.error('Error in processPendingNotifications:', error.message);
+    logger.error('Error in processPendingNotifications:', error.message);
     return {
       success: false,
       error: error.message

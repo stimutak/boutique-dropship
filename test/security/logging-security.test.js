@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+/* eslint-disable no-console */
 
 const request = require('supertest');
 const express = require('express');

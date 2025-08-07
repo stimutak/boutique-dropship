@@ -11,7 +11,7 @@ describe('NoSQL Injection Security Tests', () => {
   let userToken;
   let testUser;
   let testProduct;
-  let testOrder;
+  let _testOrder;
 
   beforeAll(async () => {
     // Create test admin user
@@ -53,7 +53,7 @@ describe('NoSQL Injection Security Tests', () => {
     });
 
     // Create test order
-    testOrder = await Order.create({
+    _testOrder = await Order.create({
       orderNumber: 'ORD-TEST-001',
       customer: testUser._id,
       items: [{

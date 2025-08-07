@@ -1,12 +1,13 @@
 const nodemailer = require('nodemailer');
 const { formatPrice } = require('./currency');
+const { logger } = require('./logger');
 // getErrorMessage removed - not used in this file
 
 // Create transporter with environment configuration
 const createTransporter = () => {
   // Return null if email is not configured
   if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER) {
-    console.log('Email service not configured - emails will be skipped');
+    logger.info('Email service not configured - emails will be skipped');
     return null;
   }
   
