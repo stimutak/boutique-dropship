@@ -9,7 +9,7 @@ const { validateCSRFToken } = require('../middleware/sessionCSRF');
 // AppError removed - using res.error() instead
 const { ErrorCodes } = require('../utils/errorHandler');
 const { logger, securityLogger } = require('../utils/logger');
-const { sanitizeInputMiddleware, validateObjectIdParam } = require('../utils/inputSanitizer');
+const { sanitizeInputMiddleware } = require('../utils/inputSanitizer');
 const { rateLimits, speedLimiter } = require('../middleware/security');
 
 // Generate JWT token
@@ -557,7 +557,7 @@ router.put('/profile', requireAuth, sanitizeInputMiddleware, validateCSRFToken, 
 });
 
 // Change password
-router.post('/change-password', rateLimits.auth, speedLimiter, requireAuth, [
+router.post('/change-password', rateLimits.auth, speedLimiter, requireAuth, validateCSRFToken, [
   body('currentPassword').notEmpty().withMessage('Current password is required'),
   body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long')
 ], async (req, res) => {
@@ -593,7 +593,7 @@ router.post('/change-password', rateLimits.auth, speedLimiter, requireAuth, [
 });
 
 // Logout (optional - mainly for server-side session cleanup)
-router.post('/logout', requireAuth, async (req, res) => {
+router.post('/logout', requireAuth, validateCSRFToken, async (req, res) => {
   try {
     const userId = req.user._id;
     

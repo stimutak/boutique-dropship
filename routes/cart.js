@@ -369,12 +369,8 @@ router.post('/add', authenticateToken, validateCSRFToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error adding to cart:', error);
-    console.error('Full stack:', error.stack);
-    res.error(500, ErrorCodes.CART_ADD_ERROR, 'Failed to add item to cart', {
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    logger.error('Error adding to cart:', { error: error.message, stack: error.stack });
+    res.error(500, ErrorCodes.CART_ADD_ERROR, 'Failed to add item to cart');
   }
 });
 
@@ -792,10 +788,8 @@ router.post('/merge', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error merging guest cart:', error);
-    res.error(500, ErrorCodes.CART_MERGE_ERROR, 'Failed to merge guest cart', {
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    logger.error('Error merging guest cart:', { error: error.message, stack: error.stack });
+    res.error(500, ErrorCodes.CART_MERGE_ERROR, 'Failed to merge guest cart');
   }
 });
 

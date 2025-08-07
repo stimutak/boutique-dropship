@@ -110,8 +110,7 @@ router.post('/', requireAuth, validateReview, async (req, res) => {
     
     res.status(500).json({
       success: false,
-      message: 'Failed to create review',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Failed to create review'
     });
   }
 });
@@ -186,8 +185,7 @@ router.get('/:productId', validateProductId, async (req, res) => {
     console.error('Error fetching reviews:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch reviews',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Failed to fetch reviews'
     });
   }
 });
@@ -240,8 +238,7 @@ router.get('/user/my-reviews', requireAuth, async (req, res) => {
     console.error('Error fetching user reviews:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch your reviews',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Failed to fetch your reviews'
     });
   }
 });
@@ -304,8 +301,7 @@ router.put('/:reviewId/helpful', requireAuth, [
     console.error('Error updating review helpfulness:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update review helpfulness',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Failed to update review helpfulness'
     });
   }
 });
