@@ -17,8 +17,4 @@ const companyInfo = {
 }
 
 // Export for both CommonJS and ES6
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = companyInfo
-} else {
-  export default companyInfo
-}
+module.exports = companyInfo

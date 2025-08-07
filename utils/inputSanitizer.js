@@ -103,7 +103,7 @@ function sanitizeValue(value, visited = new WeakSet()) {
     const sanitized = {};
     
     for (const key in value) {
-      if (value.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
         // Skip MongoDB operators
         if (MONGODB_OPERATORS.includes(key)) {
           continue;
@@ -134,7 +134,7 @@ function sanitizeQuery(query) {
   const sanitized = {};
   
   for (const key in query) {
-    if (query.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(query, key)) {
       const value = query[key];
       
       // Handle array values (e.g., ?category=crystals&category=herbs)
@@ -205,7 +205,7 @@ function createSafeMatchStage(matchConditions) {
   const sanitized = {};
   
   for (const key in matchConditions) {
-    if (matchConditions.hasOwnProperty(key) && !key.startsWith('$')) {
+    if (Object.prototype.hasOwnProperty.call(matchConditions, key) && !key.startsWith('$')) {
       const value = matchConditions[key];
       
       // Only allow simple value comparisons in aggregation
@@ -253,7 +253,7 @@ function sanitizeInputMiddleware(req, res, next) {
     // Sanitize route parameters that should be ObjectIds
     if (req.params) {
       for (const param in req.params) {
-        if (req.params.hasOwnProperty(param)) {
+        if (Object.prototype.hasOwnProperty.call(req.params, param)) {
           const value = req.params[param];
           
           // Common ObjectId parameter names
