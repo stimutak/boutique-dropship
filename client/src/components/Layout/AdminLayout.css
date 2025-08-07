@@ -2,7 +2,11 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: #FAFAF8;  /* Subtle off-white for light mode */
+}
+
+[data-theme="dark"] .admin-layout {
+  background-color: #1A1815;  /* Deep dark for dark mode */
 }
 
 .admin-layout.rtl {
@@ -12,10 +16,15 @@
 /* Sidebar Styles */
 .admin-sidebar {
   width: 250px;
-  background-color: #1f2937;
+  background-color: #2C2925;  /* Slightly warmer dark */
   color: white;
   transition: width 0.3s ease;
   flex-shrink: 0;
+}
+
+[data-theme="dark"] .admin-sidebar {
+  background-color: #1A1815;  /* Even darker in dark mode */
+  border-right: 1px solid #3A3630;
 }
 
 .admin-sidebar.collapsed {
@@ -118,6 +127,12 @@
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
+[data-theme="dark"] .admin-header {
+  background-color: #2D2A21;
+  border-bottom: 1px solid #3A3630;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
 .admin-header-content {
   display: flex;
   justify-content: space-between;
@@ -129,6 +144,10 @@
   font-weight: 600;
   color: #1f2937;
   margin: 0;
+}
+
+[data-theme="dark"] .admin-page-title {
+  color: #F4EEE8;
 }
 
 .admin-header-actions {
@@ -153,9 +172,17 @@
   color: #1f2937;
 }
 
+[data-theme="dark"] .admin-user-name {
+  color: #F4EEE8;
+}
+
 .admin-user-role {
   font-size: 0.75rem;
   color: #6b7280;
+}
+
+[data-theme="dark"] .admin-user-role {
+  color: #A69B8C;
 }
 
 /* Main Content */
@@ -163,6 +190,7 @@
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+  background-color: transparent;  /* Inherit from parent */
 }
 
 /* Responsive Design */

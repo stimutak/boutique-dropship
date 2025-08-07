@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const Order = require('../models/Order');
-const _Product = require('../models/Product');
+const Order = require('../../models/Order');
+const _Product = require('../../models/Product');
 
 async function inspectOrders() {
   try {

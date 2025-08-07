@@ -124,16 +124,20 @@ app.use(errorResponse);
 app.use('/uploads', express.static('uploads'));
 app.use(express.static('public'));
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  logger.info('Connected to MongoDB');
-}).catch((error) => {
-  logger.warn('MongoDB connection failed', { error: error.message });
-  logger.warn('Running in development mode without database');
-});
+// Database connection - only connect if not already connected (for testing)
+if (mongoose.connection.readyState === 0) {
+  mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/holistic-store', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  }).then(() => {
+    logger.info('Connected to MongoDB');
+  }).catch((error) => {
+    logger.warn('MongoDB connection failed', { error: error.message });
+    logger.warn('Running in development mode without database');
+  });
+} else if (process.env.NODE_ENV !== 'test') {
+  logger.info('Using existing MongoDB connection');
+}
 
 // Handle MongoDB connection events
 mongoose.connection.on('error', (error) => {

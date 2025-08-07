@@ -26,7 +26,10 @@
     "audit": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
     "docs:api": "node scripts/generateApiDocs.js",
-    "validate": "npm run lint:check && npm run test:ci && npm run audit"
+    "validate": "npm run lint:check && npm run test:ci && npm run audit",
+    "build:production": "cd client && npm run build && cd .. && npm run prepare:production",
+    "prepare:production": "node scripts/prepare-production.js",
+    "deploy:dreamhost": "bash deploy-dreamhost.sh"
   },
   "husky": {
     "hooks": {

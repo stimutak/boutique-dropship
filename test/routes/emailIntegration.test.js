@@ -13,9 +13,15 @@ const mockEmailService = {
   sendWholesalerNotification: jest.fn().mockResolvedValue({ success: true, messageId: 'test-id' })
 };
 
-}
-  }))
-}));
+jest.mock('../../utils/emailService', () => mockEmailService);
+
+// Import models and routes after mocking
+const User = require('../../models/User');
+const Order = require('../../models/Order');
+const Product = require('../../models/Product');
+const authRoutes = require('../../routes/auth');
+const orderRoutes = require('../../routes/orders');
+const paymentRoutes = require('../../routes/payments');
 
 const app = express();
 app.use(express.json());

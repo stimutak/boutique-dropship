@@ -18,20 +18,32 @@ jest.mock('mongodb-memory-server', () => ({
 }));
 
 // Mock mongoose before requiring models
-MockedModel.findOne = jest.fn();
-    MockedModel.find = jest.fn();
-    MockedModel.create = jest.fn();
-    MockedModel.deleteMany = jest.fn();
-    MockedModel.deleteOne = jest.fn();
-    MockedModel.findByIdAndUpdate = jest.fn();
-    
-    // Instance methods
-    MockedModel.prototype.save = jest.fn().mockResolvedValue(true);
-    MockedModel.prototype.toObject = jest.fn().mockReturnValue({});
-    MockedModel.prototype.toPublicJSON = jest.fn().mockReturnValue({});
-    
-    return MockedModel;
-  };
+jest.mock('mongoose', () => {
+  // Mock Model constructor
+  const MockedModel = jest.fn().mockImplementation(() => ({
+    save: jest.fn().mockResolvedValue(true),
+    toObject: jest.fn().mockReturnValue({}),
+    toPublicJSON: jest.fn().mockReturnValue({})
+  }));
+  
+  // Static methods
+  MockedModel.findOne = jest.fn();
+  MockedModel.find = jest.fn();
+  MockedModel.create = jest.fn();
+  MockedModel.deleteMany = jest.fn();
+  MockedModel.deleteOne = jest.fn();
+  MockedModel.findByIdAndUpdate = jest.fn();
+  
+  // Instance methods
+  MockedModel.prototype.save = jest.fn().mockResolvedValue(true);
+  MockedModel.prototype.toObject = jest.fn().mockReturnValue({});
+  MockedModel.prototype.toPublicJSON = jest.fn().mockReturnValue({});
+  
+  // Mock ObjectId
+  const MockObjectId = jest.fn().mockImplementation((id) => ({
+    toString: () => id || 'mockid',
+    equals: jest.fn()
+  }));
   
   // Mock Schema constructor
   const MockSchema = jest.fn().mockImplementation((_definition, _options) => {
@@ -56,6 +68,11 @@ MockedModel.findOne = jest.fn();
     Array: Array,
     Mixed: Object
   };
+  
+  // Mock connection methods
+  const mockConnect = jest.fn().mockResolvedValue(true);
+  const mockClose = jest.fn().mockResolvedValue(true);
+  const mockModel = jest.fn().mockReturnValue(MockedModel);
   
   return {
     connect: mockConnect,

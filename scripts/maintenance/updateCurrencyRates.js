@@ -5,7 +5,7 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Product = require('../models/Product');
+const Product = require('../../models/Product');
 const { STATIC_RATES, calculateAllPrices } = require('../utils/currency');
 
 async function updateCurrencyRates() {

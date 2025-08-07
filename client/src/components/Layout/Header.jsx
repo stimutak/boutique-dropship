@@ -6,6 +6,7 @@ import { logoutUser } from '../../store/slices/authSlice'
 import { clearAfterMerge } from '../../store/slices/cartSlice'
 import SearchAutocomplete from '../SearchAutocomplete'
 import LanguageSelector from '../LanguageSelector'
+import DarkModeToggle from '../DarkModeToggle'
 import { supportedLanguages } from '../../i18n/i18n'
 import './Header.css'
 
@@ -155,6 +156,9 @@ const Header = () => {
           
           {/* Language Selector */}
           <LanguageSelector />
+          
+          {/* Dark Mode Toggle */}
+          <DarkModeToggle />
         </nav>
 
         {/* Mobile Menu */}

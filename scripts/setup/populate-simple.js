@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // Import models
-const User = require('../models/User');
-const Product = require('../models/Product');
+const User = require('../../models/User');
+const Product = require('../../models/Product');
 
 console.log('🚀 Starting database population...');
 

@@ -14,8 +14,14 @@ beforeAll(async () => {
   
   // Set test environment variables
   process.env.NODE_ENV = 'test';
-  process.env.JWT_SECRET = 'test-secret-key-for-testing';
+  process.env.JWT_SECRET = 'test-secret-key-for-testing-must-be-32-chars-long';
   process.env.MONGODB_TEST_URI = mongoUri;
+  process.env.MONGODB_URI = mongoUri; // Override production URI
+  
+  // Close any existing connections before connecting
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+  }
   
   // Connect to the in-memory database
   await mongoose.connect(mongoUri, {

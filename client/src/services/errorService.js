@@ -1,4 +1,7 @@
 // Enhanced error handling service with retry mechanisms and user feedback
+import i18n from '../i18n/i18n.js';
+import { supportedLanguages } from '../i18n/i18n.js';
+
 class ErrorService {
   constructor() {
     this.retryQueue = [];
@@ -61,10 +64,15 @@ class ErrorService {
 
   // Categorize errors for better user experience
   categorizeError(error, context = {}) {
+    const currentLang = i18n.language || 'en';
+    const isRTL = supportedLanguages[currentLang]?.dir === 'rtl';
+    
     const baseError = {
       id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       originalError: error,
-      retryCount: context.retryCount || 0
+      retryCount: context.retryCount || 0,
+      language: currentLang,
+      ...(isRTL && { rtl: true })
     };
 
     // Network errors
@@ -73,15 +81,15 @@ class ErrorService {
         ...baseError,
         type: 'NETWORK_ERROR',
         category: 'connectivity',
-        message: 'You appear to be offline. Changes will be saved when connection returns.',
-        userMessage: 'No internet connection',
+        message: i18n.t('errors.networkError.offline'),
+        userMessage: i18n.t('errors.networkError.noConnection'),
         icon: 'wifi-off',
         severity: 'warning',
         shouldRetry: true,
         retryWhenOnline: true,
         actions: [
-          { label: 'Retry when online', action: 'retry' },
-          { label: 'Continue offline', action: 'dismiss' }
+          { label: i18n.t('errors.networkError.retryWhenOnline'), action: 'retry' },
+          { label: i18n.t('errors.networkError.continueOffline'), action: 'dismiss' }
         ]
       };
     }
@@ -97,14 +105,14 @@ class ErrorService {
             ...baseError,
             type: 'VALIDATION_ERROR',
             category: 'user_input',
-            message: data?.error?.message || 'Please check your input and try again.',
-            userMessage: 'Invalid input',
+            message: data?.error?.message || i18n.t('errors.validationError.checkInput'),
+            userMessage: i18n.t('errors.validationError.invalidInput'),
             icon: 'alert-circle',
             severity: 'error',
             shouldRetry: false,
             actions: [
-              { label: 'Try again', action: 'retry' },
-              { label: 'Dismiss', action: 'dismiss' }
+              { label: i18n.t('errors.common.tryAgain'), action: 'retry' },
+              { label: i18n.t('errors.common.dismiss'), action: 'dismiss' }
             ]
           };
 
@@ -113,14 +121,14 @@ class ErrorService {
             ...baseError,
             type: 'AUTHENTICATION_ERROR',
             category: 'auth',
-            message: 'Please log in again to continue.',
-            userMessage: 'Session expired',
+            message: i18n.t('errors.authError.loginAgain'),
+            userMessage: i18n.t('errors.authError.sessionExpired'),
             icon: 'lock',
             severity: 'error',
             shouldRetry: false,
             actions: [
-              { label: 'Log in', action: 'login' },
-              { label: 'Continue as guest', action: 'guest' }
+              { label: i18n.t('errors.authError.login'), action: 'login' },
+              { label: i18n.t('errors.authError.continueGuest'), action: 'guest' }
             ]
           };
 
@@ -129,14 +137,14 @@ class ErrorService {
             ...baseError,
             type: 'AUTHORIZATION_ERROR',
             category: 'auth',
-            message: 'You don\'t have permission to perform this action.',
-            userMessage: 'Access denied',
+            message: i18n.t('errors.authError.noPermission'),
+            userMessage: i18n.t('errors.authError.accessDenied'),
             icon: 'shield-off',
             severity: 'error',
             shouldRetry: false,
             actions: [
-              { label: 'Go back', action: 'goBack' },
-              { label: 'Dismiss', action: 'dismiss' }
+              { label: i18n.t('errors.common.goBack'), action: 'goBack' },
+              { label: i18n.t('errors.common.dismiss'), action: 'dismiss' }
             ]
           };
 
@@ -145,14 +153,14 @@ class ErrorService {
             ...baseError,
             type: 'NOT_FOUND_ERROR',
             category: 'resource',
-            message: 'The requested item could not be found.',
-            userMessage: 'Not found',
+            message: i18n.t('errors.notFoundError.itemNotFound'),
+            userMessage: i18n.t('errors.notFoundError.notFound'),
             icon: 'search',
             severity: 'error',
             shouldRetry: false,
             actions: [
-              { label: 'Go back', action: 'goBack' },
-              { label: 'Refresh page', action: 'refresh' }
+              { label: i18n.t('errors.common.goBack'), action: 'goBack' },
+              { label: i18n.t('errors.common.refreshPage'), action: 'refresh' }
             ]
           };
 
@@ -162,15 +170,15 @@ class ErrorService {
             ...baseError,
             type: 'RATE_LIMIT_ERROR',
             category: 'rate_limit',
-            message: `Too many requests. Please wait ${retryAfter} seconds before trying again.`,
-            userMessage: 'Too many requests',
+            message: i18n.t('errors.rateLimitError.tooManyRequests', { seconds: retryAfter }),
+            userMessage: i18n.t('errors.rateLimitError.tooManyRequestsShort'),
             icon: 'clock',
             severity: 'warning',
             shouldRetry: true,
             retryAfter: retryAfter * 1000,
             actions: [
-              { label: `Retry in ${retryAfter}s`, action: 'retryAfter' },
-              { label: 'Dismiss', action: 'dismiss' }
+              { label: i18n.t('errors.rateLimitError.retryAfter', { seconds: retryAfter }), action: 'retryAfter' },
+              { label: i18n.t('errors.common.dismiss'), action: 'dismiss' }
             ]
           };
 
@@ -182,14 +190,14 @@ class ErrorService {
             ...baseError,
             type: 'SERVER_ERROR',
             category: 'server',
-            message: 'Something went wrong on our end. Please try again in a moment.',
-            userMessage: 'Server error',
+            message: i18n.t('errors.serverError.internalError'),
+            userMessage: i18n.t('errors.serverError.serverError'),
             icon: 'server',
             severity: 'error',
             shouldRetry: true,
             actions: [
-              { label: 'Retry', action: 'retry' },
-              { label: 'Report issue', action: 'report' }
+              { label: i18n.t('errors.common.retry'), action: 'retry' },
+              { label: i18n.t('errors.common.reportIssue'), action: 'report' }
             ]
           };
 
@@ -198,14 +206,14 @@ class ErrorService {
             ...baseError,
             type: 'API_ERROR',
             category: 'api',
-            message: data?.error?.message || 'An unexpected error occurred.',
-            userMessage: 'Request failed',
+            message: data?.error?.message || i18n.t('errors.unknownError.unexpectedError'),
+            userMessage: i18n.t('errors.unknownError.somethingWrong'),
             icon: 'alert-triangle',
             severity: 'error',
             shouldRetry: status >= 500,
             actions: [
-              { label: 'Retry', action: 'retry' },
-              { label: 'Dismiss', action: 'dismiss' }
+              { label: i18n.t('errors.common.retry'), action: 'retry' },
+              { label: i18n.t('errors.common.dismiss'), action: 'dismiss' }
             ]
           };
       }
@@ -217,14 +225,14 @@ class ErrorService {
         ...baseError,
         type: 'JAVASCRIPT_ERROR',
         category: 'application',
-        message: 'A technical error occurred. Please refresh the page.',
-        userMessage: 'Application error',
+        message: i18n.t('errors.jsError.technicalError'),
+        userMessage: i18n.t('errors.jsError.applicationError'),
         icon: 'code',
         severity: 'error',
         shouldRetry: false,
         actions: [
-          { label: 'Refresh page', action: 'refresh' },
-          { label: 'Report issue', action: 'report' }
+          { label: i18n.t('errors.common.refreshPage'), action: 'refresh' },
+          { label: i18n.t('errors.common.reportIssue'), action: 'report' }
         ]
       };
     }
@@ -235,14 +243,14 @@ class ErrorService {
         ...baseError,
         type: 'TIMEOUT_ERROR',
         category: 'network',
-        message: 'The request took too long. Please check your connection and try again.',
-        userMessage: 'Request timeout',
+        message: i18n.t('errors.timeoutError.requestTooLong'),
+        userMessage: i18n.t('errors.timeoutError.requestTimeout'),
         icon: 'clock',
         severity: 'warning',
         shouldRetry: true,
         actions: [
-          { label: 'Retry', action: 'retry' },
-          { label: 'Check connection', action: 'checkConnection' }
+          { label: i18n.t('errors.common.retry'), action: 'retry' },
+          { label: i18n.t('errors.timeoutError.checkConnection'), action: 'checkConnection' }
         ]
       };
     }
@@ -252,14 +260,14 @@ class ErrorService {
       ...baseError,
       type: 'UNKNOWN_ERROR',
       category: 'unknown',
-      message: error.message || 'An unexpected error occurred.',
-      userMessage: 'Something went wrong',
+      message: error.message || i18n.t('errors.unknownError.unexpectedError'),
+      userMessage: i18n.t('errors.unknownError.somethingWrong'),
       icon: 'alert-circle',
       severity: 'error',
       shouldRetry: false,
       actions: [
-        { label: 'Try again', action: 'retry' },
-        { label: 'Report issue', action: 'report' }
+        { label: i18n.t('errors.common.tryAgain'), action: 'retry' },
+        { label: i18n.t('errors.common.reportIssue'), action: 'report' }
       ]
     };
   }
@@ -304,7 +312,7 @@ class ErrorService {
         // Notify success
         this.notifyListeners({
           type: 'RETRY_SUCCESS',
-          message: 'Operation completed successfully',
+          message: i18n.t('errors.retrySuccess.operationCompleted'),
           originalError: operation.error
         });
       } catch (retryError) {
@@ -431,17 +439,21 @@ class ErrorService {
 
   // Graceful degradation for missing features
   handleFeatureDegradation(missingFeature, fallback) {
+    const currentLang = i18n.language || 'en';
+    const isRTL = supportedLanguages[currentLang]?.dir === 'rtl';
+    
     const degradationError = {
       type: 'FEATURE_DEGRADATION',
       category: 'compatibility',
-      message: `${missingFeature} is not available. Using fallback.`,
-      userMessage: 'Limited functionality',
+      message: i18n.t('errors.featureDegradation.featureUnavailable', { feature: missingFeature }),
+      userMessage: i18n.t('errors.featureDegradation.limitedFunctionality'),
       icon: 'info',
       severity: 'info',
       shouldRetry: false,
+      ...(isRTL && { rtl: true }),
       actions: [
-        { label: 'Continue', action: 'dismiss' },
-        { label: 'Learn more', action: 'learnMore' }
+        { label: i18n.t('errors.common.continue'), action: 'dismiss' },
+        { label: i18n.t('errors.featureDegradation.learnMore'), action: 'learnMore' }
       ]
     };
     

@@ -246,7 +246,7 @@ router.get('/products', async (req, res) => {
 });
 
 // POST /api/admin/products - Create new product
-router.post('/products', async (req, res) => {
+router.post('/products', validateCSRFToken, async (req, res) => {
   try {
     const productData = req.body;
     
@@ -293,7 +293,7 @@ router.post('/products', async (req, res) => {
 });
 
 // POST /api/admin/products/bulk-import - Import products from CSV
-router.post('/products/bulk-import', upload.single('csvFile'), async (req, res) => {
+router.post('/products/bulk-import', upload.single('csvFile'), validateCSRFToken, async (req, res) => {
   try {
     if (!req.file) {
       return res.error(400, 'NO_FILE', 'CSV file is required');
@@ -535,7 +535,7 @@ router.get('/products/:id', validateObjectIdParam('id'), async (req, res) => {
 });
 
 // PUT /api/admin/products/:id - Update existing product
-router.put('/products/:id', async (req, res) => {
+router.put('/products/:id', validateCSRFToken, async (req, res) => {
   try {
     const productData = req.body;
     const productId = req.params.id;
@@ -570,7 +570,7 @@ router.put('/products/:id', async (req, res) => {
 });
 
 // DELETE /api/admin/products/:id - Soft delete product
-router.delete('/products/:id', async (req, res) => {
+router.delete('/products/:id', validateCSRFToken, async (req, res) => {
   try {
     const productId = req.params.id;
     
@@ -598,7 +598,7 @@ router.delete('/products/:id', async (req, res) => {
 });
 
 // PUT /api/admin/products/:id/restore - Restore soft-deleted product
-router.put('/products/:id/restore', async (req, res) => {
+router.put('/products/:id/restore', validateCSRFToken, async (req, res) => {
   try {
     const productId = req.params.id;
     
@@ -638,7 +638,7 @@ const imageUpload = multer({
 });
 
 // POST /api/admin/products/images - Upload product images (generic)
-router.post('/products/images', (req, res) => {
+router.post('/products/images', validateCSRFToken, (req, res) => {
   // Custom multer error handling middleware
   imageUpload.array('images', 10)(req, res, async (err) => {
     if (err) {
@@ -706,7 +706,7 @@ router.post('/products/images', (req, res) => {
 });
 
 // POST /api/admin/products/:id/images - Upload images to specific product
-router.post('/products/:id/images', async (req, res) => {
+router.post('/products/:id/images', validateCSRFToken, async (req, res) => {
   imageUpload.array('images', 10)(req, res, async (err) => {
     if (err) {
       logger.error('Multer upload error:', err);
@@ -779,7 +779,7 @@ router.post('/products/:id/images', async (req, res) => {
 });
 
 // DELETE /api/admin/products/:id/images/:imageId - Remove specific image from product
-router.delete('/products/:id/images/:imageId', async (req, res) => {
+router.delete('/products/:id/images/:imageId', validateCSRFToken, async (req, res) => {
   try {
     const { id: productId, imageId } = req.params;
     
@@ -840,6 +840,7 @@ router.get('/categories', async (req, res) => {
 
 // POST /api/admin/categories - Create new category with i18n support
 router.post('/categories', [
+  validateCSRFToken,
   body('name').trim().notEmpty().withMessage('Category name is required'),
   body('slug').optional().trim(),
   body('description').optional().trim(),
@@ -2649,7 +2650,7 @@ router.put('/reviews/:id/reject', [
 });
 
 // DELETE /api/admin/reviews/:id - Delete a review
-router.delete('/reviews/:id', async (req, res) => {
+router.delete('/reviews/:id', validateCSRFToken, async (req, res) => {
   try {
     const { id } = req.params;
 

@@ -11,8 +11,13 @@ const generateCSRFToken = (req, res, next) => {
 
 // CSRF validation middleware
 const validateCSRFToken = (req, res, next) => {
-  // Skip CSRF for GET requests and API testing
-  if (req.method === 'GET' || req.path.includes('/test')) {
+  // Skip CSRF for GET requests
+  if (req.method === 'GET') {
+    return next();
+  }
+  
+  // Skip CSRF validation in test environment
+  if (process.env.NODE_ENV === 'test') {
     return next();
   }
 

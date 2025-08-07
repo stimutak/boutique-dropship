@@ -43,6 +43,8 @@ jest.mock('@mollie/api-client', () => ({
 const { globalErrorHandler } = require('../../middleware/errorHandler');
 const { i18nMiddleware } = require('../../utils/i18n');
 const { errorResponse } = require('../../utils/errorHandler');
+const { authenticateToken, requireAuth, requireAdmin } = require('../../middleware/auth');
+const { validateCSRFToken } = require('../../middleware/sessionCSRF');
 
 // Import routes
 const authRoutes = require('../../routes/auth');
@@ -81,13 +83,21 @@ function createTestApp() {
   });
   app.use(limiter);
 
-  // Session middleware for cart functionality
+  // Session middleware for cart functionality and CSRF
   app.use(session({
     secret: 'test-session-secret',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Important for CSRF token generation
     cookie: { secure: false } // Set to false for testing
   }));
+  
+  // Generate CSRF token for test requests
+  app.use((req, res, next) => {
+    if (!req.session.csrfToken) {
+      req.session.csrfToken = 'test-csrf-token'; // Use fixed token for tests
+    }
+    next();
+  });
 
   // Body parsing middleware with error handling
   app.use(express.json({ 
@@ -117,6 +127,9 @@ function createTestApp() {
 
   // Error response helper middleware
   app.use(errorResponse);
+
+  // Authentication middleware for testing
+  app.use(authenticateToken);
 
   // Health check endpoint
   app.get('/health', (req, res) => {

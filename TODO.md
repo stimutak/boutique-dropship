@@ -1,211 +1,284 @@
 # TODO List - Boutique E-Commerce
 
-## 📊 Project Status: ~95% Complete (31/32 core tasks)
+## 📊 Project Status: ~70% Complete (Security Review Revealed Critical Issues)
 
-## ✅ Completed Tasks
+**⚠️ CRITICAL UPDATE**: Comprehensive security review completed on 2025-08-07 revealed 56 issues that must be addressed before production deployment. See COMPLETE_ACTION_PLAN.md for full details.
+
+## 🚨 PRODUCTION BLOCKERS - MUST FIX IMMEDIATELY
+
+### 🔴 CRITICAL Security Issues (24 Hour Fix Required)
+**Full details in COMPLETE_ACTION_PLAN.md**
+
+#### 1. ⚠️ Missing CSRF Protection on ALL Admin Routes
+**Agent**: bug-detective-tdd  
+**Severity**: CRITICAL - Allows CSRF attacks on admin panel  
+**Files**: routes/admin.js (lines 240, 529, 564, 700+)
+- [ ] Add validateCSRFToken to all POST/PUT/DELETE admin routes
+- [ ] Test with curl to verify 403 without token
+- [ ] Verify all 12+ admin endpoints protected
+
+#### 2. 💾 Memory Leaks in Error Service & CSV Processing
+**Agent**: bug-detective-tdd  
+**Severity**: CRITICAL - Causes server instability  
+**Files**: client/src/services/errorService.js:384-385, routes/admin.js:311-313
+- [ ] Add cleanupGlobalHandlers() method
+- [ ] Fix CSV parser event emitter cleanup
+- [ ] Add timeout cleanup for long operations
+- [ ] Test with 24-hour load test
+
+#### 3. 🔐 Missing Rate Limiting on Password Reset
+**Agent**: tdd-advocate  
+**Severity**: CRITICAL - Allows brute force attacks  
+**Files**: routes/auth.js
+- [ ] Implement rate limiting (3 attempts/15 min) on /forgot-password
+- [ ] Add rate limiting (5 attempts/15 min) on /login
+- [ ] Test with rapid requests to verify blocking
+
+#### 4. 🌍 45+ Hardcoded Strings Breaking i18n
+**Agent**: system-architect-tdd  
+**Severity**: CRITICAL - Breaks international support  
+**Files**: client/src/services/errorService.js (30+ strings)
+- [ ] Replace all hardcoded error messages with t() calls
+- [ ] Add translation keys for all 10+ languages
+- [ ] Test with Arabic/Hebrew for RTL support
+
+---
+
+## 🟡 HIGH PRIORITY ISSUES (1 Week Timeline)
+
+### Code Quality & Maintenance
+
+#### 1. 📁 Scripts Directory Chaos - 38 Duplicate Scripts
+**Agent**: general-purpose  
+**Path**: /scripts/
+- [ ] Consolidate 5 password reset scripts into 1
+- [ ] Merge 2 identical performance index scripts
+- [ ] Organize into setup/, maintenance/, debugging/ folders
+- [ ] Delete 20+ redundant scripts
+- [ ] Create README.md documenting each script
+
+#### 2. 🚀 Database Query Performance - Missing .lean()
+**Agent**: bug-detective-tdd  
+**Impact**: 2-3x slower queries, 50% more memory
+- [ ] Add .lean() to 15+ queries in routes/admin.js
+- [ ] Add .lean() to 8+ queries in routes/orders.js
+- [ ] Add .select() to limit fields
+- [ ] Test performance improvements
+
+#### 3. 📦 Frontend Bundle Not Optimized
+**Agent**: general-purpose  
+**Impact**: 40KB unnecessary initial load
+- [ ] Lazy load error service (15KB)
+- [ ] Lazy load admin styles (25KB)
+- [ ] Add React.memo to 12 components
+- [ ] Implement code splitting
+
+#### 4. 💰 Currency Precision Issues
+**Agent**: system-architect-tdd  
+**Files**: models/Order.js, models/Product.js
+- [ ] Implement Decimal128 for MongoDB schemas
+- [ ] Use decimal.js for calculations
+- [ ] Handle different currency decimals (JPY=0, KWD=3)
+- [ ] Fix Math.round() precision losses
+
+#### 5. 📤 File Upload Security Gaps
+**Agent**: bug-detective-tdd  
+**Files**: routes/admin.js:700, middleware/uploadSecurity.js
+- [ ] Add 5MB file size limit
+- [ ] Validate MIME types properly
+- [ ] Check for double extensions
+- [ ] Add virus scanning integration
+
+#### 6. ⚠️ Inconsistent Error Handling
+**Agent**: system-architect-tdd  
+**Files**: All route files
+- [ ] Create centralized ApiResponse class
+- [ ] Standardize error response format
+- [ ] Update all routes to use consistent responses
+- [ ] Add proper error codes
+
+#### 7. 🔒 localStorage Still Used for GDPR Consent
+**Agent**: bug-detective-tdd  
+**Files**: client/src/components/GDPR/CookieConsentBanner.jsx
+- [ ] Move GDPR consent to httpOnly cookies
+- [ ] Create server-side storage
+- [ ] Add consent audit trail
+
+---
+
+## 🟢 MEDIUM PRIORITY ISSUES (2-4 Weeks)
+
+### Infrastructure & Performance
+
+#### 1. 🔄 Session Management Issues
+**Agent**: bug-detective-tdd
+- [ ] Add session regeneration on login
+- [ ] Prevent session fixation attacks
+- [ ] Implement proper session timeout
+
+#### 2. 🏊 Missing Database Connection Pooling
+**Agent**: system-architect-tdd
+- [ ] Configure MongoDB connection pooling
+- [ ] Set maxPoolSize: 50, minPoolSize: 10
+- [ ] Add connection monitoring
+- [ ] Implement graceful shutdown
+
+#### 3. 🌏 Missing RTL Support Testing
+**Agent**: system-architect-tdd
+- [ ] Test admin dashboard with Arabic/Hebrew
+- [ ] Fix CSS for RTL layouts
+- [ ] Update all form alignments
+- [ ] Test data tables in RTL
+
+#### 4. 🛡️ Missing Security Headers
+**Agent**: bug-detective-tdd
+- [ ] Implement CSP headers
+- [ ] Add HSTS with preload
+- [ ] Configure X-Frame-Options
+- [ ] Add security monitoring
+
+#### 5. ⚡ Missing Response Caching
+**Agent**: system-architect-tdd
+- [ ] Implement caching middleware
+- [ ] Cache products (5 min)
+- [ ] Cache settings (1 hour)
+- [ ] Add cache invalidation
+
+#### 6. 📦 Unused Dependencies
+**Agent**: general-purpose
+- [ ] Remove webpack (using Vite)
+- [ ] Remove nyc coverage tool
+- [ ] Clean duplicate ESLint configs
+- [ ] Verify nothing breaks
+
+---
+
+## ✅ COMPLETED TASKS (From Previous Work)
 
 ### Security & Infrastructure
-- [x] Generate secure JWT_SECRET and SESSION_SECRET
-- [x] JWT migration to httpOnly cookies ✅ COMPLETED
-- [x] CSRF protection implementation
-- [x] Fix React version mismatch (both on v19)
-- [x] Remove .env from git repository
-- [x] Stop logging guest session IDs (cart.js)
-- [x] Remove sensitive environment logging (server.js)
-- [x] Fix N+1 queries (all routes optimized with batch queries)
+- [x] JWT migration to httpOnly cookies
+- [x] Basic CSRF protection (but missing on admin routes!)
+- [x] NoSQL injection prevention
+- [x] Input sanitization system
 
-### Internationalization & Currency
-- [x] i18n framework setup (react-i18next with 10+ languages)
-- [x] Multi-currency support (20+ currencies)
-- [x] Currency display components
-- [x] Language selector component
-- [x] RTL support for Arabic and Hebrew
-- [x] Locale-aware formatting
-
-### Core Features
-- [x] Cart persistence (atomic operations)
-- [x] Cart merge functionality
-- [x] Guest checkout flow
-- [x] Order creation and tracking
-- [x] Payment integration (Mollie)
-- [x] Error Handling Standardization
-- [x] Order Fulfillment Workflow
-- [x] Shipping label generation
-- [x] Refund processing
-
-### Admin Dashboard ✅ COMPLETED
-- [x] Product Management (CRUD, bulk import/export, image management)
-- [x] Order Management (list, detail, status updates, refunds)
-- [x] User Management (list, search, role management, activity logs)
-- [x] Analytics Dashboard (sales, products, customers, revenue tracking)
-- [x] Multi-currency analytics
-- [x] Export capabilities (CSV/JSON)
-
-### Performance & Quality
+### Performance
+- [x] N+1 queries fixed with batch operations
 - [x] Database indexes added
-- [x] N+1 queries fixed (all routes)
-- [x] Enhanced Redux slices removed
-- [x] Duplicate test files cleaned up
-- [x] CSS performance optimization (custom properties)
+- [x] Atomic cart operations
 
-### Deployment
-- [x] Docker environment setup
-- [x] nginx configuration
-- [x] Production-ready deployment
-- [x] Test credentials documented
+### Features
+- [x] Full i18n framework (10+ languages)
+- [x] Multi-currency support (20+ currencies)
+- [x] Complete admin dashboard
+- [x] Order fulfillment workflow
+- [x] Guest checkout
+- [x] Cart persistence
 
-## 🚧 IN PROGRESS
+---
 
-### 📝 User Reviews & Ratings System
-**Status**: Backend complete, Frontend in progress  
-**Priority**: HIGH - Currently being implemented
-- [x] Review model with moderation fields
-- [x] Reviews API routes (CREATE, READ, UPDATE, DELETE)
-- [x] Admin moderation endpoints (approve/reject)
-- [x] Review statistics calculation
-- [ ] Frontend review components
-- [ ] Star rating display component
-- [ ] Review form with validation
-- [ ] Review list with pagination
-- [ ] Admin moderation interface
-- [ ] Email notifications for review status changes
+## 📋 TASK ASSIGNMENT SUMMARY
 
-## 📋 Remaining Tasks
+### bug-detective-tdd (8 tasks)
+1. CSRF Protection (CRITICAL)
+2. Memory Leaks (CRITICAL)
+3. DB Query Optimization (HIGH)
+4. File Upload Security (HIGH)
+5. GDPR Storage (HIGH)
+6. Session Management (MEDIUM)
+7. Security Headers (MEDIUM)
 
-### 🟠 HIGH Priority
+### tdd-advocate (3 tasks)
+1. Rate Limiting (CRITICAL)
+2. Security Test Suite (MEDIUM)
+3. Test Coverage Increase (LOW)
 
-#### 1. 📧 Email Notifications System
-**Agent**: tdd-advocate  
-**Priority**: HIGH  
-**Location**: Mollie webhooks ready, email service needs implementation
-- [ ] Order confirmation emails
-- [ ] Shipping notifications
-- [ ] Review moderation notifications
-- [ ] Password reset emails
-- [ ] Welcome emails for new users
-- [ ] Integrate with email service (SendGrid/AWS SES)
+### system-architect-tdd (7 tasks)
+1. i18n Error Messages (CRITICAL)
+2. Currency Precision (HIGH)
+3. Error Handling (HIGH)
+4. RTL Support (MEDIUM)
+5. Connection Pooling (MEDIUM)
+6. Response Caching (MEDIUM)
 
-#### 2. 🎯 Code Splitting & Performance
-**Agent**: system-architect-tdd  
-**Priority**: HIGH  
-**Location**: client/src (no React.lazy usage)
-- [ ] Add React.lazy for route components
-- [ ] Implement Suspense boundaries
-- [ ] Create loading skeletons
-- [ ] Optimize bundle sizes
-- [ ] Implement image lazy loading
+### general-purpose (4 tasks)
+1. Scripts Consolidation (HIGH)
+2. Bundle Optimization (HIGH)
+3. React.memo Implementation (HIGH)
+4. Dependency Cleanup (MEDIUM)
 
-### 🟡 MEDIUM Priority
+---
 
-#### 1. 🌍 Dynamic Currency Exchange Rates
-**Agent**: tdd-advocate  
-**Priority**: MEDIUM  
-**Location**: utils/currency.js lines 3-13
-- [ ] Replace static rates with API integration
-- [ ] Add rate caching with Redis
-- [ ] Schedule periodic rate updates
-- [ ] Handle API failures gracefully
+## 🚀 EXECUTION TIMELINE
 
-#### 2. 📦 Externalize Configuration
-**Agent**: system-architect-tdd  
-**Priority**: MEDIUM  
-**Location**: routes/orders.js lines 186-192
-- [ ] Move hardcoded 8% tax rate to configuration
-- [ ] Move $5.99 shipping threshold to configuration
-- [ ] Support different rates per locale/region
-- [ ] Create admin interface to manage rates
+### Day 1-2 (CRITICAL)
+- Morning: CSRF Protection
+- Afternoon: Memory Leaks + Rate Limiting
+- Evening: Test all critical fixes
 
-#### 3. 🕐 Timezone Support
-**Agent**: system-architect-tdd  
-**Priority**: MEDIUM
-- [ ] Store all dates as UTC
-- [ ] Display in user's timezone
-- [ ] Add timezone selection to user profile
-- [ ] Update all date displays
+### Week 1 (HIGH PRIORITY)
+- Days 3-4: i18n implementation
+- Days 5-6: Scripts consolidation
+- Day 7: Database optimization
 
-### 🟢 LOW Priority - Maintenance
+### Weeks 2-3 (MEDIUM PRIORITY)
+- Security headers
+- Connection pooling
+- Response caching
+- RTL testing
 
-#### 1. 🧹 Remove Unused Dependencies
-**Agent**: code-review-architect  
-**Priority**: LOW
-- [ ] Remove webpack (project uses Vite)
-- [ ] Remove nyc (unused test coverage tool)
-- [ ] Remove duplicate ESLint configs
-- [ ] Update package.json scripts
+### Week 4+ (LOW PRIORITY)
+- Test coverage
+- API documentation
+- Monitoring setup
 
-#### 2. 🗑️ Clean Build Artifacts
-**Agent**: general-purpose  
-**Priority**: LOW
-- [ ] Remove client/dist/ from git
-- [ ] Remove coverage/ directory
-- [ ] Update .gitignore properly
+---
 
-#### 3. 🚨 Add Error Boundaries
-**Agent**: tdd-advocate  
-**Priority**: LOW
-- [ ] Create ErrorBoundary component
-- [ ] Wrap app routes with boundary
-- [ ] Add error logging to Sentry/LogRocket
-- [ ] Create user-friendly fallback UI
+## 📊 METRICS TO TRACK
 
-## 🎯 Current Sprint Focus
+### Before Production
+- Security Score: Currently 7/10 → Target 9/10
+- Performance Score: Currently 7/10 → Target 8/10
+- Test Coverage: Currently 70% → Target 85%
+- Bundle Size: Currently 340KB → Target <300KB
+- Query Performance: Currently slow → Target <50ms avg
 
-### User Reviews Implementation
-**Week 1** ✅ COMPLETED
-- Backend API implementation
-- Database schema with moderation
-- Admin moderation endpoints
+### Success Criteria
+- [ ] Zero critical security vulnerabilities
+- [ ] All user strings internationalized
+- [ ] Memory stable over 24 hours
+- [ ] All admin routes CSRF protected
+- [ ] Rate limiting on all sensitive endpoints
 
-**Week 2** 🚧 IN PROGRESS
-- Review display components
-- Star rating component
-- Review submission form
-- Frontend integration
+---
 
-**Week 3** 📅 UPCOMING
-- Admin moderation interface
-- Email notifications
-- Performance optimization
-- Testing & deployment
-
-## 📝 Quick Reference
+## 🎯 Quick Reference
 
 ### Docker Commands
 ```bash
 ./docker-helper.sh dev     # Start all services
 ./docker-helper.sh stop    # Stop all services
 ./docker-helper.sh logs    # View logs
-./docker-helper.sh restart # Restart containers
 ```
-
-### Access Points
-- Frontend: http://localhost:3001
-- Backend API: http://localhost:5001
-- MongoDB UI: http://localhost:8081 (admin/admin123)
 
 ### Test Credentials
 - **Admin**: john@example.com / Password123!
 - **Customer**: jane@example.com / Password123!
-- **Note**: The exclamation mark (!) is part of the password
 
-### Key Features Completed
-- ✅ Full internationalization (10+ languages)
-- ✅ Multi-currency support (20+ currencies)
-- ✅ Secure authentication (JWT in httpOnly cookies)
-- ✅ Complete admin dashboard
-- ✅ Order management & fulfillment
-- ✅ Analytics & reporting
-- ✅ Bulk operations
-- ✅ Refund processing
-- ✅ Guest checkout
-- ✅ Cart persistence
+### Critical Files to Review
+- COMPLETE_ACTION_PLAN.md - Full 56-issue breakdown
+- SECURITY_REVIEW_ACTION_PLAN.md - Security-focused plan
+- CLAUDE.md - Project constraints and guidelines
 
-### Architecture Notes
-- Backend: Node.js + Express + MongoDB
-- Frontend: React 19 + Redux Toolkit + Vite
-- Styling: CSS with custom properties
-- Testing: Jest (backend) + Vitest (frontend)
-- Deployment: Docker + nginx
+---
+
+## ⚠️ DO NOT DEPLOY TO PRODUCTION UNTIL:
+1. ✅ CSRF protection added to ALL admin routes
+2. ✅ Memory leaks fixed and verified
+3. ✅ Rate limiting active on password reset
+4. ✅ Security headers configured
+5. ✅ All critical issues resolved
+
+---
 
 ## 🚀 Next Major Features (Post-MVP)
 1. **Wishlist functionality**
@@ -216,5 +289,7 @@
 6. **Mobile app (React Native)**
 
 ---
-*Last Updated: Current Date*
-*Note: This TODO reflects the actual project state with User Reviews as the current active development.*
+
+*Last Updated: 2025-08-07*
+*Security Review Status: COMPLETE - 56 issues found*
+*Production Ready: ❌ NO - Critical blockers exist*

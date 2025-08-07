@@ -4,9 +4,21 @@
 
 A full-stack **international** e-commerce platform for spiritual and wellness products with dropshipping functionality, built with React and Node.js.
 
+## ⚠️ SECURITY NOTICE
+
+**Production Status: NOT READY** 
+
+A comprehensive security review on 2025-08-07 identified **56 issues** including **4 critical security vulnerabilities** that must be resolved before production deployment:
+- Missing CSRF protection on admin routes
+- Memory leaks in error handling
+- Missing rate limiting on authentication
+- 45+ hardcoded strings breaking internationalization
+
+See `COMPLETE_ACTION_PLAN.md` for full details and remediation steps.
+
 ## 🌟 Features
 
-### ✅ Completed Features (~87% Complete)
+### ✅ Completed Features (~70% Complete - Security Issues Pending)
 
 #### 🌍 Internationalization & Localization
 - **Multi-language Support**: 7 languages including RTL (Arabic, Hebrew)

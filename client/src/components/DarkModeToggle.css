@@ -1,0 +1,84 @@
+/* Dark Mode Toggle Switch */
+.dark-mode-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all var(--transition-base);
+}
+
+.toggle-track {
+  width: 56px;
+  height: 28px;
+  background: linear-gradient(135deg, #e0e0dc 0%, #d0d0cc 100%);
+  border-radius: 14px;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .toggle-track {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(255, 255, 255, 0.05);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-thumb.light {
+  left: 2px;
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+}
+
+.toggle-thumb.dark {
+  left: 30px;
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+}
+
+.dark-mode-toggle:hover .toggle-track {
+  opacity: 0.9;
+}
+
+.dark-mode-toggle:active .toggle-thumb {
+  width: 28px;
+}
+
+/* RTL Support */
+[dir="rtl"] .toggle-thumb.light {
+  left: auto;
+  right: 2px;
+}
+
+[dir="rtl"] .toggle-thumb.dark {
+  left: auto;
+  right: 30px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .dark-mode-toggle {
+    transform: scale(0.9);
+  }
+}

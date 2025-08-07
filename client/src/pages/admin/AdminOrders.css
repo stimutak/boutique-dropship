@@ -3,6 +3,11 @@
   padding: var(--space-6);
 }
 
+[data-theme="dark"] .admin-orders {
+  background: var(--pearl-white);
+  color: var(--text-primary);
+}
+
 .orders-header {
   display: flex;
   justify-content: space-between;
@@ -13,6 +18,10 @@
 .orders-header h1 {
   color: var(--earth-deep);
   font-family: var(--font-luxury-display);
+}
+
+[data-theme="dark"] .orders-header h1 {
+  color: var(--text-primary);
 }
 
 .order-filters {
@@ -29,6 +38,12 @@
   color: var(--earth-deep);
   cursor: pointer;
   transition: all var(--transition-luxury-base);
+}
+
+[data-theme="dark"] .status-filter {
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
 .status-filter:hover {
@@ -81,6 +96,11 @@
   box-shadow: var(--shadow-luxury-sm);
 }
 
+[data-theme="dark"] .orders-table {
+  background: var(--card-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 .orders-table table {
   width: 100%;
   border-collapse: collapse;
@@ -88,7 +108,12 @@
 
 .orders-table thead {
   background: linear-gradient(135deg, var(--sage-light), var(--sage-primary));
-  color: var(--pearl-white);
+  color: white;
+}
+
+[data-theme="dark"] .orders-table thead {
+  background: linear-gradient(135deg, #3a3a3a, #2a2a2a);
+  color: var(--text-primary);
 }
 
 .orders-table th {
@@ -109,9 +134,17 @@
   background: var(--cream-soft);
 }
 
+[data-theme="dark"] .orders-table tbody tr:hover {
+  background: var(--input-bg);
+}
+
 .orders-table td {
   padding: var(--space-4);
   color: var(--earth-deep);
+}
+
+[data-theme="dark"] .orders-table td {
+  color: var(--text-primary);
 }
 
 /* Status Badge */

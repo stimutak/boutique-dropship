@@ -20,6 +20,7 @@ describe('Admin Routes', () => {
   let regularUser;
   let testProduct;
   let testOrder;
+  const csrfToken = 'test-csrf-token'; // Fixed token for tests
 
   beforeAll(async () => {
     app = createTestApp();

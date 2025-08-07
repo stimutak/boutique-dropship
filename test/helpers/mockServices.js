@@ -46,32 +46,21 @@ jest.mock('@mollie/api-client', () => ({
 }));
 
 // Mock logger
-jest.mock('../../utils/logger', () => ({
-  logger: {
+jest.mock('../../utils/logger', () => {
+  const mockLogger = {
     info: jest.fn(),
     error: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn()
-  },
-  paymentLogger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn()
-  },
-  wholesalerLogger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn()
-  },
-  securityLogger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn()
-  }
-}));
+  };
+  
+  return {
+    logger: mockLogger,
+    paymentLogger: mockLogger,
+    wholesalerLogger: mockLogger,
+    securityLogger: mockLogger
+  };
+});
 
 // Mock error recovery
 jest.mock('../../utils/errorRecovery', () => ({
@@ -108,6 +97,14 @@ jest.mock('../../utils/emailService', () => ({
   sendPasswordResetEmail: jest.fn(() => Promise.resolve({
     success: true,
     messageId: 'password-reset-id'
+  })),
+  sendOrderStatusUpdate: jest.fn(() => Promise.resolve({
+    success: true,
+    messageId: 'order-status-update-id'
+  })),
+  sendShippingNotification: jest.fn(() => Promise.resolve({
+    success: true,
+    messageId: 'shipping-notification-id'
   }))
 }));
 

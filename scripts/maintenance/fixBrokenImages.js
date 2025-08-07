@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Product = require('../models/Product');
+const Product = require('../../models/Product');
 const axios = require('axios');
 require('dotenv').config();
 
