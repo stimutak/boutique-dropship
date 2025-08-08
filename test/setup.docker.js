@@ -1,11 +1,12 @@
 /* eslint-disable no-console */
 const mongoose = require('mongoose');
+const { getMongoUri, connectionOptions } = require('./mongodb-config');
 
 // Import mocks before anything else
 require('./helpers/mockServices');
 
-// MongoDB connection for Docker environment
-const MONGODB_URI = process.env.MONGODB_TEST_URI || 'mongodb://mongodb:27017/test-db';
+// MongoDB connection for Docker/real environment
+const MONGODB_URI = getMongoUri();
 
 // Setup before all tests
 beforeAll(async () => {
@@ -14,15 +15,14 @@ beforeAll(async () => {
   process.env.JWT_SECRET = 'test-secret-key-for-testing';
   process.env.MONGODB_TEST_URI = MONGODB_URI;
   
-  // Connect to MongoDB container
+  // Connect to MongoDB
   try {
-    await mongoose.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
-    console.log('Connected to MongoDB container for testing');
+    await mongoose.connect(MONGODB_URI, connectionOptions);
+    console.log(`Connected to MongoDB for testing at ${MONGODB_URI}`);
   } catch (error) {
     console.error('Failed to connect to MongoDB:', error);
+    console.error('Make sure MongoDB is running locally or in Docker');
+    console.error('You can start it with: ./docker-helper.sh dev');
     throw error;
   }
 }, 30000);
