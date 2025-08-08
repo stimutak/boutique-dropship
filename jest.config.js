@@ -36,11 +36,13 @@ module.exports = {
   reporters: [
     'default',
     ['jest-junit', {
-      outputDirectory: '.',
-      outputName: 'test-results/jest-junit.xml',
+      outputDirectory: 'test-results',
+      outputName: 'jest-junit.xml',
       classNameTemplate: '{classname}',
       titleTemplate: '{title}',
-      ancestorSeparator: ' › '
+      ancestorSeparator: ' › ',
+      suiteNameTemplate: '{filepath}',
+      addFileAttribute: 'true'
     }]
   ],
   
