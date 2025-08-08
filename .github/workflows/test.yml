@@ -42,19 +42,27 @@ jobs:
         cp .env.test .env
 
     - name: Run unit tests
-      run: npm test -- --testPathPattern="test/(models|utils|middleware)" --coverage --coverageDirectory=coverage/unit
+      run: |
+        export JEST_JUNIT_OUTPUT_NAME="unit-junit.xml"
+        npm test -- --testPathPattern="test/(models|utils|middleware)" --coverage --coverageDirectory=coverage/unit
       continue-on-error: true
 
     - name: Run integration tests  
-      run: npm test -- --testPathPattern="test/(routes|integration)" --coverage --coverageDirectory=coverage/integration
+      run: |
+        export JEST_JUNIT_OUTPUT_NAME="integration-junit.xml"
+        npm test -- --testPathPattern="test/(routes|integration)" --coverage --coverageDirectory=coverage/integration
       continue-on-error: true
 
     - name: Run performance tests
-      run: npm test -- --testPathPattern="test/performance" --testTimeout=30000
+      run: |
+        export JEST_JUNIT_OUTPUT_NAME="performance-junit.xml"
+        npm test -- --testPathPattern="test/performance" --testTimeout=30000
       continue-on-error: true
 
     - name: Run security tests
-      run: npm test -- --testPathPattern="test/security"
+      run: |
+        export JEST_JUNIT_OUTPUT_NAME="security-junit.xml"
+        npm test -- --testPathPattern="test/security"
       continue-on-error: true
 
     - name: Publish Jest JUnit Test Report
@@ -62,7 +70,7 @@ jobs:
       if: always()
       with:
         name: jest
-        path: test-results/jest-junit.xml
+        path: 'test-results/*.xml'
         reporter: junit
 
     - name: Generate combined coverage report

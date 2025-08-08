@@ -37,7 +37,7 @@ module.exports = {
     'default',
     ['jest-junit', {
       outputDirectory: 'test-results',
-      outputName: 'jest-junit.xml',
+      outputName: process.env.JEST_JUNIT_OUTPUT_NAME || 'jest-junit.xml',
       classNameTemplate: '{classname}',
       titleTemplate: '{title}',
       ancestorSeparator: ' › ',
