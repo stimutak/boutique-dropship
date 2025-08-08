@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchProducts } from '../store/slices/productsSlice'
 import PriceDisplay from '../components/PriceDisplay'
+// Import the page level styles for the home page. This file defines the
+// hero video container and overlay used on the landing section. Without
+// importing the CSS here Vite may tree-shake the file and the classes
+// defined in Home.css will not be applied.
 import './Home.css'
 
 const Home = () => {
@@ -27,11 +31,12 @@ const Home = () => {
     <div className="home">
       {/* Hero Section */}
       <section className="hero">
-        {/* The video container uses sticky positioning so that the video scrolls with the page until it reaches the top of the viewport. */}
+        {/* The video container uses sticky positioning so that the video
+            scrolls with the page until it reaches the top of the viewport. */}
         <div className="hero-video-container">
           <video
             className="hero-video"
-            src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+            src="/videos/hero.mp4"
             autoPlay
             loop
             muted
