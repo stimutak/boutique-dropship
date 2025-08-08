@@ -104,9 +104,18 @@ const generateSecureFilename = (originalFilename, fileType) => {
 };
 
 // Validate file path to prevent directory traversal
-const validatePath = (filePath) => {
+const validatePath = (filePath, fileType) => {
   const resolvedPath = path.resolve(filePath);
-  const expectedDir = path.resolve('./uploads');
+  
+  // Define allowed directories based on file type
+  let expectedDir;
+  if (fileType === 'csv') {
+    expectedDir = path.resolve('./uploads/temp');
+  } else if (fileType === 'image') {
+    expectedDir = path.resolve('./public/images/products');
+  } else {
+    expectedDir = path.resolve('./uploads');
+  }
   
   if (!resolvedPath.startsWith(expectedDir)) {
     throw new Error('Invalid file path: outside allowed directory');
@@ -194,7 +203,7 @@ const createFileValidator = (fileType) => {
         }
         
         // Validate and resolve file path
-        const validatedPath = validatePath(filePath);
+        const validatedPath = validatePath(filePath, expectedType);
         
         // Check if file exists
         // eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -229,7 +238,7 @@ const createFileValidator = (fileType) => {
         return true;
       } catch (error) {
         // Clean up on any error
-        const cleanupPath = validatePath(filePath);
+        const cleanupPath = validatePath(filePath, expectedType);
         // eslint-disable-next-line security/detect-non-literal-fs-filename
         if (fs.existsSync(cleanupPath)) {
           // eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -259,7 +268,15 @@ const cleanupTempFiles = (files) => {
   fileArray.forEach(file => {
     if (file.path) {
       try {
-        const validatedPath = validatePath(file.path);
+        // Determine file type from path
+        let fileType = 'csv'; // default
+        if (file.path.includes('/images/products/')) {
+          fileType = 'image';
+        } else if (file.path.includes('/temp/')) {
+          fileType = 'csv';
+        }
+        
+        const validatedPath = validatePath(file.path, fileType);
         // eslint-disable-next-line security/detect-non-literal-fs-filename
         if (fs.existsSync(validatedPath)) {
           // eslint-disable-next-line security/detect-non-literal-fs-filename

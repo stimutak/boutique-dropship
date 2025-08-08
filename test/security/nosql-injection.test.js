@@ -1,5 +1,4 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const User = require('../../models/User');
 const Product = require('../../models/Product');
@@ -40,7 +39,8 @@ describe('NoSQL Injection Security Tests', () => {
     testProduct = await Product.create({
       name: 'Test Crystal',
       slug: 'test-crystal',
-      description: 'A test crystal',
+      description: 'A test crystal for security testing',
+      shortDescription: 'Test crystal',
       price: 29.99,
       category: 'crystals',
       isActive: true,
@@ -357,6 +357,27 @@ describe('NoSQL Injection Security Tests', () => {
 });
 
 describe('Input Validation and Sanitization Tests', () => {
+  let userToken;
+  let testUser;
+
+  beforeAll(async () => {
+    // Create test user for Input Validation tests
+    testUser = await User.create({
+      email: 'inputtest@test.com',
+      password: 'testpass123',
+      firstName: 'Input',
+      lastName: 'Test',
+      isAdmin: false
+    });
+
+    // Generate auth token
+    userToken = jwt.sign({ userId: testUser._id }, process.env.JWT_SECRET);
+  });
+
+  afterAll(async () => {
+    await User.findByIdAndDelete(testUser._id);
+  });
+
   describe('ObjectId Validation', () => {
     test('Should reject non-ObjectId strings in params', async () => {
       const invalidIds = [
@@ -411,8 +432,7 @@ describe('Input Validation and Sanitization Tests', () => {
 
   describe('Request Body Sanitization', () => {
     test('Should sanitize nested objects in request body', async () => {
-      const userToken = jwt.sign({ userId: mongoose.Types.ObjectId() }, process.env.JWT_SECRET);
-      
+      // Use the existing userToken from beforeAll
       const response = await request(app)
         .put('/api/auth/profile')
         .set('Authorization', `Bearer ${userToken}`)

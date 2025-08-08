@@ -90,8 +90,9 @@ describe('Security Tests', () => {
         .post('/test')
         .send(maliciousPayload);
 
-      expect(response.body.body.email).toBe('_ne_');
-      expect(response.body.body.password).toBe('_regex_');
+      // mongoSanitize replaces $ with _, so $ne becomes _ne
+      expect(response.body.body.email).toEqual({ '_ne': null });
+      expect(response.body.body.password).toEqual({ '_regex': '.*' });
     });
 
     test('should sanitize nested objects', async () => {
@@ -110,8 +111,9 @@ describe('Security Tests', () => {
         .post('/test')
         .send(maliciousPayload);
 
-      expect(response.body.body.user.query._where_).toBeDefined();
-      expect(response.body.body.user.data._set_).toBeDefined();
+      // Nested objects should have their MongoDB operators sanitized: $ becomes _
+      expect(response.body.body.user.query._where).toBe('function() { return true; }');
+      expect(response.body.body.user.data._set).toEqual({ admin: true });
     });
   });
 
@@ -248,15 +250,18 @@ describe('Security Tests', () => {
         res.json({ message: 'login attempt' });
       });
 
-      // Make requests up to the limit
+      // Make more requests than the limit (auth limit is 50 per 15 minutes)
       const promises = [];
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 55; i++) {
         promises.push(request(app).post('/login').send({}));
       }
       
       const responses = await Promise.all(promises);
       const rateLimitedResponses = responses.filter(r => r.status === 429);
+      const successfulResponses = responses.filter(r => r.status === 200);
       
+      // Should have some successful requests and some rate limited
+      expect(successfulResponses.length).toBeLessThanOrEqual(50);
       expect(rateLimitedResponses.length).toBeGreaterThan(0);
     });
   });
