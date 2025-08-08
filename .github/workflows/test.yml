@@ -73,24 +73,13 @@ jobs:
         npm test -- --testPathPattern="test/security" --forceExit
       continue-on-error: true
 
-    - name: Check test results
-      if: always()
-      run: |
-        echo "Contents of test-results directory:"
-        ls -la test-results/ || echo "test-results directory not found"
-        echo "Creating dummy test result if none exist:"
-        if [ ! -f test-results/*.xml ]; then
-          echo '<?xml version="1.0" encoding="UTF-8"?><testsuites name="jest" tests="0" failures="0" errors="0" time="0"></testsuites>' > test-results/dummy.xml
-        fi
-
-    - name: Publish Jest JUnit Test Report
-      uses: dorny/test-reporter@v1
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: jest
-        path: 'test-results/*.xml'
-        reporter: java-junit
-        fail-on-error: false
+        name: test-results-${{ matrix.node-version }}
+        path: test-results/
+        retention-days: 7
 
     - name: Generate combined coverage report
       run: |
@@ -105,14 +94,12 @@ jobs:
         flags: unittests
         name: codecov-umbrella
 
-    - name: Archive test results
+    - name: Archive coverage reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-results-${{ matrix.node-version }}
-        path: |
-          coverage/
-          test-results.xml
+        name: coverage-${{ matrix.node-version }}
+        path: coverage/
 
   lint:
     runs-on: ubuntu-latest
