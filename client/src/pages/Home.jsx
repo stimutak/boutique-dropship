@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchProducts } from '../store/slices/productsSlice'
 import PriceDisplay from '../components/PriceDisplay'
+import './Home.css'
 
 const Home = () => {
   const dispatch = useDispatch()
@@ -12,7 +13,6 @@ const Home = () => {
     // Fetch featured products for home page
     dispatch(fetchProducts({ limit: 8 }))
   }, [dispatch])
-
 
   const categories = [
     { name: 'Crystals', slug: 'crystals', description: 'Healing crystals and gemstones' },
@@ -27,14 +27,24 @@ const Home = () => {
     <div className="home">
       {/* Hero Section */}
       <section className="hero">
-        <div className="container">
-          <div className="hero-content">
-            <h1>Your Gateway to Authentic Wellness</h1>
-            <p>Where ancient wisdom meets modern quality, delivered with care and integrity</p>
-            <Link to="/products" className="btn btn-primary btn-luxury">
-              Shop Now
-            </Link>
-          </div>
+        {/* The video container uses sticky positioning so that the video scrolls with the page until it reaches the top of the viewport. */}
+        <div className="hero-video-container">
+          <video
+            className="hero-video"
+            src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        </div>
+        {/* Text overlay displayed on top of the video */}
+        <div className="hero-content">
+          <h1>Authentika Holistic Lifestyle</h1>
+          <p>Your Gateway to Authentic Wellness</p>
+          <Link to="/products" className="btn btn-primary btn-luxury">
+            Shop Now
+          </Link>
         </div>
       </section>
 
