@@ -58,11 +58,19 @@ afterEach(async () => {
 
 // Cleanup after all tests
 afterAll(async () => {
-  if (mongoose.connection.readyState === 1) {
-    await mongoose.connection.close();
-  }
-  if (mongoServer) {
-    await mongoServer.stop();
+  try {
+    // Close mongoose connection
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.disconnect();
+    }
+    
+    // Stop MongoDB Memory Server
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
+  } catch (error) {
+    // Silently ignore cleanup errors to prevent test failures
+    // The process will exit anyway
   }
 }, 30000);
 

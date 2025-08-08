@@ -31,6 +31,7 @@ jobs:
     - name: Create test environment file
       run: |
         echo "NODE_ENV=test" > .env.test
+        echo "MONGODB_URI=mongodb://localhost:27017/test-db" >> .env.test
         echo "JWT_SECRET=test-secret-key-for-ci-that-is-at-least-32-characters-long" >> .env.test
         echo "SESSION_SECRET=test-session-secret-for-ci" >> .env.test
         echo "MOLLIE_API_KEY=test_dummy_key" >> .env.test
@@ -39,30 +40,31 @@ jobs:
         echo "EMAIL_USER=test@test.com" >> .env.test
         echo "EMAIL_PASS=testpass" >> .env.test
         echo "FRONTEND_URL=http://localhost:3001" >> .env.test
+        echo "USE_MEMORY_DB=false" >> .env.test
         cp .env.test .env
 
     - name: Run unit tests
       run: |
         export JEST_JUNIT_OUTPUT_NAME="unit-junit.xml"
-        npm test -- --testPathPattern="test/(models|utils|middleware)" --coverage --coverageDirectory=coverage/unit
+        npm test -- --testPathPattern="test/(models|utils|middleware)" --coverage --coverageDirectory=coverage/unit --forceExit
       continue-on-error: true
 
     - name: Run integration tests  
       run: |
         export JEST_JUNIT_OUTPUT_NAME="integration-junit.xml"
-        npm test -- --testPathPattern="test/(routes|integration)" --coverage --coverageDirectory=coverage/integration
+        npm test -- --testPathPattern="test/(routes|integration)" --coverage --coverageDirectory=coverage/integration --forceExit
       continue-on-error: true
 
     - name: Run performance tests
       run: |
         export JEST_JUNIT_OUTPUT_NAME="performance-junit.xml"
-        npm test -- --testPathPattern="test/performance" --testTimeout=30000
+        npm test -- --testPathPattern="test/performance" --testTimeout=30000 --forceExit
       continue-on-error: true
 
     - name: Run security tests
       run: |
         export JEST_JUNIT_OUTPUT_NAME="security-junit.xml"
-        npm test -- --testPathPattern="test/security"
+        npm test -- --testPathPattern="test/security" --forceExit
       continue-on-error: true
 
     - name: Publish Jest JUnit Test Report
