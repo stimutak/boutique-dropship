@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">65% </span>
+                <span class="strong">62.9% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>39/60</span>
+                <span class='fraction'>39/62</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">26.31% </span>
+                <span class="strong">23.8% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>5/19</span>
+                <span class='fraction'>5/21</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">65% </span>
+                <span class="strong">62.9% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>39/60</span>
+                <span class='fraction'>39/62</span>
             </div>
         
             
@@ -270,7 +270,11 @@
 <a name='L205'></a><a href='#L205'>205</a>
 <a name='L206'></a><a href='#L206'>206</a>
 <a name='L207'></a><a href='#L207'>207</a>
-<a name='L208'></a><a href='#L208'>208</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -408,6 +412,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -548,7 +556,7 @@ reviewSchema.index({ status: 1, createdAt: -1 });
 reviewSchema.index({ rating: 1 });
 &nbsp;
 // Instance method to approve review
-reviewSchema.methods.approve = async function(adminId, notes = <span class="branch-0 cbranch-no" title="branch not covered" >'')</span> {
+reviewSchema.methods.approve = async function (adminId, notes = <span class="branch-0 cbranch-no" title="branch not covered" >'')</span> {
   this.status = 'approved';
   this.approvedBy = adminId;
   this.approvedAt = new Date();
@@ -559,7 +567,7 @@ reviewSchema.methods.approve = async function(adminId, notes = <span class="bran
 };
 &nbsp;
 // Instance method to reject review
-reviewSchema.methods.reject = async function(adminId, notes = <span class="branch-0 cbranch-no" title="branch not covered" >'')</span> {
+reviewSchema.methods.reject = async function (adminId, notes = <span class="branch-0 cbranch-no" title="branch not covered" >'')</span> {
   this.status = 'rejected';
   this.rejectedBy = adminId;
   this.rejectedAt = new Date();
@@ -570,14 +578,14 @@ reviewSchema.methods.reject = async function(adminId, notes = <span class="branc
 };
 &nbsp;
 // Static method to find approved reviews
-reviewSchema.statics.findApproved = function(query = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+reviewSchema.statics.findApproved = function (query = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
   return this.find({ ...query, status: 'approved' })
     .populate('user', 'firstName lastName')
     .sort({ createdAt: -1 });
 };
 &nbsp;
 // Static method to get average rating for a product
-reviewSchema.statics.getAverageRating = async function(productId) {
+reviewSchema.statics.getAverageRating = async function (productId) {
   const result = await this.aggregate([
     { $match: { product: productId, status: 'approved' } },
     { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } }
@@ -594,7 +602,7 @@ reviewSchema.statics.getAverageRating = async function(productId) {
 };
 &nbsp;
 // Static method to check if user can review product (must have purchased it)
-reviewSchema.statics.canUserReview = async function(userId, productId) {
+reviewSchema.statics.canUserReview = async function (userId, productId) {
   const Order = require('./Order');
   
   // Check if user has purchased this product
@@ -608,7 +616,7 @@ reviewSchema.statics.canUserReview = async function(userId, productId) {
   });
   
   <span class="missing-if-branch" title="else path not taken" >E</span>if (!purchaseExists) {
-    return false;
+    return { canReview: false, reason: 'not_purchased' };
   }
   
   // Check if user already reviewed this product
@@ -617,18 +625,22 @@ reviewSchema.statics.canUserReview = async function(userId, productId) {
     product: productId
   });
   
-<span class="cstat-no" title="statement not covered" >  return !existingReview;</span>
+<span class="cstat-no" title="statement not covered" >  if (existingReview) {</span>
+<span class="cstat-no" title="statement not covered" >    return { canReview: false, reason: 'already_reviewed' };</span>
+  }
+  
+<span class="cstat-no" title="statement not covered" >  return { canReview: true };</span>
 };
 &nbsp;
 // Helper method to get user email
-reviewSchema.statics.getUserEmail = async function(userId) {
+reviewSchema.statics.getUserEmail = async function (userId) {
   const User = require('./User');
   const user = await User.findById(userId).select('email');
   return user ? user.email : <span class="branch-1 cbranch-no" title="branch not covered" >null;</span>
 };
 &nbsp;
 // Method to get review statistics for a product
-reviewSchema.statics.getProductReviewStats = <span class="fstat-no" title="function not covered" >as</span>ync function(productId) {
+reviewSchema.statics.getProductReviewStats = <span class="fstat-no" title="function not covered" >as</span>ync function (productId) {
   const stats = <span class="cstat-no" title="statement not covered" >await this.aggregate([</span>
     { $match: { product: productId, status: 'approved' } },
     {
@@ -664,7 +676,7 @@ reviewSchema.statics.getProductReviewStats = <span class="fstat-no" title="funct
 };
 &nbsp;
 // Method to mark review as helpful
-reviewSchema.methods.markHelpful = <span class="fstat-no" title="function not covered" >as</span>ync function(userId) {
+reviewSchema.methods.markHelpful = <span class="fstat-no" title="function not covered" >as</span>ync function (userId) {
 <span class="cstat-no" title="statement not covered" >  if (!this.helpful.users.includes(userId)) {</span>
 <span class="cstat-no" title="statement not covered" >    this.helpful.users.push(userId);</span>
 <span class="cstat-no" title="statement not covered" >    this.helpful.count++;</span>
@@ -674,7 +686,7 @@ reviewSchema.methods.markHelpful = <span class="fstat-no" title="function not co
 };
 &nbsp;
 // Method to unmark review as helpful
-reviewSchema.methods.unmarkHelpful = <span class="fstat-no" title="function not covered" >as</span>ync function(userId) {
+reviewSchema.methods.unmarkHelpful = <span class="fstat-no" title="function not covered" >as</span>ync function (userId) {
   const index = <span class="cstat-no" title="statement not covered" >this.helpful.users.indexOf(userId);</span>
 <span class="cstat-no" title="statement not covered" >  if (index &gt; -1) {</span>
 <span class="cstat-no" title="statement not covered" >    this.helpful.users.splice(index, 1);</span>
@@ -691,7 +703,7 @@ module.exports = mongoose.model('Review', reviewSchema);</pre></td></tr></table>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-04T23:20:32.677Z
+                at 2025-08-08T17:04:00.600Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

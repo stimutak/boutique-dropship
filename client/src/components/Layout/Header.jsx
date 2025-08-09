@@ -148,6 +148,9 @@ const Header = () => {
           <Link to="/products" className="nav-link">
             {t('navigation.products')}
           </Link>
+          <Link to="/blog" className="nav-link">
+            {t('navigation.blog', 'Blog')}
+          </Link>
           
           <Link to="/cart" className="nav-link cart-link">
             {t('navigation.cart')}
@@ -246,6 +249,13 @@ const Header = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               {t('navigation.cart')} ({totalItems})
+            </Link>
+            <Link 
+              to="/blog" 
+              className="mobile-nav-link"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {t('navigation.blog', 'Blog')}
             </Link>
 
             {isAuthenticated ? (

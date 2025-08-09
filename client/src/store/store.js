@@ -6,6 +6,8 @@ import ordersReducer from './slices/ordersSlice';
 import reviewsReducer from './slices/reviewsSlice';
 import adminReducer from './slices/adminSlice';
 import adminProductsReducer from './slices/adminProductsSlice';
+import blogReducer from './slices/blogSlice';
+import adminBlogReducer from './slices/adminBlogSlice';
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +17,8 @@ export const store = configureStore({
     orders: ordersReducer,
     reviews: reviewsReducer,
     admin: adminReducer,
-    adminProducts: adminProductsReducer
+    adminProducts: adminProductsReducer,
+    blog: blogReducer,
+    adminBlog: adminBlogReducer
   }
 });

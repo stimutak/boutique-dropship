@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/57</span>
+                <span class='fraction'>0/58</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/57</span>
+                <span class='fraction'>0/58</span>
             </div>
         
             
@@ -314,19 +314,17 @@
 <a name='L249'></a><a href='#L249'>249</a>
 <a name='L250'></a><a href='#L250'>250</a>
 <a name='L251'></a><a href='#L251'>251</a>
-<a name='L252'></a><a href='#L252'>252</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -337,6 +335,11 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -348,6 +351,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -570,6 +574,7 @@ const mongoSanitize = <span class="cstat-no" title="statement not covered" >requ
 const rateLimit = <span class="cstat-no" title="statement not covered" >require('express-rate-limit');</span>
 const slowDown = <span class="cstat-no" title="statement not covered" >require('express-slow-down');</span>
 const { body, validationResult } = <span class="cstat-no" title="statement not covered" >require('express-validator');</span>
+const { logger } = <span class="cstat-no" title="statement not covered" >require('../utils/logger');</span>
 &nbsp;
 // CSRF Protection Middleware
 const csrfProtection = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(r</span>eq, res, next) =&gt; {</span>
@@ -593,15 +598,16 @@ const csrfProtection = <span class="cstat-no" title="statement not covered" ><sp
 &nbsp;
   // If no session exists yet, it's likely a first request - be lenient
 <span class="cstat-no" title="statement not covered" >  if (!req.session) {</span>
-<span class="cstat-no" title="statement not covered" >    console.warn('No session found for CSRF check on:', req.path);</span>
+<span class="cstat-no" title="statement not covered" >    logger.warn('No session found for CSRF check', { path: req.path });</span>
 <span class="cstat-no" title="statement not covered" >    return next();</span>
   }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  if (!token || !sessionToken || token !== sessionToken) {</span>
-<span class="cstat-no" title="statement not covered" >    console.error('CSRF token mismatch:', {</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('CSRF token mismatch', {</span>
       provided: token ? 'yes' : 'no',
       session: sessionToken ? 'yes' : 'no',
-      match: token === sessionToken
+      match: token === sessionToken,
+      path: req.path
     });
 <span class="cstat-no" title="statement not covered" >    return res.status(403).json({</span>
       success: false,
@@ -724,7 +730,7 @@ const sanitizeInput = <span class="cstat-no" title="statement not covered" >[</s
   mongoSanitize({
     replaceWith: '_',
     onSanitize: <span class="fstat-no" title="function not covered" >({</span> req, key }) =&gt; {
-<span class="cstat-no" title="statement not covered" >      console.warn(`Sanitized input: ${key} in ${req.method} ${req.path}`);</span>
+<span class="cstat-no" title="statement not covered" >      logger.warn('Sanitized input detected', { key, method: req.method, path: req.path });</span>
     }
   })
 ];
@@ -823,7 +829,7 @@ const securityHeaders = <span class="cstat-no" title="statement not covered" ><s
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-04T23:20:32.656Z
+                at 2025-08-08T17:04:00.567Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

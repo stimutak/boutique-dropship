@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/226</span>
+                <span class='fraction'>0/229</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/119</span>
+                <span class='fraction'>0/123</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/218</span>
+                <span class='fraction'>0/221</span>
             </div>
         
             
@@ -830,21 +830,16 @@
 <a name='L765'></a><a href='#L765'>765</a>
 <a name='L766'></a><a href='#L766'>766</a>
 <a name='L767'></a><a href='#L767'>767</a>
-<a name='L768'></a><a href='#L768'>768</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L768'></a><a href='#L768'>768</a>
+<a name='L769'></a><a href='#L769'>769</a>
+<a name='L770'></a><a href='#L770'>770</a>
+<a name='L771'></a><a href='#L771'>771</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -852,8 +847,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1600,9 +1606,11 @@
 <span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
 const { body, validationResult } = <span class="cstat-no" title="statement not covered" >require('express-validator');</span>
 const Product = <span class="cstat-no" title="statement not covered" >require('../models/Product');</span>
-const { requireAuth, requireAdmin } = <span class="cstat-no" title="statement not covered" >require('../middleware/auth');</span>
+const { _requireAuth, requireAdmin } = <span class="cstat-no" title="statement not covered" >require('../middleware/auth');</span>
+const { validateCSRFToken } = <span class="cstat-no" title="statement not covered" >require('../middleware/sessionCSRF');</span>
 const { getCurrencyForLocale, formatPrice } = <span class="cstat-no" title="statement not covered" >require('../utils/currency');</span>
 const { ErrorCodes } = <span class="cstat-no" title="statement not covered" >require('../utils/errorHandler');</span>
+const { logger } = <span class="cstat-no" title="statement not covered" >require('../utils/logger');</span>
 const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
 &nbsp;
 // Helper function to get user's currency from request
@@ -1620,9 +1628,10 @@ function <span class="fstat-no" title="function not covered" >getUserCurrency(</
 function <span class="fstat-no" title="function not covered" >enhanceProductWithCurrency(</span>product, currency, locale = <span class="branch-0 cbranch-no" title="branch not covered" >'en')</span> {
   const productObj = <span class="cstat-no" title="statement not covered" >product.toObject ? product.toObject() : product;</span>
   
-  // Get price in user's currency
-  const priceInCurrency = <span class="cstat-no" title="statement not covered" >productObj.prices &amp;&amp; productObj.prices[currency] </span>
-    ? productObj.prices[currency] 
+  // Get price in user's currency (use safe object property access)
+  const safeCurrency = <span class="cstat-no" title="statement not covered" >typeof currency === 'string' &amp;&amp; /^[A-Z]{3}$/.test(currency) ? currency : 'USD';</span>
+  const priceInCurrency = <span class="cstat-no" title="statement not covered" >productObj.prices &amp;&amp; Object.prototype.hasOwnProperty.call(productObj.prices, safeCurrency)</span>
+    ? productObj.prices[safeCurrency] 
     : productObj.price; // Fallback to USD price
     
 <span class="cstat-no" title="statement not covered" >  return {</span>
@@ -1778,7 +1787,7 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error fetching products:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error fetching products:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.error(500, ErrorCodes.PRODUCTS_FETCH_ERROR, 'Failed to fetch products');</span>
   }
 });
@@ -1805,7 +1814,7 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
       data: uniqueTags
     });
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error fetching tags:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error fetching tags:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.status(500).json({</span>
       success: false,
       message: 'Failed to fetch tags',
@@ -1928,7 +1937,7 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Autocomplete error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Autocomplete error:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.json({ </span>
       success: true, 
       data: [] 
@@ -1995,7 +2004,7 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Search error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Search error:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.error(500, ErrorCodes.SEARCH_ERROR, 'Search failed');</span>
   }
 });
@@ -2031,7 +2040,7 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Categories fetch error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Categories fetch error:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.error(500, ErrorCodes.CATEGORIES_ERROR, 'Failed to fetch categories');</span>
   }
 });
@@ -2125,7 +2134,7 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Filters fetch error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Filters fetch error:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.error(500, ErrorCodes.FILTERS_ERROR, 'Failed to fetch filter options');</span>
   }
 });
@@ -2176,7 +2185,7 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Recommendations error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Recommendations error:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.error(500, ErrorCodes.RECOMMENDATIONS_ERROR, 'Failed to fetch recommendations');</span>
   }
 });
@@ -2228,13 +2237,13 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Product fetch error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Product fetch error:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.error(500, ErrorCodes.PRODUCTS_FETCH_ERROR, 'Failed to fetch product');</span>
   }
 });
 &nbsp;
 // POST /api/products - Create new product (admin only)
-<span class="cstat-no" title="statement not covered" >router.post('/', requireAdmin, [</span>
+<span class="cstat-no" title="statement not covered" >router.post('/', requireAdmin, validateCSRFToken, [</span>
   body('name').trim().isLength({ min: 1, max: 200 }).withMessage('Product name is required and must be less than 200 characters'),
   body('slug').optional().trim().isLength({ max: 200 }).withMessage('Slug must be less than 200 characters'),
   body('description').trim().isLength({ min: 1, max: 2000 }).withMessage('Description is required and must be less than 2000 characters'),
@@ -2283,13 +2292,13 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Product creation error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Product creation error:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.error(500, ErrorCodes.PRODUCT_CREATION_ERROR, 'Failed to create product');</span>
   }
 });
 &nbsp;
 // PUT /api/products/:id - Update product (admin only)
-<span class="cstat-no" title="statement not covered" >router.put('/:id', requireAdmin, <span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >router.put('/:id', requireAdmin, validateCSRFToken, <span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  try {</span>
     const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
     const updateData = <span class="cstat-no" title="statement not covered" >req.body;</span>
@@ -2322,13 +2331,13 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Product update error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Product update error:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.error(500, ErrorCodes.PRODUCT_UPDATE_ERROR, 'Failed to update product');</span>
   }
 });
 &nbsp;
 // DELETE /api/products/:id - Delete product (admin only)
-<span class="cstat-no" title="statement not covered" >router.delete('/:id', requireAdmin, <span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >router.delete('/:id', requireAdmin, validateCSRFToken, <span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  try {</span>
     const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
     
@@ -2359,7 +2368,7 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
     });
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Product deletion error:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Product deletion error:', { error: error.message, stack: error.stack });</span>
 <span class="cstat-no" title="statement not covered" >    res.error(500, ErrorCodes.PRODUCT_DELETE_ERROR, 'Failed to delete product');</span>
   }
 });
@@ -2371,7 +2380,7 @@ function <span class="fstat-no" title="function not covered" >enhanceProductWith
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-04T23:20:32.677Z
+                at 2025-08-08T17:04:00.600Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

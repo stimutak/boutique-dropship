@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/81</span>
+                <span class='fraction'>0/83</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/36</span>
+                <span class='fraction'>0/30</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/81</span>
+                <span class='fraction'>0/83</span>
             </div>
         
             
@@ -370,7 +370,9 @@
 <a name='L305'></a><a href='#L305'>305</a>
 <a name='L306'></a><a href='#L306'>306</a>
 <a name='L307'></a><a href='#L307'>307</a>
-<a name='L308'></a><a href='#L308'>308</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -378,6 +380,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -428,8 +431,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -476,7 +484,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -559,7 +566,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -613,7 +619,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -670,7 +675,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -683,7 +687,8 @@ const { body, validationResult, param } = <span class="cstat-no" title="statemen
 const Review = <span class="cstat-no" title="statement not covered" >require('../models/Review');</span>
 const Product = <span class="cstat-no" title="statement not covered" >require('../models/Product');</span>
 const { requireAuth } = <span class="cstat-no" title="statement not covered" >require('../middleware/auth');</span>
-const { ErrorCodes } = <span class="cstat-no" title="statement not covered" >require('../utils/errorHandler');</span>
+const { _ErrorCodes } = <span class="cstat-no" title="statement not covered" >require('../utils/errorHandler');</span>
+const { logger } = <span class="cstat-no" title="statement not covered" >require('../utils/logger');</span>
 const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
 &nbsp;
 // Validation middleware for review creation
@@ -735,11 +740,16 @@ const validateProductId = <span class="cstat-no" title="statement not covered" >
     }
 &nbsp;
     // Check if user can review this product (must have purchased it)
-    const canReview = <span class="cstat-no" title="statement not covered" >await Review.canUserReview(userId, productId);</span>
-<span class="cstat-no" title="statement not covered" >    if (!canReview) {</span>
+    const reviewCheck = <span class="cstat-no" title="statement not covered" >await Review.canUserReview(userId, productId);</span>
+<span class="cstat-no" title="statement not covered" >    if (!reviewCheck.canReview) {</span>
+      const messages = <span class="cstat-no" title="statement not covered" >{</span>
+        'not_purchased': 'You can only review products you have purchased',
+        'already_reviewed': 'You have already reviewed this product'
+      };
+      
 <span class="cstat-no" title="statement not covered" >      return res.status(403).json({</span>
         success: false,
-        message: 'You can only review products you have purchased and have not already reviewed'
+        message: messages[reviewCheck.reason] || 'You cannot review this product'
       });
     }
 &nbsp;
@@ -772,7 +782,7 @@ const validateProductId = <span class="cstat-no" title="statement not covered" >
     });
 &nbsp;
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error creating review:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error creating review:', error);</span>
     
     // Handle duplicate review error
 <span class="cstat-no" title="statement not covered" >    if (error.code === 11000) {</span>
@@ -784,8 +794,7 @@ const validateProductId = <span class="cstat-no" title="statement not covered" >
     
 <span class="cstat-no" title="statement not covered" >    res.status(500).json({</span>
       success: false,
-      message: 'Failed to create review',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Failed to create review'
     });
   }
 });
@@ -857,11 +866,10 @@ const validateProductId = <span class="cstat-no" title="statement not covered" >
     });
 &nbsp;
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error fetching reviews:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error fetching reviews:', error);</span>
 <span class="cstat-no" title="statement not covered" >    res.status(500).json({</span>
       success: false,
-      message: 'Failed to fetch reviews',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Failed to fetch reviews'
     });
   }
 });
@@ -911,11 +919,10 @@ const validateProductId = <span class="cstat-no" title="statement not covered" >
     });
 &nbsp;
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error fetching user reviews:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error fetching user reviews:', error);</span>
 <span class="cstat-no" title="statement not covered" >    res.status(500).json({</span>
       success: false,
-      message: 'Failed to fetch your reviews',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Failed to fetch your reviews'
     });
   }
 });
@@ -975,11 +982,10 @@ const validateProductId = <span class="cstat-no" title="statement not covered" >
     }
 &nbsp;
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error updating review helpfulness:', error);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error updating review helpfulness:', error);</span>
 <span class="cstat-no" title="statement not covered" >    res.status(500).json({</span>
       success: false,
-      message: 'Failed to update review helpfulness',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Failed to update review helpfulness'
     });
   }
 });
@@ -991,7 +997,7 @@ const validateProductId = <span class="cstat-no" title="statement not covered" >
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-04T23:20:32.656Z
+                at 2025-08-08T17:04:00.567Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

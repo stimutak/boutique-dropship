@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/83</span>
+                <span class='fraction'>0/84</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/81</span>
+                <span class='fraction'>0/82</span>
             </div>
         
             
@@ -305,7 +305,7 @@
 <a name='L240'></a><a href='#L240'>240</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -542,13 +542,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const Order = <span class="cstat-no" title="statement not covered" >require('../models/Order');</span>
-const Product = <span class="cstat-no" title="statement not covered" >require('../models/Product');</span>
+const _Product = <span class="cstat-no" title="statement not covered" >require('../models/Product');</span>
 const { sendWholesalerNotification } = <span class="cstat-no" title="statement not covered" >require('./emailService');</span>
-&nbsp;
+const { logger } = <span class="cstat-no" title="statement not covered" >require('./logger');</span>
 // Process pending wholesaler notifications
 const processPendingNotifications = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  try {</span>
-<span class="cstat-no" title="statement not covered" >    console.log('Checking for orders requiring wholesaler notifications...');</span>
+<span class="cstat-no" title="statement not covered" >    logger.info('Checking for orders requiring wholesaler notifications...');</span>
     
     // Find orders with paid/processing status that have unnotified wholesalers
     const ordersToNotify = <span class="cstat-no" title="statement not covered" >await Order.find({</span>
@@ -560,11 +560,11 @@ const processPendingNotifications = <span class="cstat-no" title="statement not 
     }).populate('items.product');
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    if (ordersToNotify.length === 0) {</span>
-<span class="cstat-no" title="statement not covered" >      console.log('No orders requiring wholesaler notifications found.');</span>
+<span class="cstat-no" title="statement not covered" >      logger.info('No orders requiring wholesaler notifications found.');</span>
 <span class="cstat-no" title="statement not covered" >      return { success: true, processed: 0 };</span>
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    console.log(`Found ${ordersToNotify.length} orders requiring notifications.`);</span>
+<span class="cstat-no" title="statement not covered" >    logger.info(`Found ${ordersToNotify.length} orders requiring notifications.`);</span>
     
     let successCount = <span class="cstat-no" title="statement not covered" >0;</span>
     let errorCount = <span class="cstat-no" title="statement not covered" >0;</span>
@@ -605,7 +605,7 @@ const processPendingNotifications = <span class="cstat-no" title="statement not 
             notes: order.notes
           };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >          console.log(`Sending notification to ${wholesalerEmail} for order ${order.orderNumber}...`);</span>
+<span class="cstat-no" title="statement not covered" >          logger.info(`Sending notification to ${wholesalerEmail} for order ${order.orderNumber}...`);</span>
           
           const emailResult = <span class="cstat-no" title="statement not covered" >await sendWholesalerNotification(wholesalerEmail, orderData);</span>
           
@@ -622,7 +622,7 @@ const processPendingNotifications = <span class="cstat-no" title="statement not 
             
 <span class="cstat-no" title="statement not covered" >            await order.save();</span>
             
-<span class="cstat-no" title="statement not covered" >            console.log(`✓ Successfully notified ${wholesalerEmail} for order ${order.orderNumber}`);</span>
+<span class="cstat-no" title="statement not covered" >            logger.info(`✓ Successfully notified ${wholesalerEmail} for order ${order.orderNumber}`);</span>
 <span class="cstat-no" title="statement not covered" >            successCount++;</span>
             
 <span class="cstat-no" title="statement not covered" >            results.push({</span>
@@ -632,7 +632,7 @@ const processPendingNotifications = <span class="cstat-no" title="statement not 
               messageId: emailResult.messageId
             });
           } else {
-<span class="cstat-no" title="statement not covered" >            console.error(`✗ Failed to notify ${wholesalerEmail} for order ${order.orderNumber}: ${emailResult.error}`);</span>
+<span class="cstat-no" title="statement not covered" >            logger.error(`✗ Failed to notify ${wholesalerEmail} for order ${order.orderNumber}: ${emailResult.error}`);</span>
 <span class="cstat-no" title="statement not covered" >            errorCount++;</span>
             
 <span class="cstat-no" title="statement not covered" >            results.push({</span>
@@ -645,7 +645,7 @@ const processPendingNotifications = <span class="cstat-no" title="statement not 
         }
         
       } catch (orderError) {
-<span class="cstat-no" title="statement not covered" >        console.error(`Error processing order ${order.orderNumber}:`, orderError.message);</span>
+<span class="cstat-no" title="statement not covered" >        logger.error(`Error processing order ${order.orderNumber}:`, orderError.message);</span>
 <span class="cstat-no" title="statement not covered" >        errorCount++;</span>
         
 <span class="cstat-no" title="statement not covered" >        results.push({</span>
@@ -656,7 +656,7 @@ const processPendingNotifications = <span class="cstat-no" title="statement not 
       }
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    console.log(`Notification processing complete. Success: ${successCount}, Errors: ${errorCount}`);</span>
+<span class="cstat-no" title="statement not covered" >    logger.info(`Notification processing complete. Success: ${successCount}, Errors: ${errorCount}`);</span>
     
 <span class="cstat-no" title="statement not covered" >    return {</span>
       success: true,
@@ -667,7 +667,7 @@ const processPendingNotifications = <span class="cstat-no" title="statement not 
     };
     
   } catch (error) {
-<span class="cstat-no" title="statement not covered" >    console.error('Error in processPendingNotifications:', error.message);</span>
+<span class="cstat-no" title="statement not covered" >    logger.error('Error in processPendingNotifications:', error.message);</span>
 <span class="cstat-no" title="statement not covered" >    return {</span>
       success: false,
       error: error.message
@@ -787,7 +787,7 @@ const processOrderNotifications = <span class="cstat-no" title="statement not co
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-04T23:20:32.656Z
+                at 2025-08-08T17:04:00.567Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -111,6 +111,10 @@ boutique/
 └── docker/               # Docker configuration
 ```
 
+## 📚 Documentation
+
+- Blog Feature: `docs/BLOG_IMPLEMENTATION.md`
+
 ## 🧪 Testing
 
 ```bash

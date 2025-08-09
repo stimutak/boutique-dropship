@@ -39,6 +39,8 @@ const Orders = lazy(() => import('./pages/Orders'))
 const OrderDetail = lazy(() => import('./pages/OrderDetail'))
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'))
 const MyReviews = lazy(() => import('./pages/MyReviews'))
+const Blog = lazy(() => import('./pages/Blog'))
+const BlogPost = lazy(() => import('./pages/BlogPost'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const PrivacyCenter = lazy(() => import('./pages/PrivacyCenter'))
@@ -52,6 +54,9 @@ const AdminReviews = lazy(() => import('./pages/admin/AdminReviews'))
 const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'))
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'))
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'))
+const AdminBlog = lazy(() => import('./pages/admin/AdminBlog'))
+const AdminBlogNew = lazy(() => import('./pages/admin/AdminBlogNew'))
+const AdminBlogEdit = lazy(() => import('./pages/admin/AdminBlogEdit'))
 
 
 function App() {
@@ -102,6 +107,20 @@ function App() {
           <Route path="/products" element={<Products />} />
           <Route path="/products/:slug" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/blog" element={
+            <LazyLoadErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <Blog />
+              </Suspense>
+            </LazyLoadErrorBoundary>
+          } />
+          <Route path="/blog/:slug" element={
+            <LazyLoadErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <BlogPost />
+              </Suspense>
+            </LazyLoadErrorBoundary>
+          } />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
@@ -311,6 +330,42 @@ function App() {
                 <LazyLoadErrorBoundary>
                   <Suspense fallback={<PageLoader />}>
                     <AdminSettings />
+                  </Suspense>
+                </LazyLoadErrorBoundary>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/blog" 
+            element={
+              <AdminRoute>
+                <LazyLoadErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminBlog />
+                  </Suspense>
+                </LazyLoadErrorBoundary>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/blog/new" 
+            element={
+              <AdminRoute>
+                <LazyLoadErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminBlogNew />
+                  </Suspense>
+                </LazyLoadErrorBoundary>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/blog/:id/edit" 
+            element={
+              <AdminRoute>
+                <LazyLoadErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminBlogEdit />
                   </Suspense>
                 </LazyLoadErrorBoundary>
               </AdminRoute>

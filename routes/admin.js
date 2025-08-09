@@ -639,6 +639,14 @@ const imageUpload = multer({
   filename: imageValidator.generateFilename
 });
 
+// Separate uploader for blog cover images
+const blogImageUpload = multer({
+  dest: 'public/images/blog/',
+  limits: imageValidator.limits,
+  fileFilter: imageValidator.fileFilter,
+  filename: imageValidator.generateFilename
+});
+
 // POST /api/admin/products/images - Upload product images (generic)
 router.post('/products/images', validateCSRFToken, (req, res) => {
   // Custom multer error handling middleware
@@ -809,6 +817,122 @@ router.delete('/products/:id/images/:imageId', validateCSRFToken, async (req, re
     logger.error('Product image deletion error:', { error: error.message, stack: error.stack });
     res.error(500, 'IMAGE_DELETE_ERROR', 'Failed to delete image');
   }
+});
+
+// BLOG ADMIN ENDPOINTS
+const BlogPost = require('../models/BlogPost');
+
+// POST /api/admin/blog - Create a blog post
+router.post('/blog', validateCSRFToken, async (req, res) => {
+  try {
+    const { slug, title, excerpt, content, translations, tags, coverImage, published } = req.body;
+    if (!slug || !title || !content) {
+      return res.error(400, 'VALIDATION_ERROR', 'slug, title and content are required');
+    }
+    const existing = await BlogPost.findOne({ slug });
+    if (existing) {
+      return res.error(409, 'SLUG_TAKEN', 'Slug already exists');
+    }
+    const post = await BlogPost.create({
+      slug,
+      title,
+      excerpt: excerpt || '',
+      content,
+      translations: translations || new Map(),
+      tags: tags || [],
+      coverImage: coverImage || { url: '', alt: '' },
+      published: !!published,
+      publishedAt: published ? new Date() : null,
+      readingTime: Math.max(1, Math.round((content.split(/\s+/).length || 200) / 200))
+    });
+    res.json({ success: true, post });
+  } catch (error) {
+    logger.error('Error creating blog post', { error: error.message });
+    res.error(500, 'BLOG_CREATE_ERROR', 'Failed to create blog post');
+  }
+});
+
+// PUT /api/admin/blog/:id - Update blog post
+router.put('/blog/:id', validateCSRFToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body || {};
+    if (updates.content) {
+      updates.readingTime = Math.max(1, Math.round((updates.content.split(/\s+/).length || 200) / 200));
+    }
+    if (updates.published === true) {
+      updates.publishedAt = updates.publishedAt || new Date();
+    }
+    const post = await BlogPost.findByIdAndUpdate(id, updates, { new: true });
+    if (!post) {
+      return res.error(404, 'BLOG_NOT_FOUND', 'Blog post not found');
+    }
+    res.json({ success: true, post });
+  } catch (error) {
+    logger.error('Error updating blog post', { error: error.message });
+    res.error(500, 'BLOG_UPDATE_ERROR', 'Failed to update blog post');
+  }
+});
+
+// DELETE /api/admin/blog/:id - Delete blog post
+router.delete('/blog/:id', validateCSRFToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const post = await BlogPost.findByIdAndDelete(id);
+    if (!post) {
+      return res.error(404, 'BLOG_NOT_FOUND', 'Blog post not found');
+    }
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error deleting blog post', { error: error.message });
+    res.error(500, 'BLOG_DELETE_ERROR', 'Failed to delete blog post');
+  }
+});
+
+// GET /api/admin/blog - list all posts (with pagination optional)
+router.get('/blog', async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+    const limit = Math.max(parseInt(req.query.limit || '10', 10), 1);
+    const skip = (page - 1) * limit;
+    const [total, posts] = await Promise.all([
+      BlogPost.countDocuments({}),
+      BlogPost.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit)
+    ]);
+    res.json({ success: true, posts, pagination: { page, limit, total } });
+  } catch (error) {
+    logger.error('Error listing blog posts', { error: error.message });
+    res.error(500, 'BLOG_LIST_ERROR', 'Failed to list blog posts');
+  }
+});
+
+// POST /api/admin/blog/images - Upload blog cover images
+router.post('/blog/images', validateCSRFToken, (req, res) => {
+  blogImageUpload.array('images', 5)(req, res, async (err) => {
+    if (err) {
+      logger.error('Blog image upload error:', err);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.error(413, 'FILE_TOO_LARGE', 'File size exceeds the 10MB limit.');
+      }
+      return res.error(400, 'UPLOAD_ERROR', err.message || 'File upload failed');
+    }
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.error(400, 'NO_FILES', 'No image files provided');
+      }
+      const images = req.files.map(file => ({
+        url: `/images/blog/${file.filename}`,
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype
+      }));
+      res.json({ success: true, images });
+    } catch (error) {
+      logger.error('Blog image processing error:', { error: error.message });
+      res.error(500, 'IMAGE_UPLOAD_ERROR', 'Failed to process uploaded images');
+    }
+  });
 });
 
 // GET /api/admin/categories - Get all product categories

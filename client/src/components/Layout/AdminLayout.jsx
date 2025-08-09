@@ -40,6 +40,11 @@ const AdminLayout = ({ children }) => {
       icon: '👥'
     },
     {
+      path: '/admin/blog',
+      label: t('admin.blog.title', 'Blog Management'),
+      icon: '📰'
+    },
+    {
       path: '/admin/settings',
       label: t('admin.navigation.settings'),
       icon: '⚙️'
