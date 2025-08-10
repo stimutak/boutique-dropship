@@ -38,7 +38,7 @@ blogPostSchema.index({ published: 1, publishedAt: -1 });
 blogPostSchema.index({ title: 'text', excerpt: 'text', content: 'text', tags: 'text' });
 
 // Helper to get localized fields with fallback
-blogPostSchema.methods.getLocalized = function(locale = 'en') {
+blogPostSchema.methods.getLocalized = function (locale = 'en') {
   if (!locale || locale === 'en') {
     return {
       title: this.title,
