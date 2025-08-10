@@ -3,10 +3,6 @@ import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchProducts } from '../store/slices/productsSlice'
 import PriceDisplay from '../components/PriceDisplay'
-// Import the page level styles for the home page. This file defines the
-// hero video container and overlay used on the landing section. Without
-// importing the CSS here Vite may tree-shake the file and the classes
-// defined in Home.css will not be applied.
 import './Home.css'
 
 const Home = () => {
@@ -14,9 +10,28 @@ const Home = () => {
   const { products, isLoading } = useSelector(state => state.products)
 
   useEffect(() => {
-    // Fetch featured products for home page
     dispatch(fetchProducts({ limit: 8 }))
   }, [dispatch])
+
+  // Clip video as user scrolls to reveal image
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY
+      const windowHeight = window.innerHeight
+      const videoContainer = document.querySelector('.hero-video-container')
+      
+      if (videoContainer) {
+        // As user scrolls, clip video from bottom to reveal image
+        const clipPercent = Math.min(100, (scrollY / windowHeight) * 100)
+        videoContainer.style.clipPath = `inset(0 0 ${clipPercent}% 0)`
+      }
+    }
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const categories = [
     { name: 'Crystals', slug: 'crystals', description: 'Healing crystals and gemstones' },
@@ -29,31 +44,33 @@ const Home = () => {
 
   return (
     <div className="home">
-      {/* Hero Section */}
-      <section className="hero">
-        {/* The video container uses sticky positioning so that the video
-            scrolls with the page until it reaches the top of the viewport. */}
-        <div className="hero-video-container">
-          <video
-            className="hero-video"
-            src="/videos/hero.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
+      {/* Fixed Hero Section */}
+      <div className="hero-wrapper">
+        {/* Background Image - Always visible */}
+        <div className="hero-bg">
+          <img src="/images/hero-background.jpg" alt="" />
         </div>
-        {/* Text overlay displayed on top of the video */}
-        <div className="hero-content">
+        
+        {/* Video on top - gets clipped away to reveal image */}
+        <div className="hero-video-container">
+          <video autoPlay loop muted playsInline>
+            <source src="/videos/hero.mp4" type="video/mp4" />
+          </video>
+          <div className="video-overlay"></div>
+        </div>
+        
+        {/* Text on top of video */}
+        <div className="hero-text">
           <h1>Authentika Holistic Lifestyle</h1>
           <p>Your Gateway to Authentic Wellness</p>
-          <Link to="/products" className="btn btn-primary btn-luxury">
-            Shop Now
-          </Link>
+          <Link to="/products" className="hero-btn">Shop Now</Link>
         </div>
-      </section>
-
-      {/* Categories Section */}
+      </div>
+      
+      {/* Spacer for scrolling - no white, just space to scroll */}
+      <div className="scroll-spacer"></div>
+      
+      {/* Content sections after parallax */}
       <section className="categories">
         <div className="container">
           <h2 className="luxury-title">Shop by Category</h2>
@@ -72,7 +89,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured Products */}
       <section className="featured-products">
         <div className="container">
           <h2>Featured Products</h2>

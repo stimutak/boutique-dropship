@@ -40,28 +40,55 @@ const Header = () => {
   // header reappears on upward scroll.  Defaults to true so the
   // navigation is visible on initial load.
   const [showMainNav, setShowMainNav] = useState(true)
+  const [lastScrollY, setLastScrollY] = useState(0)
+  const [scrollDirection, setScrollDirection] = useState('up')
 
-  // When on the home page attach a scroll listener.  We use the
-  // viewport height as a threshold for when the hero video has
-  // scrolled sufficiently.  On other routes we always show the
-  // navigation.
+  // When on the home page attach a scroll listener.  We implement
+  // sophisticated scroll behavior: hide on scroll down, show on scroll up
   useEffect(() => {
     if (!isHome) {
       // Ensure the nav is always shown when not on home
       setShowMainNav(true)
       return
     }
+    
+    let ticking = false
     const handleScroll = () => {
-      const threshold = window.innerHeight * 0.6
-      if (window.scrollY > threshold) {
-        if (showMainNav) setShowMainNav(false)
-      } else {
-        if (!showMainNav) setShowMainNav(true)
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY
+          const threshold = window.innerHeight * 0.5
+          
+          // Determine scroll direction
+          if (currentScrollY > lastScrollY) {
+            setScrollDirection('down')
+          } else if (currentScrollY < lastScrollY) {
+            setScrollDirection('up')
+          }
+          
+          // Show/hide main nav based on position and direction
+          if (currentScrollY > threshold) {
+            // Past threshold - hide on scroll down, show on scroll up
+            if (scrollDirection === 'down' && showMainNav) {
+              setShowMainNav(false)
+            } else if (scrollDirection === 'up' && !showMainNav) {
+              setShowMainNav(true)
+            }
+          } else {
+            // Above threshold - always show
+            if (!showMainNav) setShowMainNav(true)
+          }
+          
+          setLastScrollY(currentScrollY)
+          ticking = false
+        })
+        ticking = true
       }
     }
-    window.addEventListener('scroll', handleScroll)
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [isHome, showMainNav])
+  }, [isHome, showMainNav, lastScrollY, scrollDirection])
 
   // Cleanup timeout on unmount
   useEffect(() => {

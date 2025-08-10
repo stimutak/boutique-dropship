@@ -26,7 +26,9 @@ const Blog = () => {
       <div className="blog-background"></div>
       
       <div className="blog-container">
-        <h1 className="blog-main-title">From The Blog</h1>
+        <div className="blog-title-wrapper">
+          <h1 className="blog-main-title">From The Blog</h1>
+        </div>
         
         {isLoading && (
           <div className="blog-loading">
@@ -45,13 +47,17 @@ const Blog = () => {
             <div className="blog-posts-grid">
               {posts[0] && (
                 <article className="blog-card">
+                  {posts[0].coverImage?.url && (
+                    <div className="blog-card-image">
+                      <img 
+                        src={posts[0].coverImage.url} 
+                        alt={posts[0].coverImage.alt || posts[0].title} 
+                      />
+                    </div>
+                  )}
                   <div className="blog-card-content">
-                    <div className="blog-card-date">
-                      {new Date(posts[0].publishedAt).toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })}
+                    <div className="blog-card-category">
+                      {posts[0].tags?.[0] || 'Lifestyle'}
                     </div>
                     
                     <h2 className="blog-card-title">
@@ -60,20 +66,18 @@ const Blog = () => {
                       </Link>
                     </h2>
                     
-                    {posts[0].coverImage?.url && (
-                      <div className="blog-card-image">
-                        <img 
-                          src={posts[0].coverImage.url} 
-                          alt={posts[0].coverImage.alt || posts[0].title} 
-                        />
-                      </div>
-                    )}
-                    
-                    <p className="blog-card-excerpt">
-                      {posts[0].excerpt}
+                    <p className="blog-card-body">
+                      {posts[0].excerpt || posts[0].content?.substring(0, 200) + '...'}
                     </p>
                     
                     <div className="blog-card-footer">
+                      <span className="blog-card-date">
+                        {new Date(posts[0].publishedAt).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })}
+                      </span>
                       <Link 
                         className="blog-read-more" 
                         to={`/blog/${posts[0].slug}`}
@@ -87,13 +91,17 @@ const Blog = () => {
 
               {posts[1] && (
                 <article className="blog-card">
+                  {posts[1].coverImage?.url && (
+                    <div className="blog-card-image">
+                      <img 
+                        src={posts[1].coverImage.url} 
+                        alt={posts[1].coverImage.alt || posts[1].title} 
+                      />
+                    </div>
+                  )}
                   <div className="blog-card-content">
-                    <div className="blog-card-date">
-                      {new Date(posts[1].publishedAt).toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })}
+                    <div className="blog-card-category">
+                      {posts[1].tags?.[0] || 'Wellness'}
                     </div>
                     
                     <h2 className="blog-card-title">
@@ -102,20 +110,18 @@ const Blog = () => {
                       </Link>
                     </h2>
                     
-                    {posts[1].coverImage?.url && (
-                      <div className="blog-card-image">
-                        <img 
-                          src={posts[1].coverImage.url} 
-                          alt={posts[1].coverImage.alt || posts[1].title} 
-                        />
-                      </div>
-                    )}
-                    
-                    <p className="blog-card-excerpt">
-                      {posts[1].excerpt}
+                    <p className="blog-card-body">
+                      {posts[1].excerpt || posts[1].content?.substring(0, 200) + '...'}
                     </p>
                     
                     <div className="blog-card-footer">
+                      <span className="blog-card-date">
+                        {new Date(posts[1].publishedAt).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })}
+                      </span>
                       <Link 
                         className="blog-read-more" 
                         to={`/blog/${posts[1].slug}`}

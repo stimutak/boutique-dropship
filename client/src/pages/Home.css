@@ -1,65 +1,158 @@
-/*
-  Styles for the Home page hero section.
-
-  The hero uses a full–screen video that remains visible until the user
-  scrolls past its height.  Sticky positioning on the container ensures
-  that the video scrolls away naturally while the rest of the page
-  continues underneath.  A gradient overlay at the bottom masks the
-  video as it scrolls up, revealing the next section.
-*/
-
-.hero {
-  position: relative;
-  height: 100vh;
-  width: 100%;
-  overflow: hidden;
-}
-
-/* Sticky container keeps the video in place until the top of the page
-   catches up.  Without sticky positioning the video would scroll out
-   of view immediately. */
-.hero-video-container {
-  position: sticky;
+/* Hero Wrapper - Fixed container */
+.hero-wrapper {
+  position: fixed;
   top: 0;
-  height: 100vh;
+  left: 0;
   width: 100%;
-  overflow: hidden;
+  height: 100vh;
   z-index: 1;
 }
 
-.hero-video {
+/* Background Image - Bottom layer, always visible */
+.hero-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.hero-bg img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 
-/* Content overlay is centred in the hero and sits above the video.  It
-   uses a high z-index to ensure it stays visible and uses white text
-   for maximum contrast on top of dark video frames. */
-.hero-content {
+/* Video Container - On top of image, gets clipped */
+.hero-video-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  clip-path: inset(0 0 0% 0);
+}
+
+.hero-video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.4) 0%,
+    rgba(0, 0, 0, 0.2) 50%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  pointer-events: none;
+}
+
+/* Hero Text - On top of everything */
+.hero-text {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 2;
   text-align: center;
-  color: #ffffff;
-  padding: 0 var(--space-xl);
+  z-index: 3;
+  color: white;
 }
 
-/* Add a gradient overlay at the bottom of the hero to smoothly mask
-   the video as the user scrolls, revealing the background colour of
-   subsequent sections.  The overlay does not interfere with user
-   interactions. */
-.hero::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 30%;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, var(--bg-primary) 100%);
-  z-index: 1;
+.hero-text h1 {
+  font-size: 4rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff !important;
+  background: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 
+    2px 2px 8px rgba(0, 0, 0, 0.9),
+    0 0 40px rgba(0, 0, 0, 0.7);
+}
+
+.hero-text p {
+  font-size: 1.8rem;
+  font-weight: 400;
+  margin-bottom: 2.5rem;
+  color: #ffffff !important;
+  text-shadow: 
+    2px 2px 6px rgba(0, 0, 0, 0.9),
+    0 0 30px rgba(0, 0, 0, 0.6);
+}
+
+.hero-btn {
+  display: inline-block;
+  padding: 16px 48px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #ffffff !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  border: 2px solid #ffffff;
+  border-radius: 50px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.hero-btn:hover {
+  background: #ffffff !important;
+  color: #000000 !important;
+  transform: scale(1.05);
+}
+
+/* Scroll Spacer - Creates scrollable area */
+.scroll-spacer {
+  height: 200vh;
+  position: relative;
+  z-index: 0;
   pointer-events: none;
+}
+
+/* Categories Section - After the parallax */
+.categories {
+  position: relative;
+  padding: 100px 0;
+  background: white;
+  z-index: 10;
+}
+
+/* Featured Products Section */
+.featured-products {
+  position: relative;
+  padding: 100px 0;
+  background: #fafafa;
+  z-index: 10;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-text h1 {
+    font-size: 2.5rem;
+  }
+  
+  .hero-text p {
+    font-size: 1.3rem;
+  }
+  
+  .hero-btn {
+    padding: 14px 36px;
+    font-size: 1rem;
+  }
+  
+  .categories,
+  .featured-products {
+    padding: 60px 0;
+  }
 }
