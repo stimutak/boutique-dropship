@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 const mongoose = require('mongoose');
 const BlogPost = require('../../models/BlogPost');
 require('dotenv').config();
