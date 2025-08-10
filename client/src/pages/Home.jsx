@@ -70,10 +70,11 @@ const Home = () => {
       {/* Spacer for scrolling - no white, just space to scroll */}
       <div className="scroll-spacer"></div>
       
-      {/* Content sections after parallax */}
-      <section className="categories">
-        <div className="container">
-          <h2 className="luxury-title">Shop by Category</h2>
+      {/* Content wrapper with solid background */}
+      <div className="content-wrapper">
+        <section className="categories">
+          <div className="container">
+            <h2 className="luxury-title">Shop by Category</h2>
           <div className="grid grid-3">
             {categories.map(category => (
               <Link 
