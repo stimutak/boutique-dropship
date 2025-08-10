@@ -70,11 +70,9 @@ const Home = () => {
       {/* Spacer for scrolling - no white, just space to scroll */}
       <div className="scroll-spacer"></div>
       
-      {/* Content wrapper with solid background */}
-      <div className="content-wrapper">
-        <section className="categories">
-          <div className="container">
-            <h2 className="luxury-title">Shop by Category</h2>
+      <section className="categories">
+        <div className="container">
+          <h2 className="luxury-title">Shop by Category</h2>
           <div className="grid grid-3">
             {categories.map(category => (
               <Link 
@@ -127,6 +125,9 @@ const Home = () => {
           </div>
         </div>
       </section>
+      
+      {/* Footer background blocker */}
+      <div className="footer-blocker"></div>
     </div>
   )
 }
